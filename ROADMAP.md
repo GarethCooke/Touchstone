@@ -5,7 +5,8 @@ Each milestone lists **Entry** (what must be done first), **Deliverables**, **Ex
 criteria — the tollgate tests exactly these), **Tollgate** (V self-verified · F Fable review),
 **Executor**, and **Size**. Session logs live in the executing repo's evidence pack
 (constitution P7, A1); the owner ticks the box and adds a one-line pointer here when the
-tollgate has passed.
+tollgate has passed. Every UI exit criterion is read as including I22: usable at 390 px,
+evidenced by screenshots.
 
 ## Tracks
 
@@ -49,7 +50,8 @@ Fable-review tollgates, eight in total: L0, L1, L2, T1, T5, L5, P2, L6.
 **Deliverables:** everything in `docs/briefs/S0-learn-site-scaffold.md`, which is this
 milestone's work order.
 **Exit:** `npm run build` and `PREVIEW=1 npm run build` both succeed; preview renders the
-index and `/template` in light and dark; `npm test` green (RNG known answers, gating,
+index and `/template` in light and dark at desktop and 390 px, with D1 and the check
+operable by touch (I22); `npm test` green (RNG known answers, gating,
 curriculum integrity); `npm run check:snippets` green; `docs/rng.md` and the RNG fixture
 exist; production build renders the holding page only.
 **Tollgate:** F. **Executor:** Opus. **Size:** one session, two at most.
@@ -64,7 +66,8 @@ price-versus-payoff curve. Each with a property or known-answer test.
 sum matches ½W_T² − ½T within tolerance and the midpoint sum does not. D4: Euler error
 shrinks with dt at the expected rate. D5: log–log slope of hedging-P&L standard deviation
 against rebalance count is −0.5 ± 0.1. D6: prices and Greeks match the T0 golden file to
-1e-10. All demos deterministic under seed (I6); all render in light and dark.
+1e-10. All demos deterministic under seed (I6); all render in light and dark at desktop and 390 px
+and are operable by touch (I22).
 **Tollgate:** F. **Executor:** Opus. **Size:** two to three sessions; may split L1a (D2–D4)
 and L1b (D5–D6) with one tollgate at the end.
 

@@ -89,6 +89,13 @@ tell within thirty seconds that nothing is claimed beyond what is demonstrated.
   Carlo standard error is reported, never hidden.
 - **I21 — v1 scope is fixed.** European vanillas, one underlying, constant rate and
   volatility, dividend yield. Anything else is Part 4 and enters only by amendment.
+- **I22 — Mobile is a first-class reader.** Prose, maths, code and checks MUST be fully
+  usable at a 390 px viewport: no horizontal page overflow; display maths and code blocks
+  scroll within their own box rather than shrinking or wrapping; checks are answerable by
+  touch with targets of at least 44 px; nothing depends on hover. Demos MUST render and be
+  operable by touch at that width; they are optimised for desktop, and MAY collapse to a
+  reduced control set on narrow viewports, never to a static image or a "view on desktop"
+  message.
 
 ## §5 Session protocol
 
@@ -107,7 +114,8 @@ tell within thirty seconds that nothing is claimed beyond what is demonstrated.
 - **P5 — Evidence pack** at the end of every milestone, under `docs/evidence/<milestone>/`
   in the executing repo: `summary.md` (one page: exit criteria as a checklist with pass/fail,
   what changed and why, links), `build.txt`, `tests.txt`, `screenshots/` for UI in light and
-  dark, `diff.txt` (`git diff --stat` against the milestone's base).
+  dark at desktop and at 390 px (I22), `diff.txt` (`git diff --stat` against the milestone's
+  base).
 - **P6 — Git.** Work on branch `m/<milestone-id>`; commit freely; push the branch; never push
   to `master`. The owner merges after the tollgate.
 - **P7 — Log format**, written at the top of `docs/evidence/<milestone>/summary.md` in the
@@ -163,3 +171,7 @@ or owner)`.
   on visibility · reason: a library in progress is a normal public state and public repos
   get unlimited CI minutes, which a two-compiler-plus-Emscripten matrix would exhaust on a
   private repo's quota · authority: owner, pre-execution.
+- **A3** · 2026-08-28 · new I22; P5 · adds mobile as a first-class reader and 390 px
+  screenshots to every evidence pack · reason: the tutorial's readers read on phones and the
+  checks are a natural phone activity; demos stay desktop-optimised but must work by touch ·
+  authority: owner, during L0.
