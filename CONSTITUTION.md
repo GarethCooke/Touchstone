@@ -10,7 +10,8 @@ Fable tollgate verdict or the owner amends it, and every amendment is recorded i
 
 Companions: `ROADMAP.md` (milestones, exit criteria, tollgates), `docs/index-v1.md` (the
 curriculum), `docs/tech-decisions-v1.md` (why each technology), `docs/rng.md` (the frozen
-random-number specification, written at L0).
+random-number specification; written at L0 in `touchstone-learn`, home in `touchstone` from
+T2).
 
 ---
 
@@ -78,6 +79,10 @@ tell within thirty seconds that nothing is claimed beyond what is demonstrated.
   invalidates every fixture.
 - **I17 — Vendoring runs one way.** Touchstone → learn site (WASM artifact, golden JSON,
   experiment results), pinned by release tag or commit. Never the reverse. No submodules.
+  One exception: the RNG specification and its known-answer fixture originate in
+  `touchstone-learn` at L0 and are copied once into `touchstone` at T2, pinned to the L0
+  merge commit. From T2 onward `touchstone/docs/rng.md` is the home and the site's copy is
+  downstream.
 - **I18 — Repo boundaries.** Learn-site sessions edit only `touchstone-learn`; library
   sessions edit only `touchstone`. Crucible and the portfolio are read-only source material.
 - **I19 — The stack is fixed.** Site: Next on Crucible's version line, MDX, KaTeX, Shiki,
@@ -175,3 +180,10 @@ or owner)`.
   screenshots to every evidence pack · reason: the tutorial's readers read on phones and the
   checks are a natural phone activity; demos stay desktop-optimised but must work by touch ·
   authority: owner, during L0.
+- **A4** · 2026-08-29 · I17, companions list · vendoring runs Touchstone → learn site, never
+  the reverse → one exception: `docs/rng.md` and its known-answer fixture originate in
+  `touchstone-learn` at L0 and are copied once into `touchstone` at T2, pinned to the L0
+  merge commit; from T2 `touchstone/docs/rng.md` is the home and the site's copy is
+  downstream · reason: L0 is a learn-site milestone, so under I18 the specification could
+  only be written in `touchstone-learn`, and T2's deliverable already requires the copy that
+  I17 as written forbids · authority: tollgate L0, recorded by the owner.

@@ -155,12 +155,10 @@ quantities a desk quotes. Reasoning in **Decisions** below.
   workflow step that runs `uv run golden/verify_bs_vanilla.py`, and one that regenerates the
   golden file and fails if `git diff --exit-code golden/bs_vanilla.json` is dirty. That second
   one turns "reruns reproducibly" from a claim in this pack into a standing check.
-- **Carried over from L0's verdict, still outstanding and not this milestone's to fix.**
-  Amendment **A4** is not yet recorded in `CONSTITUTION.md` §8, and `docs/rng.md` is still
-  absent from `touchstone` — the companions list names it but L0 wrote it in
-  `touchstone-learn`. Neither blocks T0. **A4 blocks T2**, whose deliverable is "RNG per
-  `docs/rng.md`, passing the known-answer fixture copied from the site" — the copy I17
-  currently forbids.
+- **Carried over from L0's verdict.** `docs/rng.md` is still absent from `touchstone` — the
+  companions list names it but L0 wrote it in `touchstone-learn`. It arrives at T2 and does
+  not block T0. Amendment **A4** was outstanding when this milestone's work finished and has
+  since been recorded: see the separate commit on this branch.
 - **Naming mismatch, flagged not fixed.** The constitution's companions list names
   `docs/index-v1.md`; the file is `docs/quant-learn-index-v1.md`. Renaming a document the
   constitution points at is the owner's call, and `curriculum.ts` already cites the current
@@ -230,7 +228,10 @@ entering under I4 rather than as an I19 stack addition, and tech-decision B2's "
 `experiments/`" being superseded by the roadmap's explicit `golden/` path. Both are the
 owner's to formalise if they want them formal.
 
-**A4 from L0's verdict remains unrecorded** and should be settled before T2 opens.
+**A4 from L0's verdict is now recorded** in §8, at the owner's instruction and after this
+milestone's work was complete. It is a separate commit on this branch so that the governance
+change and the milestone are reviewable apart from one another; the amendment's authority is
+tollgate L0, not this session.
 
 ## Owner actions
 
@@ -245,8 +246,8 @@ owner's to formalise if they want them formal.
 3. Confirm `uv sync` and `uv run golden/verify_bs_vanilla.py` work natively in the Windows
    checkout — see the environment decision above. If they do, T0's proof is complete on the
    owner's machine as well as here.
-4. Outstanding from L0's verdict: record **A4** in `CONSTITUTION.md` §8 and re-upload it to
-   the Claude Project. This is the one item that blocks a later milestone (T2).
+4. Re-upload `CONSTITUTION.md` to the Claude Project — A4 is now recorded in §8 (separate
+   commit on this branch), and the header requires a re-upload after every amendment.
 
 ## What is in this pack
 
