@@ -295,7 +295,7 @@ and its known-answer fixture copied in under amendment A4 as its first act.
   a stated tolerance, and each tolerance is the conditioning of the quantity rather than a
   number that happened to pass.
 - **I19** — the stack as named: C++20, CMake, GCC and Clang, GitHub Actions. The two vendored
-  headers are the exception, and an amendment is proposed for them below rather than assumed.
+  headers were the exception; amendment A5 now covers them, and nothing else was added.
 - **I20** — three-way agreement is not yet exercisable; T2 and T3 supply the other two ways.
   What T1 adds to T0's one independent agreement is a second: the closed form against QuantLib
   on 7234 rows, in C++ this time, at a few hundred times inside the required tolerance.
@@ -310,18 +310,15 @@ and its known-answer fixture copied in under amendment A4 as its first act.
   reversible and marked where they may be overruled. Nothing irreversible or public-facing was
   decided: no licence, hostname, visibility or spending change, and no push to `main`.
 
-## Amendments proposed
+## Amendments
 
-**One.** In §8's format, for the owner or the tollgate to accept or reject:
-
-> **A5** · 2026-08-29 · I19 · library stack is "C++20, CMake, GCC and Clang, Emscripten,
-> GitHub Actions" → the same, plus doctest and nlohmann/json vendored as single headers in
-> `third_party/`, linked by the test executable only and reachable from neither
-> `include/touchstone/` nor the WASM artifact · reason: I19 requires additions to be
-> amendments; tech-decision B1 already directs the choice of test framework to "whatever Anvil
-> uses", and the golden file is JSON, which C++20 cannot read without either a dependency or
-> an untested parser of our own sitting between the oracle and every assertion · authority:
-> owner, in-session during T1, to be confirmed at this tollgate.
+**One, proposed and accepted.** **A5** amends I19 so that the library stack includes doctest
+and nlohmann/json, vendored as single headers in `third_party/`, linked by the test executable
+only and reachable from neither `include/touchstone/` nor the WASM artifact. The owner accepted
+it in-session on 2026-08-29; I19's text and §8 are both updated, in their own commit on this
+branch so that the governance change and the milestone are reviewable apart from one another.
+The tollgate has nothing to decide here — only to check that what the code does matches what
+§8 now says.
 
 Nothing else. Two governance notes from T0 remain outstanding and are the owner's to formalise
 if wanted: QuantLib entering under I4 rather than as an I19 addition, and tech-decision B2's
@@ -333,8 +330,9 @@ if wanted: QuantLib entering under I4 rather than as an I19 addition, and tech-d
    That closes the one open exit criterion. This session had no credentials for the remote,
    as at T0.
 2. **Run the F tollgate.** A fresh Fable session, §6's prompt verbatim, this pack.
-3. **Accept or reject amendment A5**, and re-upload `CONSTITUTION.md` to the Claude Project if
-   it is accepted.
+3. ~~Accept or reject amendment A5.~~ **Done** — accepted in-session on 2026-08-29, recorded in
+   §8, I19 updated, and `CONSTITUTION.md` re-uploaded to the Claude Project. The separate
+   commit is `A5`.
 4. **Still outstanding from T0:** delete `_to_delete/` (279 MB) and the `tmp_obj_*` files under
    `.git/objects/`; this session's mount refuses every unlink, so they are still there. One
    file was added to `_to_delete/gitlocks/` during this milestone: a stale `.git/index.lock`
