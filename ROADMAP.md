@@ -120,14 +120,14 @@ committed; `touchstone-learn` public; README current.
 
 ### ☑ T0 — Repo, experiments, golden values
 **Entry:** repo exists, public, `LICENSE` (MIT) committed (I12).
-**Deliverab### ☐ T0 — Repo, experiments, golden values
-ointing at the constitution; `uv`
+**Deliverables:** README stating what Touchstone is and pointing at the constitution; `uv`
 project; `experiments/` with a README describing the script-plus-JSON discipline;
 `golden/generate_bs_vanilla.py` using QuantLib-Python to produce prices and Greeks for
 European calls and puts over a grid of spot, strike, vol, rate, dividend yield and expiry;
 `golden/bs_vanilla.json` committed with the QuantLib version.
 **Exit:** the generator reruns reproducibly; JSON schema documented; no C++ yet.
 **Tollgate:** V. **Executor:** Opus, or Sonnet (mechanical). **Size:** under an evening.
+Passed 2026-08-29 — evidence: `docs/evidence/T0/`.
 
 ### ☐ T1 — Core: closed form and analytic Greeks
 **Entry:** T0.
