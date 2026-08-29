@@ -2,9 +2,10 @@
 
 A C++20 pricing and risk library for European vanilla options.
 
-**In progress: nothing here works yet.** There is no C++ in this repository at the time of
-writing. What exists is the governance, the Python oracle and the reference data the library
-will be tested against — see [Status](#status).
+**In progress.** What works today is one thing, done properly: the Black-Scholes-Merton
+closed form for European calls and puts with a dividend yield, and its six analytic Greeks,
+agreeing with QuantLib on 7234 committed reference rows to better than 3e-13. There is no
+Monte Carlo, no PDE solver, no implied vol and no WASM build yet — see [Status](#status).
 
 Touchstone is one half of a pair. The other half is
 [learn.garethcooke.com](https://learn.garethcooke.com), a tutorial for developers who work
@@ -40,8 +41,8 @@ Milestones are ticked in `ROADMAP.md` when their tollgate passes.
 
 | Milestone | State |
 |---|---|
-| T0 — repo, experiments, golden values | this branch |
-| T1 — closed form and analytic Greeks | not started |
+| T0 — repo, experiments, golden values | passed — [evidence](docs/evidence/T0/) |
+| T1 — closed form and analytic Greeks | this branch |
 | T2 — Monte Carlo and the shared RNG | not started |
 | T3 — finite differences, implied vol, bump Greeks | not started |
 | T4 — WASM artifact | not started |
@@ -50,12 +51,35 @@ Milestones are ticked in `ROADMAP.md` when their tollgate passes.
 ## Layout
 
 ```
-golden/       the oracle: QuantLib-generated reference values the C++ tests read
-experiments/  numpy scripts behind the tutorial's Part 2 pages, each with its JSON result
-docs/         the curriculum, the technology decisions, and the evidence packs
+include/touchstone/  the public headers — the whole API surface
+src/                 the implementation
+tests/               doctest suites: the golden sweep, parity, the limits, N(x)
+third_party/         doctest and nlohmann/json, single headers, test target only
+golden/              the oracle: QuantLib-generated reference values the C++ tests read
+experiments/         numpy scripts behind the tutorial's Part 2 pages, each with its JSON result
+docs/                the curriculum, the technology decisions, and the evidence packs
 ```
 
-`src/`, `tests/` and `CMakeLists.txt` arrive at T1.
+## The C++ side
+
+C++20, CMake, no dependencies. GCC and Clang are both built with warnings as errors; the two
+vendored headers under `third_party/` are linked by the test executable and by nothing else.
+
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake --build build -j
+ctest --test-dir build --output-on-failure
+```
+
+Five ctest entries, about a fifth of a second in total. What they check:
+
+| Entry | What a failure would mean |
+|---|---|
+| `ts_normal` | `N(x)` or `phi(x)` is wrong — including the left tail, which an implementation computing `1 - N(-x)` loses entirely. |
+| `ts_closed-form` | The price or a Greek disagrees with QuantLib somewhere on the 7200-row grid or the 34-row edge block, at the tolerances `golden/bs_vanilla.json` itself carries. |
+| `ts_parity` | Put-call parity, or one of the six identities the Greeks inherit from it, does not hold. This one reads the golden file for its parameters and for nothing else, so it would fail even if the oracle were wrong. |
+| `ts_limits` | The closed form does not reduce to a forward contract as volatility goes to zero, or to its payoff as expiry does — or diverges where it should not, or returns a number where the limit is infinite. |
+| `ts_all` | Everything above in one run, so a mistyped filter cannot leave a suite unrun. |
 
 ## The Python side
 
