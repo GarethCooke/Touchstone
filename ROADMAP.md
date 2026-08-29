@@ -118,9 +118,10 @@ committed; `touchstone-learn` public; README current.
 
 ## Track T — Touchstone library
 
-### ☐ T0 — Repo, experiments, golden values
+### ☑ T0 — Repo, experiments, golden values
 **Entry:** repo exists, public, `LICENSE` (MIT) committed (I12).
-**Deliverables:** README stating what Touchstone is and pointing at the constitution; `uv`
+**Deliverab### ☐ T0 — Repo, experiments, golden values
+ointing at the constitution; `uv`
 project; `experiments/` with a README describing the script-plus-JSON discipline;
 `golden/generate_bs_vanilla.py` using QuantLib-Python to produce prices and Greeks for
 European calls and puts over a grid of spot, strike, vol, rate, dividend yield and expiry;
