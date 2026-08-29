@@ -31,6 +31,7 @@
 #include <cmath>
 #include <cstddef>
 #include <iomanip>
+#include <limits>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -582,63 +583,179 @@ TEST_SUITE("monte-carlo")
         CHECK(now.delta == doctest::Approx(1.0).epsilon(1e-14));
     }
 
+    TEST_CASE("the discounted growth factor is the growth factor, discounted")
+    {
+        // `discounted_growth_exact` exists for the corner where the single
+        // multiplication is not finite, which is exactly where nothing can be
+        // compared against it. So it is pinned where both routes work: over
+        // ordinary parameters the one exponential and the product of two
+        // numbers must agree to a few ulps, and an implementation that dropped
+        // the dividend yield, or the variance correction, or flipped a sign
+        // would be wrong here as well as there.
+        double worst = 0.0;
+        for (const double rate : {-0.02, 0.0, 0.05, 0.4}) {
+            for (const double yield : {0.0, 0.03, 0.25}) {
+                for (const double vol : {0.01, 0.2, 1.5}) {
+                    for (const double years : {0.25, 1.0, 30.0}) {
+                        for (const double z : {-4.0, -0.5, 0.0, 1.0, 3.5}) {
+                            const BlackScholesMarket market{100.0, vol, rate, yield};
+                            const double growth =
+                                touchstone::terminal_growth_exact(market, years, z);
+                            const double discounted =
+                                touchstone::discounted_growth_exact(market, years, z);
+                            const double expected = growth * std::exp(-rate * years);
+
+                            CAPTURE(rate);
+                            CAPTURE(yield);
+                            CAPTURE(vol);
+                            CAPTURE(years);
+                            CAPTURE(z);
+                            REQUIRE(std::isfinite(expected));
+
+                            // How far apart two routes to the same exponential
+                            // may be. Neither is wrong: `exp(x)` carries the
+                            // rounding of `x` amplified by `|x|`, because
+                            // d ln exp / dx is one, so each exponent in play
+                            // contributes half an ulp of itself. One route
+                            // exponentiates the drift and the diffusion and
+                            // then multiplies by a third exponential; the other
+                            // exponentiates all three together. Thirty years at
+                            // a volatility of 1.5 puts the exponent near 70,
+                            // and seventy ulps is what that costs.
+                            const double total_vol = vol * std::sqrt(years);
+                            const double drift =
+                                (rate - yield) * years - 0.5 * total_vol * total_vol;
+                            const double conditioning =
+                                std::abs(drift) + std::abs(total_vol * z)
+                                + std::abs(rate * years) + 8.0;
+
+                            const double relative = std::abs(discounted - expected) / expected;
+                            worst = std::max(worst,
+                                             relative
+                                                 / (conditioning
+                                                    * std::numeric_limits<double>::epsilon()));
+                            CHECK(relative
+                                  <= conditioning * std::numeric_limits<double>::epsilon());
+                        }
+                    }
+                }
+            }
+        }
+        std::ostringstream report;
+        report << std::fixed << std::setprecision(3)
+               << "discounted growth against growth times the discount, over 540 parameter "
+                  "sets: worst difference is "
+               << worst << " of its bound";
+        MESSAGE(report.str());
+    }
+
     TEST_CASE("no input the closed form accepts makes the engine return a NaN")
     {
         // T1 made this a promise for the closed form: accepting an input means
         // no output will be a NaN, because a NaN compares false against every
         // tolerance a caller might test it with and so defeats the check that
-        // was meant to catch it. The Monte Carlo validates against that same
-        // domain, so it inherits the promise — and inheriting a domain is not
-        // the same as inheriting the arithmetic. It sums exponentials of
-        // normals, which the closed form never does.
+        // was meant to catch it. The Monte Carlo carries the promise with one
+        // extra condition of its own — the total variance must be
+        // representable, which the closed form never forms and so never checks.
         //
-        // The sweep is `test_limits.cpp`'s, coarsened: the same corners, few
-        // enough paths to run them all. Two things it found, both now fixed and
-        // both re-broken to check this notices: a spot of zero made the
-        // pathwise delta 0/0, and a terminal spot that overflows made Welford's
-        // variance inf * (inf - inf).
-        constexpr double spots[] = {0.0, 1e-300, 1e-8, 100.0, 1e8, 1e300, 1.7e308};
-        constexpr double strikes[] = {0.0, 1e-300, 1e-8, 100.0, 1e8, 1e300};
-        constexpr double vols[] = {0.0, 1e-300, 0.2, 30.0, 1e100};
-        constexpr double expiries[] = {0.0, 1e-300, 1.0, 1e6, 1e300};
-        constexpr double rates[] = {-0.5, 0.0, 0.05};
+        // The sweep is `test_limits.cpp`'s, coarsened in its axes and widened in
+        // its corners, through all four combinations of scheme and pairing.
+        // Every axis here is present because something was found on it: a spot
+        // of zero made the pathwise delta 0/0; rates and yields of several
+        // hundred make the growth factor overflow while the discount underflows;
+        // a volatility near 1.3e154 is accepted by the closed form and squares
+        // to an infinity; and it takes Euler *and* antithetic pairing together
+        // to put an infinity of each sign into one sample.
+        constexpr double spots[] = {0.0, 1e-300, 100.0, 1e150, 1.7e308};
+        constexpr double strikes[] = {0.0, 1e-300, 100.0, 1e300};
+        constexpr double vols[] = {0.0, 0.2, 1e100, 1.6e154};
+        constexpr double expiries[] = {0.0, 1e-160, 1.0, 1e300};
+        constexpr double rates[] = {-700.0, 0.0, 0.05, 700.0};
+        constexpr double yields[] = {-354.0, 0.01, 300.0};
 
-        MonteCarloSettings settings{};
-        settings.paths = 64;
+        struct Configuration {
+            const char* name;
+            Scheme scheme;
+            std::size_t steps;
+            bool antithetic;
+        };
+        constexpr Configuration configurations[] = {
+            {"exact", Scheme::ExactTerminal, 1, false},
+            {"exact, antithetic", Scheme::ExactTerminal, 1, true},
+            {"euler", Scheme::EulerMaruyama, 3, false},
+            {"euler, antithetic", Scheme::EulerMaruyama, 3, true},
+        };
 
         std::size_t priced = 0;
         std::size_t rejected = 0;
-        std::size_t infinite = 0;
+        std::size_t saturated = 0;
 
-        for (const double spot : spots) {
-            for (const double strike : strikes) {
-                for (const double vol : vols) {
-                    for (const double years : expiries) {
-                        for (const double rate : rates) {
-                            for (const OptionType type : {OptionType::Call, OptionType::Put}) {
-                                const EuropeanVanilla option{strike, years, type};
-                                const BlackScholesMarket market{spot, vol, rate, 0.01};
+        for (const Configuration& configuration : configurations) {
+            MonteCarloSettings settings{};
+            settings.paths = 32;
+            settings.scheme = configuration.scheme;
+            settings.steps = configuration.steps;
+            settings.antithetic = configuration.antithetic;
 
-                                MonteCarloResult result{};
-                                try {
-                                    result = touchstone::monte_carlo(option, market, settings);
-                                } catch (const std::invalid_argument&) {
-                                    ++rejected;
-                                    continue;
-                                }
-                                ++priced;
+            for (const double spot : spots) {
+                for (const double strike : strikes) {
+                    for (const double vol : vols) {
+                        for (const double years : expiries) {
+                            for (const double rate : rates) {
+                                for (const double yield : yields) {
+                                    for (const OptionType type :
+                                         {OptionType::Call, OptionType::Put}) {
+                                        const EuropeanVanilla option{strike, years, type};
+                                        const BlackScholesMarket market{spot, vol, rate, yield};
 
-                                CAPTURE(spot);
-                                CAPTURE(strike);
-                                CAPTURE(vol);
-                                CAPTURE(years);
-                                CAPTURE(rate);
-                                REQUIRE_FALSE(std::isnan(result.price));
-                                REQUIRE_FALSE(std::isnan(result.price_standard_error));
-                                REQUIRE_FALSE(std::isnan(result.delta));
-                                REQUIRE_FALSE(std::isnan(result.delta_standard_error));
-                                if (!std::isfinite(result.price) || !std::isfinite(result.delta)) {
-                                    ++infinite;
+                                        MonteCarloResult result{};
+                                        try {
+                                            result =
+                                                touchstone::monte_carlo(option, market, settings);
+                                        } catch (const std::invalid_argument&) {
+                                            ++rejected;
+                                            continue;
+                                        }
+                                        ++priced;
+
+                                        CAPTURE(configuration.name);
+                                        CAPTURE(spot);
+                                        CAPTURE(strike);
+                                        CAPTURE(vol);
+                                        CAPTURE(years);
+                                        CAPTURE(rate);
+                                        CAPTURE(yield);
+                                        REQUIRE_FALSE(std::isnan(result.price));
+                                        REQUIRE_FALSE(std::isnan(result.price_standard_error));
+                                        REQUIRE_FALSE(std::isnan(result.delta));
+                                        REQUIRE_FALSE(std::isnan(result.delta_standard_error));
+
+                                        if (!std::isfinite(result.price)) {
+                                            ++saturated;
+                                            // A payoff is never negative, so a
+                                            // saturated price is positive, and
+                                            // the standard error beside it says
+                                            // the estimate is not a number to
+                                            // read.
+                                            REQUIRE(result.price > 0.0);
+                                            REQUIRE(std::isinf(result.price_standard_error));
+                                        }
+
+                                        // A spot of zero is an absorbing state:
+                                        // every path stays there, so the
+                                        // estimate is the discounted certain
+                                        // payoff and the comparison is exact.
+                                        // Not a NaN is too weak a check here —
+                                        // dropping the case gives a silently
+                                        // wrong finite number.
+                                        if (spot == 0.0) {
+                                            const double reference =
+                                                touchstone::price(option, market);
+                                            REQUIRE(result.price_standard_error == 0.0);
+                                            REQUIRE(std::abs(result.price - reference)
+                                                    <= 1e-12 * std::max(std::abs(reference), 1.0));
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -647,10 +764,13 @@ TEST_SUITE("monte-carlo")
             }
         }
 
-        MESSAGE("domain sweep: " << priced << " priced, " << rejected
-                                 << " rejected as unrepresentable, " << infinite
-                                 << " saturated at an infinity, none a NaN");
+        std::ostringstream report;
+        report << "domain sweep, four scheme and pairing combinations: " << priced << " priced, "
+               << rejected << " refused as unrepresentable, " << saturated
+               << " saturated at an infinity, none a NaN";
+        MESSAGE(report.str());
         REQUIRE(priced > 1000u);
+        REQUIRE(saturated > 0u);  // the saturation path is exercised, not just described
     }
 
     TEST_CASE("the golden grid, priced by Monte Carlo")
@@ -738,10 +858,9 @@ TEST_SUITE("monte-carlo")
                 price_z.push_back((mc.price - closed.price) / mc.price_standard_error);
                 price_labels.push_back(describe(row));
 
-                if (mc.delta_standard_error > 0.0) {
-                    delta_z.push_back((mc.delta - closed.delta) / mc.delta_standard_error);
-                    delta_labels.push_back(describe(row));
-                }
+                REQUIRE(mc.delta_standard_error > 0.0);
+                delta_z.push_back((mc.delta - closed.delta) / mc.delta_standard_error);
+                delta_labels.push_back(describe(row));
                 continue;
             }
 
@@ -806,6 +925,13 @@ TEST_SUITE("monte-carlo")
         check_standard_normal(price_z, price_labels, "price vs closed form");
         check_standard_normal(delta_z, delta_labels, "pathwise delta vs analytic delta");
         check_standard_normal(hit_z, hit_labels, "paths finishing in the money vs N(w d2)");
+        if (grid_stride == 1) {
+            // Not a formality. Without it, a deep gate that admitted nothing
+            // would empty this battery, take 300-odd rows' only price check
+            // with it, and leave a passing run whose only trace was a line of
+            // census nobody asserts on.
+            REQUIRE(deep_z.size() > 100u);
+        }
         if (deep_z.size() > 30) {
             check_standard_normal(deep_z, deep_labels, "rare rows re-run with more paths");
         } else {

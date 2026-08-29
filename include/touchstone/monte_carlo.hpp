@@ -72,13 +72,18 @@ struct MonteCarloSettings {
 struct MonteCarloResult {
     /// Mean discounted payoff.
     ///
-    /// Never a NaN, for any input `require_valid` accepts — the promise
-    /// `black_scholes.hpp` makes for the closed form, kept here too. It may be
-    /// infinite: a terminal spot far enough into the right tail overflows a
-    /// double, and an infinity is a saturated number that compares correctly
-    /// against a tolerance where a NaN compares false against every test a
-    /// caller could write. It takes a spot within a few orders of the largest
-    /// double, or a total volatility above about 700, to reach one.
+    /// Never a NaN, for any input `monte_carlo` accepts — the promise
+    /// `black_scholes.hpp` makes for the closed form, kept here too, with the
+    /// one extra condition on the domain that `monte_carlo` states below.
+    ///
+    /// It may be infinite, which is a different thing: a path whose discounted
+    /// payoff overflows a double saturates the estimate, and the standard error
+    /// beside it is infinite too. An infinity is a number that compares
+    /// correctly against a tolerance, where a NaN compares false against every
+    /// test a caller could write. What reaches one is a growth factor
+    /// `exp((r - q) T + sigma sqrt(T) z)` that overflows — driven by `(r - q) T`
+    /// above about 709, or by a total volatility large enough that an ordinary
+    /// draw of `z` gets there — on a spot large enough to carry it.
     double price{};
 
     double price_standard_error{};   ///< Standard error of that mean. Never hidden (I20).
@@ -104,7 +109,12 @@ void require_valid(const MonteCarloSettings& settings);
 ///
 /// The option and market are validated by `require_valid` in
 /// `black_scholes.hpp` — the same domain the closed form prices on, so that a
-/// comparison between the two is a comparison and not an accident.
+/// comparison between the two is a comparison and not an accident — and by one
+/// condition of this header's own: the total variance `(sigma sqrt(T))^2` must
+/// be representable. The closed form never forms it, so it does not check it,
+/// and between the two bounds every path would be `exp(-inf + inf)`. Throws
+/// `std::invalid_argument` on an input inside the closed form's domain and
+/// outside this one, rather than returning the NaN that would result.
 [[nodiscard]] MonteCarloResult monte_carlo(const EuropeanVanilla& option,
                                            const BlackScholesMarket& market,
                                            const MonteCarloSettings& settings);
