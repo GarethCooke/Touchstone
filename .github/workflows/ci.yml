@@ -1,0 +1,95 @@
+# The library's gate. Tech-decision B7: native build and tests on Linux with
+# both compilers, plus the golden-file check. The WASM build and artifact upload
+# named there arrive at T4 and are deliberately not stubbed here.
+name: library
+
+on:
+  push:
+    branches: [main, 'm/**']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.compiler }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false  # A failure on one compiler should not hide the other.
+      matrix:
+        include:
+          - compiler: gcc
+            cxx: g++
+          - compiler: clang
+            cxx: clang++
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compiler version
+        run: ${{ matrix.cxx }} --version
+
+      - name: Configure
+        run: >
+          cmake -S . -B build
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          -DCMAKE_CXX_COMPILER=${{ matrix.cxx }}
+          -DTOUCHSTONE_WARNINGS_AS_ERRORS=ON
+
+      - name: Build
+        run: cmake --build build -j
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  sanitizers:
+    name: asan + ubsan
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: >
+          cmake -S . -B build-san
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_CXX_COMPILER=g++
+          -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=undefined"
+
+      - name: Build
+        run: cmake --build build-san -j
+
+      - name: Test
+        run: ctest --test-dir build-san --output-on-failure
+
+  golden:
+    name: golden file
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+
+      # uv from pip rather than a third-party action, so the only things this
+      # job trusts are PyPI and the repository's own lockfile.
+      - name: Install uv
+        run: pip install uv==0.12.3
+
+      - name: Every row re-derived independently
+        run: uv run --frozen golden/verify_bs_vanilla.py
+
+      # T0 proved the generator reproducible by hand. This is that proof as a
+      # standing check: regenerate, and require the working tree to be clean.
+      # The committed file's SHA-256 has been reproduced on two unrelated
+      # Linux x86-64 hosts, so a failure here means QuantLib changed or the grid
+      # did — which is exactly what it should mean.
+      - name: The generator still produces the committed file
+        run: |
+          uv run --frozen golden/generate_bs_vanilla.py
+          git diff --exit-code -- golden/bs_vanilla.json

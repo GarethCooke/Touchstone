@@ -1,0 +1,95 @@
+T1 — build log
+==============
+
+Host A — the owner's checkout, mounted into this session's Linux VM.
+Everything in this section ran against C:\Development\Projects\Touchstone
+itself. The build tree is outside the checkout, so nothing is left behind in
+it — a mount that cannot unlink is what left T0 with a _to_delete folder.
+
+Linux 6.8.0-136-generic x86_64
+cmake:  cmake version 4.4.2
+g++:    g++ (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0
+libc:   ldd (Ubuntu GLIBC 2.35-0ubuntu3.14) 2.35
+
+--- configure ---
+-- The CXX compiler identification is GNU 11.4.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/g++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Configuring done (0.2s)
+-- Generating done (0.0s)
+-- Build files have been written to: /sessions/rcw-01phd9cxvdpfkdancspfudtp/build/final
+
+--- build, warnings as errors ---
+[  9%] Building CXX object CMakeFiles/touchstone.dir/src/black_scholes.cpp.o
+[ 18%] Linking CXX static library libtouchstone.a
+[ 18%] Built target touchstone
+[ 27%] Building CXX object CMakeFiles/touchstone_header_check.dir/header_check/black_scholes_hpp.cpp.o
+[ 36%] Building CXX object CMakeFiles/touchstone_header_check.dir/header_check/normal_hpp.cpp.o
+[ 45%] Building CXX object tests/CMakeFiles/touchstone_tests.dir/doctest_main.cpp.o
+[ 54%] Building CXX object tests/CMakeFiles/touchstone_tests.dir/golden_file.cpp.o
+[ 63%] Building CXX object tests/CMakeFiles/touchstone_tests.dir/test_normal.cpp.o
+[ 63%] Built target touchstone_header_check
+[ 72%] Building CXX object tests/CMakeFiles/touchstone_tests.dir/test_closed_form.cpp.o
+[ 81%] Building CXX object tests/CMakeFiles/touchstone_tests.dir/test_parity.cpp.o
+[ 90%] Building CXX object tests/CMakeFiles/touchstone_tests.dir/test_limits.cpp.o
+[100%] Linking CXX executable touchstone_tests
+[100%] Built target touchstone_tests
+
+Exit status 0. -Werror is on with -Wall -Wextra -Wpedantic -Wshadow
+-Wconversion -Wsign-conversion -Wold-style-cast -Wcast-qual -Wdouble-promotion
+-Wformat=2 -Wnon-virtual-dtor -Woverloaded-virtual -Wnull-dereference -Wunused,
+so there were no warnings rather than warnings that were ignored.
+
+Host B — the same files, on a second machine, for the second compiler.
+The owner's machine has no Clang, so GCC 13 and Clang 18 were run in this
+session's cloud container instead. Every file the C++ build reads was verified
+byte-identical to the checkout by SHA-256: see tests.txt, section 5.
+
+Linux 6.18.44-fc-v22 x86_64
+cmake:  cmake version 3.28.3
+libc:   ldd (Ubuntu GLIBC 2.39-0ubuntu8.7) 2.39
+
+=== g++: g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0 ===
+[ 18%] Built target touchstone
+[ 90%] Built target touchstone_header_check
+[100%] Built target touchstone_tests
+  build: clean, warnings as errors
+100% tests passed, 0 tests failed out of 5
+Total Test time (real) =   0.30 sec
+  domain sweep: 16570 priced, 9350 rejected as unrepresentable, 550 with an infinite gamma
+[doctest] test cases:     22 |     22 passed | 0 failed | 0 skipped
+[doctest] assertions: 255999 | 255999 passed | 0 failed |
+
+=== clang++: Ubuntu clang version 18.1.3 (1ubuntu1) ===
+[ 18%] Built target touchstone
+[ 90%] Built target touchstone_header_check
+[100%] Built target touchstone_tests
+  build: clean, warnings as errors
+100% tests passed, 0 tests failed out of 5
+Total Test time (real) =   0.30 sec
+  domain sweep: 16570 priced, 9350 rejected as unrepresentable, 550 with an infinite gamma
+[doctest] test cases:     22 |     22 passed | 0 failed | 0 skipped
+[doctest] assertions: 255999 | 255999 passed | 0 failed |
+
+=== g++ with -fsanitize=address,undefined -fno-sanitize-recover=undefined ===
+  build: clean
+[doctest] test cases:     22 |     22 passed | 0 failed | 0 skipped
+[doctest] assertions: 255999 | 255999 passed | 0 failed |
+[doctest] Status: SUCCESS!
+  No ASan report, no UBSan report. -fno-sanitize-recover=undefined means any
+  undefined behaviour would have aborted the run rather than been counted and
+  passed over. Not a T1 deliverable and not in the workflow's critical path by
+  accident: it is its own CI job so that a failure names itself.
+
+Three compilers, two glibc versions, two machines, one set of numbers: the worst
+scaled error per field in tests.txt is identical to four significant figures on
+all three, and the domain sweep classifies all 25,920 of its inputs the same way
+on each. Nothing in this library depends on which of them compiled it.
+
+Not built here: MSVC and Emscripten. CMakeLists.txt carries an MSVC warning
+branch so that the owner's Windows checkout configures rather than dying on
+unknown flags, but nothing has compiled it and nothing claims it works.
+Emscripten is T4's deliverable.

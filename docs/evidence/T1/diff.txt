@@ -1,0 +1,32 @@
+git diff --stat against 2926289, the milestone's base.
+
+One line is necessarily approximate: this file cannot state its own final
+length, because writing the number changes it. Every other line is exact as
+of the commit.
+
+ .github/workflows/ci.yml             |    95 +
+ CMakeLists.txt                       |    86 +
+ README.md                            |    42 +-
+ docs/evidence/T1/build.txt           |    95 +
+ docs/evidence/T1/diff.txt            |    29 +
+ docs/evidence/T1/summary.md          |   355 +
+ docs/evidence/T1/tests.txt           |   277 +
+ include/touchstone/black_scholes.hpp |    92 +
+ include/touchstone/normal.hpp        |    33 +
+ src/black_scholes.cpp                |   262 +
+ tests/CMakeLists.txt                 |    35 +
+ tests/doctest_main.cpp               |     2 +
+ tests/golden_file.cpp                |   156 +
+ tests/golden_file.hpp                |    74 +
+ tests/test_closed_form.cpp           |   130 +
+ tests/test_limits.cpp                |   573 +
+ tests/test_normal.cpp                |   125 +
+ tests/test_parity.cpp                |   166 +
+ third_party/CMakeLists.txt           |     9 +
+ third_party/README.md                |    30 +
+ third_party/doctest/doctest.h        |  7134 +++++++++
+ third_party/nlohmann/json.hpp        | 25526 +++++++++++++++++++++++++++++++++
+ 22 files changed, 35317 insertions(+), 9 deletions(-)
+
+Excluding the two vendored single headers:
+  2657 insertions, 9 deletions across 20 files
