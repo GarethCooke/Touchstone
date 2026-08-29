@@ -119,6 +119,7 @@ committed; `touchstone-learn` public; README current.
 ## Track T — Touchstone library
 
 ### ☑ T0 — Repo, experiments, golden values
+**Passed** 2026-08-29 — evidence: docs/evidence/T1/.
 **Entry:** repo exists, public, `LICENSE` (MIT) committed (I12).
 **Deliverables:** README stating what Touchstone is and pointing at the constitution; `uv`
 project; `experiments/` with a README describing the script-plus-JSON discipline;
@@ -129,7 +130,7 @@ European calls and puts over a grid of spot, strike, vol, rate, dividend yield a
 **Tollgate:** V. **Executor:** Opus, or Sonnet (mechanical). **Size:** under an evening.
 Passed 2026-08-29 — evidence: `docs/evidence/T0/`.
 
-### ☐ T1 — Core: closed form and analytic Greeks
+### ☑ T1 — Core: closed form and analytic Greeks
 **Entry:** T0.
 **Deliverables:** CMake project; Black–Scholes closed form with dividend yield; analytic
 delta, gamma, vega, theta, rho; N(x) via `std::erfc`; tests: golden file to 1e-10, put–call
