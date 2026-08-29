@@ -1,0 +1,81 @@
+T0 — test log
+=============
+
+Two things are proved here: that the generator reruns reproducibly (the milestone's
+first exit criterion), and that the file it produces is worth trusting.
+
+-------------------------------------------------------------------------------
+1. Reproducibility — same QuantLib version, same bytes
+-------------------------------------------------------------------------------
+
+The generator is run twice more into a scratch directory and both are compared with
+the committed file. The evaluation date is fixed in source and no timestamp is
+written into the output, so byte-identity is the right test rather than a value
+comparison with a tolerance.
+
+$ uv run golden/generate_bs_vanilla.py --out /tmp/repro/run1.json
+wrote /tmp/repro/run1.json — QuantLib 1.43, 7200 cases + 34 edge cases
+$ uv run golden/generate_bs_vanilla.py --out /tmp/repro/run2.json
+wrote /tmp/repro/run2.json — QuantLib 1.43, 7200 cases + 34 edge cases
+
+$ sha256sum golden/bs_vanilla.json /tmp/repro/run1.json /tmp/repro/run2.json
+938ed1bb32ffb6bb25960cc5a66c8c6f4b69e4df94d2d1c147e3b583003e0334  golden/bs_vanilla.json
+938ed1bb32ffb6bb25960cc5a66c8c6f4b69e4df94d2d1c147e3b583003e0334  /tmp/repro/run1.json
+938ed1bb32ffb6bb25960cc5a66c8c6f4b69e4df94d2d1c147e3b583003e0334  /tmp/repro/run2.json
+
+$ cmp golden/bs_vanilla.json /tmp/repro/run1.json && echo IDENTICAL
+IDENTICAL
+$ cmp /tmp/repro/run1.json /tmp/repro/run2.json && echo IDENTICAL
+IDENTICAL
+
+-------------------------------------------------------------------------------
+2. Independent cross-check — golden/verify_bs_vanilla.py
+-------------------------------------------------------------------------------
+
+Re-derives price and all six Greeks for every row from the closed form in SCHEMA.md,
+using math.erfc — the route std::erfc gives the C++ at T1 — then checks put-call
+parity, the sign and unit conventions, and the document's own structure.
+
+$ uv run golden/verify_bs_vanilla.py
+golden file : bs_vanilla.json
+schema      : touchstone/golden/bs_vanilla@1
+oracle      : QuantLib 1.43 (AnalyticEuropeanEngine on BlackScholesMertonProcess)
+cases       : 7200 main + 34 edge
+threshold   : 1e-13 of each quantity's natural scale
+
+schema conformance ...
+closed form against an independent erfc implementation ...
+put-call parity ...
+  3617 matched pairs
+sign and unit conventions ...
+
+worst deviation by field, in units of the quantity's natural scale:
+  price            1.540e-15   put S=60 K=90 vol=0.15 r=-0.005 q=0.05 T=91d
+  delta            1.010e-14   one-day-atm/put S=100 K=100 vol=0.2 r=0.03 q=0.01 T=1d
+  gamma            1.707e-14   call S=120 K=110 vol=0.05 r=0.05 q=0.02 T=730d
+  vega             2.250e-15   call S=120 K=120 vol=0.05 r=0.01 q=0.05 T=365d
+  theta            4.165e-16   one-day-deep-otm-call/put S=50 K=200 vol=0.2 r=0.03 q=0.01 T=1d
+  rho              4.987e-15   put S=100 K=100 vol=0.05 r=0.05 q=0.05 T=91d
+  dividend_rho     4.916e-15   call S=100 K=100 vol=0.05 r=0.05 q=0.05 T=91d
+  put-call parity  5.921e-16   call S=60 K=110 vol=0.6 r=0.05 q=0.02 T=365d
+
+PASS — 7234 cases x 7 fields, plus parity on 3617 pairs, all within 1e-13 of an independent implementation.
+exit status: 0
+
+-------------------------------------------------------------------------------
+3. Grid coverage
+-------------------------------------------------------------------------------
+
+main grid: 7200 rows
+  price >= 1          5571   77.4%
+  1e-3 <= price < 1    880   12.2%
+  1e-8 <= price <1e-3   341    4.7%
+  1e-15<= price <1e-8   136    1.9%
+  price < 1e-15        272    3.8%
+
+rows with a negative price: 106 (all puts, deep out of the money)
+  most negative: -1.6571e-14
+  these are the oracle's arithmetic noise at the scale of a few ulps of spot,
+  documented in SCHEMA.md under Precision, and deliberately not clamped.
+
+edge block: 34 rows, 17 labelled parameter sets

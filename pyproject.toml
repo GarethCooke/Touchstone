@@ -1,0 +1,15 @@
+[project]
+name = "touchstone-experiments"
+version = "0.0.0"
+description = "Python side of Touchstone: the QuantLib oracle that generates golden files, and the numpy experiments behind the tutorial's Part 2 pages."
+requires-python = ">=3.12"
+dependencies = [
+    "quantlib>=1.43,<2",
+    "numpy>=2,<3",
+]
+
+# The C++ library is the repo's product; this project exists only to run the
+# scripts under golden/ and experiments/. Nothing here is importable by, or
+# linked into, the library — see CONSTITUTION.md I4.
+[tool.uv]
+package = false

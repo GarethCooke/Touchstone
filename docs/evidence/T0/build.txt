@@ -1,0 +1,33 @@
+T0 — build log
+==============
+
+There is no compile step at T0: the milestone's exit criterion is "no C++ yet".
+For this milestone the build is the uv environment — resolving the lock, syncing it,
+and running the generator that produces the committed artefact.
+
+Run from the repository checkout on 2026-08-29.
+
+$ uv --version
+uv 0.12.3 (x86_64-unknown-linux-gnu)
+
+$ uv lock --check                 # the committed lock resolves the declared deps
+Resolved 3 packages in 2ms
+
+$ uv sync
+Resolved 3 packages in 2ms
+Checked 2 packages in 0.14ms
+
+$ uv run python -c 'versions'
+python   3.12.13
+QuantLib 1.43
+numpy    2.5.2
+
+$ uv run golden/generate_bs_vanilla.py
+wrote /sessions/rcw-011am82hkxgil6jrmsycuwfl/mnt/Touchstone/golden/bs_vanilla.json — QuantLib 1.43, 7200 cases + 34 edge cases
+
+$ ls -l golden/
+total 2416
+-rwx------ 1 rcw-011am82hkxgil6jrmsycuwfl rcw-011am82hkxgil6jrmsycuwfl   10900 Aug 29 12:22 SCHEMA.md
+-rwx------ 1 rcw-011am82hkxgil6jrmsycuwfl rcw-011am82hkxgil6jrmsycuwfl 2425656 Aug 29  2026 bs_vanilla.json
+-rwx------ 1 rcw-011am82hkxgil6jrmsycuwfl rcw-011am82hkxgil6jrmsycuwfl   12582 Aug 29 12:15 generate_bs_vanilla.py
+-rwx------ 1 rcw-011am82hkxgil6jrmsycuwfl rcw-011am82hkxgil6jrmsycuwfl   12728 Aug 29 12:20 verify_bs_vanilla.py
