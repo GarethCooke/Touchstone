@@ -44,7 +44,7 @@ Fable-review tollgates, eight in total: L0, L1, L2, T1, T5, L5, P2, L6.
 
 ## Track L — Learn site
 
-### ☐ L0 — Scaffold
+### ☑ L0 — Scaffold
 **Entry:** both repos created — `touchstone` public, `touchstone-learn` private (I12);
 `touchstone/docs/` holds the constitution companions; Node 22 installed locally.
 **Deliverables:** everything in `docs/briefs/S0-learn-site-scaffold.md`, which is this
