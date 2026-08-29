@@ -1,7 +1,9 @@
 # T2 — diff against the milestone's base
 
-`git diff --stat 7c2942b`, where 7c2942b is `main` as it stood when `m/T2` was
-branched: the merge of T1 plus the owner's tick of the roadmap.
+`git diff --stat 7c2942b -- . ':(exclude)docs/evidence/T2'`, where 7c2942b is `main`
+as it stood when `m/T2` was branched: the merge of T1 plus the owner's tick of the
+roadmap. This pack itself is excluded, so the figures below are the milestone's
+work rather than its report.
 
 ```
  .github/workflows/ci.yml           |   13 +-
