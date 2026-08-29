@@ -47,6 +47,10 @@ jobs:
       - name: Test
         run: ctest --test-dir build --output-on-failure
 
+  # A sixteenth of the statistical sweeps: this job is looking for memory and
+  # undefined-behaviour errors, which the first row of a sweep exercises as well
+  # as the seven thousandth, and the build it runs is nine times slower. The two
+  # compiler jobs above run the sweeps whole.
   sanitizers:
     name: asan + ubsan
     runs-on: ubuntu-24.04
@@ -58,6 +62,7 @@ jobs:
           cmake -S . -B build-san
           -DCMAKE_BUILD_TYPE=Debug
           -DCMAKE_CXX_COMPILER=g++
+          -DTOUCHSTONE_SWEEP_SCALE=16
           -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=undefined"
 
       - name: Build

@@ -23,6 +23,9 @@ target_link_libraries(touchstone_tests
 # ignored". The alternative is a static_cast at every call site.
 target_compile_definitions(touchstone_tests PRIVATE DOCTEST_CONFIG_VOID_CAST_EXPRESSIONS)
 
+target_compile_definitions(touchstone_tests
+    PRIVATE TOUCHSTONE_SWEEP_SCALE=${TOUCHSTONE_SWEEP_SCALE})
+
 # The tests read the golden file from the source tree, so the build tree can
 # live anywhere. TOUCHSTONE_GOLDEN_PATH in the environment overrides it, which
 # is how CI checks a regenerated file against the same tests.

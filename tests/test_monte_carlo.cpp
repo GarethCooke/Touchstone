@@ -36,15 +36,13 @@
 #include <string>
 #include <vector>
 
-// How much of the grid the sweeps walk. One in every `stride` rows; the whole
-// grid by default. The sanitizer job in CI sets this higher: ASan and UBSan
-// look for memory and undefined-behaviour errors, which every row exercises
-// equally, so there is nothing to be gained from running the same code paths
-// seven thousand times in a build that is fifty times slower. Every bound in
-// this file is computed from the number of rows actually swept, so a strided
-// run is a smaller valid test rather than a weaker version of this one.
-#ifndef TOUCHSTONE_MC_GRID_STRIDE
-#define TOUCHSTONE_MC_GRID_STRIDE 1
+// How much of the grid the sweeps walk: one row in every `TOUCHSTONE_SWEEP_SCALE`.
+// One by default, so the whole grid; CI's sanitizer job sets it higher, for the
+// reason `CMakeLists.txt` gives where the option is declared. Every bound in
+// this file is computed from the number of rows actually swept, so a scaled run
+// is a smaller valid test rather than a weaker version of this one.
+#ifndef TOUCHSTONE_SWEEP_SCALE
+#define TOUCHSTONE_SWEEP_SCALE 1
 #endif
 
 namespace {
@@ -64,7 +62,7 @@ using touchstone::testing::Standardised;
 using touchstone::testing::standardise;
 using touchstone::testing::stream_seed;
 
-constexpr std::size_t grid_stride = TOUCHSTONE_MC_GRID_STRIDE;
+constexpr std::size_t grid_stride = TOUCHSTONE_SWEEP_SCALE;
 
 /// Paths per row on the grid sweep. Enough that the estimator is close to
 /// normal on the rows the sweep tests, and cheap enough to run on every row.
@@ -73,7 +71,7 @@ constexpr std::size_t grid_paths = 32768;
 /// Paths for the second look at a row too rarely in the money to standardise
 /// at `grid_paths`. Thirty-two times as many moves the threshold from about
 /// three paths in a thousand down to about one in ten thousand.
-constexpr std::size_t deep_paths = 1048576;
+constexpr std::size_t deep_paths = 1048576 / TOUCHSTONE_SWEEP_SCALE;
 
 /// The number of paths that must finish in the money before a z-score means
 /// anything.
@@ -677,8 +675,10 @@ TEST_SUITE("monte-carlo")
         const auto& file = touchstone::testing::golden_file();
         std::vector<double> z;
         std::vector<std::string> labels;
+        std::size_t visited = 0;
 
         for (std::size_t index = 0; index < file.cases.size(); index += 4 * grid_stride) {
+            ++visited;
             const GoldenCase& row = file.cases[index];
 
             MonteCarloSettings settings{};
@@ -695,7 +695,8 @@ TEST_SUITE("monte-carlo")
             labels.push_back(describe(row));
         }
 
-        REQUIRE(z.size() > 100u);
+        REQUIRE(z.size() >= 30u);
+        REQUIRE(2u * z.size() >= visited);  // most of what was visited was usable
         check_standard_normal(z, labels, "antithetic price vs closed form");
     }
 }

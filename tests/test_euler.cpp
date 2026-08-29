@@ -20,6 +20,13 @@
 
 #include <doctest/doctest.h>
 
+// See `CMakeLists.txt`, where the option is declared: one by default, higher in
+// CI's sanitizer job, where the point is to walk every line rather than to
+// measure a rate precisely.
+#ifndef TOUCHSTONE_SWEEP_SCALE
+#define TOUCHSTONE_SWEEP_SCALE 1
+#endif
+
 #include <cmath>
 #include <cstddef>
 #include <iomanip>
@@ -43,7 +50,8 @@ struct Fit {
     double slope{};
     double intercept{};
     double worst_residual{};
-    double slope_error{};  ///< Set only when the points carry standard errors.
+    double slope_error{};   ///< Set only when the points carry standard errors.
+    double worst_scatter{}; ///< Largest relative standard error among the points.
 };
 
 Fit fit_log_log(const std::vector<double>& dt, const std::vector<double>& error)
@@ -102,6 +110,7 @@ Fit fit_log_log_with_errors(const std::vector<double>& dt,
         const double dx = std::log(dt[i]) - mean_x;
         const double sigma_y = value_error[i] / value[i];
         variance_slope += (dx * sigma_y) * (dx * sigma_y);
+        fit.worst_scatter = std::max(fit.worst_scatter, sigma_y);
     }
     fit.slope_error = std::sqrt(variance_slope) / variance_x;
     return fit;
@@ -110,13 +119,16 @@ Fit fit_log_log_with_errors(const std::vector<double>& dt,
 const BlackScholesMarket market{100.0, 0.3, 0.05, 0.02};
 constexpr double expiry = 1.0;
 
+constexpr std::size_t sweep_scale = TOUCHSTONE_SWEEP_SCALE;
+constexpr bool full_sweep = (sweep_scale == 1);
+
 }  // namespace
 
 TEST_SUITE("euler")
 {
     TEST_CASE("path by path, Euler's error shrinks as the square root of dt")
     {
-        constexpr std::size_t paths = 20000;
+        constexpr std::size_t paths = 20000 / sweep_scale;
         const std::vector<std::size_t> levels{1, 2, 4, 8, 16, 32, 64, 128, 256};
 
         // A convergence rate is a statement about small dt, so the fit is taken
@@ -202,7 +214,11 @@ TEST_SUITE("euler")
         // The bound is the fit's own uncertainty five times over, widened by
         // 0.02 for the curvature dt = 1/8 still carries.
         CHECK(std::abs(fit.slope - 0.5) <= 5.0 * fit.slope_error + 0.02);
-        CHECK(fit.worst_residual < 0.02);
+
+        // And a straight line was the right shape: no point sits further off it
+        // than its own noise, five times over, plus the 0.01 of curvature that
+        // dt = 1/8 still carries.
+        CHECK(fit.worst_residual <= 5.0 * fit.worst_scatter + 0.01);
     }
 
     TEST_CASE("in a price, Euler's error shrinks as dt itself")
@@ -224,7 +240,7 @@ TEST_SUITE("euler")
         // first-order term has. A fit taken across the whole range would
         // measure that climb and return a slope near a half, and the mistake
         // would be the fit's rather than the scheme's.
-        constexpr std::size_t paths = 1000000;
+        constexpr std::size_t paths = 1000000 / sweep_scale;
         const std::vector<std::size_t> levels{2, 4, 8, 16, 32, 64};
         constexpr double asymptotic_below = 0.13;
         const EuropeanVanilla option{100.0, expiry, OptionType::Call};
@@ -282,9 +298,16 @@ TEST_SUITE("euler")
                   << std::abs(mean) / step;
 
             // Every level's bias is resolved: what is being fitted is a
-            // measurement, not noise.
+            // measurement, not noise. This is the one assertion in the suite
+            // that a reduced sweep cannot make — the bias falls like dt while
+            // the noise on it falls only like sqrt(dt), so resolution is bought
+            // with paths and nothing else. At reduced scale it stands aside and
+            // says so; the slope check below stays, on a bound that widens with
+            // the measurement's own uncertainty.
             CAPTURE(steps);
-            CHECK(std::abs(mean) > 6.0 * standard_error);
+            if (full_sweep) {
+                CHECK(std::abs(mean) > 6.0 * standard_error);
+            }
         }
 
         // The fit, over the levels where bias/dt has settled.
@@ -304,6 +327,10 @@ TEST_SUITE("euler")
         table << "\n    slope over dt < " << std::fixed << std::setprecision(2)
               << asymptotic_below << ": " << std::setprecision(4) << fit.slope << " +/- "
               << fit.slope_error << " (1.0 expected)";
+        if (!full_sweep) {
+            table << "\n    reduced sweep (scale " << sweep_scale
+                  << "): the bias is not resolved and is not asserted to be";
+        }
         MESSAGE(table.str());
 
         // The bound is the measurement's own uncertainty, five times over,
@@ -324,7 +351,7 @@ TEST_SUITE("euler")
 
         MonteCarloSettings settings{};
         settings.seed = 555u;
-        settings.paths = 400000;
+        settings.paths = 400000 / sweep_scale;
         settings.scheme = Scheme::EulerMaruyama;
         settings.steps = 512;
         settings.antithetic = true;

@@ -15,6 +15,16 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 option(TOUCHSTONE_BUILD_TESTS "Build the test suite" ON)
+
+# How much of the statistical sweeps to run: 1 is all of it, and CI's two
+# compiler jobs use that. The sanitizer job sets it higher, because ASan and
+# UBSan are looking for memory and undefined-behaviour errors, which every row
+# of a sweep exercises equally — there is nothing to be found in the seven
+# thousandth that was not in the first, and the build is nine times slower.
+# Every statistical bound in the suite is computed from the sample actually
+# taken, so a scaled run is a smaller valid test rather than a weaker one; the
+# single assertion that needs the full sample says so and stands aside.
+set(TOUCHSTONE_SWEEP_SCALE 1 CACHE STRING "Divide the statistical sweeps by this")
 option(TOUCHSTONE_WARNINGS_AS_ERRORS "Fail the build on any warning" ON)
 
 # --- Warnings ---------------------------------------------------------------
