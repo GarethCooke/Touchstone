@@ -794,6 +794,18 @@ TEST_SUITE("monte-carlo")
         MESSAGE(corner.str());
 
         REQUIRE(std::isfinite(recovered.price));
+
+        // And the other side of the same coin: a volatility of 1.6e154 squares
+        // to an infinity, but over an expiry of 1e-160 the total volatility
+        // sigma sqrt(T) is 1.6e74 and perfectly representable. Forming it that
+        // way — the way the closed form forms it — is what lets this be priced
+        // rather than refused, and this call would throw if the association
+        // went back.
+        const BlackScholesMarket enormous{100.0, 1.6e154, 0.01, 0.0};
+        const EuropeanVanilla brief{100.0, 1e-160, OptionType::Call};
+        const MonteCarloResult wild = touchstone::monte_carlo(brief, enormous, settings);
+        CHECK(std::isfinite(wild.price));
+        CHECK(wild.price >= 0.0);
         // Five per cent, against a sampling spread of a third of one per cent
         // at this path count. The failure this guards against is an infinity,
         // not a small error.
