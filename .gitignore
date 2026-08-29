@@ -1,0 +1,22 @@
+# Python / uv
+.venv/
+venv/
+__pycache__/
+*.pyc
+.python-version.local
+
+# Build output (arrives at T1)
+build/
+out/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.idea/
+.vscode/
+*.swp
+
+# Session litter the mount would not let this session delete — safe to remove
+_to_delete/

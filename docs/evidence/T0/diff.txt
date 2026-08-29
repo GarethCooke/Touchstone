@@ -1,0 +1,40 @@
+T0 — diff against the milestone base
+====================================
+
+Base:   211477e0e850eab75cbeecce39c9fe3b055b8485 ("L0 passed", the tip of main when this milestone started)
+Branch: m/T0
+
+diff.txt is excluded from the stat below: a file cannot state its own line count
+without changing it. Every other file in the commit is listed exactly.
+
+$ git diff --stat 211477e0e850eab75cbeecce39c9fe3b055b8485 -- . ':(exclude)docs/evidence/T0/diff.txt'
+ .gitattributes                |   24 +
+ .gitignore                    |   22 +
+ .python-version               |    1 +
+ README.md                     |   84 +-
+ docs/evidence/T0/build.txt    |   33 +
+ docs/evidence/T0/summary.md   |  251 ++
+ docs/evidence/T0/tests.txt    |   81 +
+ experiments/README.md         |   64 +
+ golden/SCHEMA.md              |  228 ++
+ golden/bs_vanilla.json        | 7333 +++++++++++++++++++++++++++++++++++++++++
+ golden/generate_bs_vanilla.py |  310 ++
+ golden/verify_bs_vanilla.py   |  321 ++
+ pyproject.toml                |   15 +
+ uv.lock                       |  118 +
+ 14 files changed, 8884 insertions(+), 1 deletion(-)
+
+$ git diff --summary 211477e0e850eab75cbeecce39c9fe3b055b8485 -- . ':(exclude)docs/evidence/T0/diff.txt'
+ create mode 100644 .gitattributes
+ create mode 100644 .gitignore
+ create mode 100644 .python-version
+ create mode 100644 docs/evidence/T0/build.txt
+ create mode 100644 docs/evidence/T0/summary.md
+ create mode 100644 docs/evidence/T0/tests.txt
+ create mode 100644 experiments/README.md
+ create mode 100644 golden/SCHEMA.md
+ create mode 100644 golden/bs_vanilla.json
+ create mode 100644 golden/generate_bs_vanilla.py
+ create mode 100644 golden/verify_bs_vanilla.py
+ create mode 100644 pyproject.toml
+ create mode 100644 uv.lock
