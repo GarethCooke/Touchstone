@@ -396,7 +396,10 @@ TEST_SUITE("rng")
         std::vector<std::vector<double>> samples;
         samples.reserve(streams);
         for (std::size_t i = 0; i < streams; ++i) {
-            samples.push_back(normals_from(stream_seed(i * 97u), draws));
+            // Consecutive indices, which is what the sweeps use. Spreading the
+            // sample over the seed space instead would test a property the
+            // sweeps do not rely on and skip the one they do.
+            samples.push_back(normals_from(stream_seed(i), draws));
         }
 
         const std::size_t pairs = streams * (streams - 1) / 2;

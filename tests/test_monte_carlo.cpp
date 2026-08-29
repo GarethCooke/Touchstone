@@ -68,24 +68,36 @@ constexpr std::size_t grid_stride = TOUCHSTONE_SWEEP_SCALE;
 /// normal on the rows the sweep tests, and cheap enough to run on every row.
 constexpr std::size_t grid_paths = 32768;
 
-/// Paths for the second look at a row too rarely in the money to standardise
-/// at `grid_paths`. Thirty-two times as many moves the threshold from about
-/// three paths in a thousand down to about one in ten thousand.
-constexpr std::size_t deep_paths = 1048576 / TOUCHSTONE_SWEEP_SCALE;
+/// Paths for the second look at a row too rarely in the money to standardise at
+/// `grid_paths`. Thirty-two times as many, which moves the threshold from about
+/// one path in seventy to one in two thousand. Not divided by the sweep scale:
+/// the stride already cuts how many rows reach this, and dividing twice would
+/// make the comment above it false in the scaled build.
+constexpr std::size_t deep_paths = 32 * grid_paths;
 
-/// The number of paths that must finish in the money before a z-score means
-/// anything.
+/// The number of paths a row must *expect* to finish in the money before its
+/// z-score means anything.
 ///
 /// Derived, not chosen. A vanilla's discounted payoff is a mixture: an atom at
-/// zero carrying 1 - p, and a positive part above it. Its skewness is dominated
-/// by that atom and goes like 1/sqrt(p) for small p, so Cochran's condition for
-/// the central limit theorem to have arrived — |skewness| / sqrt(n) below about
-/// 0.1 — becomes 1 / sqrt(n p) <= 0.1, which is n p >= 100. And n p is the
-/// number of paths that finished in the money, which the engine reports.
+/// zero carrying 1 - p, and a positive part above it. Writing X = B Y with B
+/// Bernoulli(p), its skewness for small p is about
+/// (mu3 / mu2^{3/2}) / sqrt(p), where the first factor belongs to the payoff
+/// conditional on finishing in the money — near-exponential in the tail of the
+/// grid, so about 6 / 2^{3/2} = 2.12. Cochran's condition for the central limit
+/// theorem to have arrived, |skewness| / sqrt(n) below 0.1, is then
+/// n p >= (2.12 / 0.1)^2 = 450.
 ///
 /// Below this the estimate is still unbiased and still converges; what it is
 /// not is normal, so a standard error is a spread rather than a ruler.
-constexpr std::size_t clt_paths_in_the_money = 100;
+///
+/// **Expected, not observed.** The observed count is correlated with the price
+/// estimate — the same paths produce both — so admitting a row on the strength
+/// of it would be selecting on the statistic under test. Measured on one row
+/// with an expected count of exactly 100, over 20,000 independent runs: the
+/// mean z of every run is -0.11, and the mean z of the runs that clear an
+/// observed cut of 100 is +0.45. The expected count comes from N(w d2), which
+/// no path has any say in.
+constexpr double clt_expected_in_the_money = 450.0;
 
 /// The four sigma-multiples the batteries assert at. Five, not three: these
 /// bounds are the sampling error of the statistic itself, so a real defect
@@ -148,9 +160,20 @@ void check_standard_normal(const std::vector<double>& z,
     // No row is further out than a sample this size should reach.
     CHECK(summary.worst <= summary.worst_bound);
 
-    // The estimator is unbiased: the mean of n standard normals has standard
-    // deviation 1/sqrt(n). This is the assertion that a systematic error has to
-    // get past, and the reason the sweep is worth more than its rows.
+    // No systematic error: the mean of n standard normals has standard
+    // deviation 1/sqrt(n), and this is the assertion a bias has to get past.
+    // It is what the sweep is worth more than its rows for — a bias of a tenth
+    // of a standard error passes every row's three-sigma test and fails here by
+    // eight sigma.
+    //
+    // What it does not separate is estimator bias from studentisation bias. A
+    // studentised mean of a right-skewed payoff has E[z] of about
+    // -c / sqrt(n p) even when the estimator itself is exact, so a little of
+    // this budget is spent before any defect exists: measured across five
+    // disjoint seed families, this grid's mean sits at -0.009 with a spread of
+    // 0.006, against a bound of 0.063. That is the price of a cut-off at 450
+    // expected paths in the money rather than at four thousand, and it is
+    // stated here rather than left for a reader to discover.
     CHECK(std::abs(summary.mean) <= sigma_bound / std::sqrt(n));
 
     // The standard error is the right size: neither overstated, which would
@@ -252,6 +275,7 @@ TEST_SUITE("monte-carlo")
 
                 double total_price = 0.0;
                 double total_delta = 0.0;
+                std::size_t hits = 0;
                 std::vector<double> normals(draws, 0.0);
 
                 for (std::size_t sample = 0; sample < samples; ++sample) {
@@ -283,6 +307,9 @@ TEST_SUITE("monte-carlo")
                         total_price += discount * (intrinsic > 0.0 ? intrinsic : 0.0);
                         total_delta +=
                             discount * (intrinsic > 0.0 ? terminal / market.spot : 0.0);
+                        if (intrinsic > 0.0) {
+                            ++hits;
+                        }
                     }
                 }
 
@@ -298,6 +325,10 @@ TEST_SUITE("monte-carlo")
                       <= 1e-12 * std::abs(total_delta / paths));
                 CHECK(engine.paths == settings.paths);
                 CHECK(engine.samples == samples);
+                // Counted per path, partners included. Nothing else in the
+                // suite pins this under antithetic sampling, and the grid sweep
+                // uses it to say where a standard error is worth reading.
+                CHECK(engine.in_the_money == hits);
             }
         }
     }
@@ -373,7 +404,11 @@ TEST_SUITE("monte-carlo")
 
             // And the reported standard error is the observed spread. A sample
             // standard deviation from 400 runs is itself uncertain by
-            // 1/sqrt(2 * 400) = 3.5% relative, which is what this allows.
+            // 1/sqrt(2 * 400) = 3.5% relative, so the bound is five of those,
+            // 17.7%. That is a coarse instrument next to the grid battery,
+            // whose spread leg pins the standard error to within 5% — this test
+            // is here for what the grid cannot see, which is the whole
+            // estimator end to end, run four hundred times.
             const double relative_uncertainty =
                 sigma_bound / std::sqrt(2.0 * static_cast<double>(repetitions));
             CHECK(std::abs(price_spread / reported_price_error - 1.0) <= relative_uncertainty);
@@ -484,13 +519,138 @@ TEST_SUITE("monte-carlo")
         CHECK(touchstone::payoff(call, -5.0) == 0.0);
         CHECK(touchstone::payoff(put, -5.0) == 105.0);
 
-        // dS_T/dS is S_T/S because every path is S times something that does not
-        // depend on S; the payoff contributes w where it is in the money and
-        // zero where it is not.
-        CHECK(touchstone::pathwise_payoff_delta(call, 50.0, 120.0) == doctest::Approx(2.4));
-        CHECK(touchstone::pathwise_payoff_delta(call, 50.0, 80.0) == 0.0);
-        CHECK(touchstone::pathwise_payoff_delta(put, 50.0, 80.0) == doctest::Approx(-1.6));
-        CHECK(touchstone::pathwise_payoff_delta(put, 50.0, 120.0) == 0.0);
+        // dS_T/dS is the growth factor, because every path is S times something
+        // that does not depend on S; the payoff contributes w where it is in
+        // the money and zero where it is not. (S_T = 120 from a spot of 50 is a
+        // growth of 2.4.)
+        CHECK(touchstone::pathwise_payoff_delta(call, 120.0, 2.4) == doctest::Approx(2.4));
+        CHECK(touchstone::pathwise_payoff_delta(call, 80.0, 1.6) == 0.0);
+        CHECK(touchstone::pathwise_payoff_delta(put, 80.0, 1.6) == doctest::Approx(-1.6));
+        CHECK(touchstone::pathwise_payoff_delta(put, 120.0, 2.4) == 0.0);
+
+        // And the reason it is the growth factor rather than S_T / S. A spot of
+        // zero is inside the domain the closed form prices on; every path stays
+        // at zero; a put is in the money on all of them and has a delta of
+        // -e^{-qT}, which the ratio would return a NaN for.
+        const BlackScholesMarket nothing{0.0, 0.2, 0.03, 0.01};
+        const double growth = touchstone::terminal_growth_exact(nothing, 1.0, 0.5);
+        CHECK(touchstone::terminal_spot_exact(nothing, 1.0, 0.5) == 0.0);
+        CHECK(touchstone::pathwise_payoff_delta(put, 0.0, growth) == -growth);
+
+        MonteCarloSettings settings{};
+        settings.paths = 8192;
+        const MonteCarloResult at_zero = touchstone::monte_carlo(put, nothing, settings);
+        const touchstone::PriceAndGreeks closed = touchstone::price_and_greeks(put, nothing);
+        CHECK(at_zero.price == doctest::Approx(closed.price).epsilon(1e-12));
+        CHECK(std::abs(at_zero.delta - closed.delta)
+              <= 5.0 * at_zero.delta_standard_error + 1e-12);
+    }
+
+    TEST_CASE("with no volatility or no time there is nothing to estimate")
+    {
+        // The branch the grid sweep keeps for rows with no randomness in them,
+        // which that grid does not contain: its smallest volatility is 0.01 and
+        // its shortest expiry is a day. Exercised here instead, so that the
+        // sweep's exact-comparison path is not code no run has ever taken.
+        const EuropeanVanilla call{95.0, 2.0, OptionType::Call};
+        const EuropeanVanilla put{95.0, 2.0, OptionType::Put};
+        const EuropeanVanilla expired{95.0, 0.0, OptionType::Call};
+
+        MonteCarloSettings settings{};
+        settings.paths = 512;
+
+        for (const EuropeanVanilla& option : {call, put}) {
+            const BlackScholesMarket certain{100.0, 0.0, 0.04, 0.01};
+            const MonteCarloResult mc = touchstone::monte_carlo(option, certain, settings);
+            const touchstone::PriceAndGreeks closed = touchstone::price_and_greeks(option, certain);
+
+            // Every path is the forward, so every sample is the same number and
+            // the spread of them is exactly zero — not nearly zero.
+            CHECK(mc.price_standard_error == 0.0);
+            CHECK(mc.delta_standard_error == 0.0);
+            CHECK(mc.price == doctest::Approx(closed.price).epsilon(1e-14));
+            CHECK(mc.delta == doctest::Approx(closed.delta).epsilon(1e-14));
+            CHECK((mc.in_the_money == 0u || mc.in_the_money == mc.paths));
+        }
+
+        // No time either: the option is worth its intrinsic value and nothing
+        // is random about that.
+        const BlackScholesMarket market{100.0, 0.3, 0.04, 0.01};
+        const MonteCarloResult now = touchstone::monte_carlo(expired, market, settings);
+        CHECK(now.price == doctest::Approx(5.0).epsilon(1e-14));
+        CHECK(now.price_standard_error == 0.0);
+        CHECK(now.delta == doctest::Approx(1.0).epsilon(1e-14));
+    }
+
+    TEST_CASE("no input the closed form accepts makes the engine return a NaN")
+    {
+        // T1 made this a promise for the closed form: accepting an input means
+        // no output will be a NaN, because a NaN compares false against every
+        // tolerance a caller might test it with and so defeats the check that
+        // was meant to catch it. The Monte Carlo validates against that same
+        // domain, so it inherits the promise — and inheriting a domain is not
+        // the same as inheriting the arithmetic. It sums exponentials of
+        // normals, which the closed form never does.
+        //
+        // The sweep is `test_limits.cpp`'s, coarsened: the same corners, few
+        // enough paths to run them all. Two things it found, both now fixed and
+        // both re-broken to check this notices: a spot of zero made the
+        // pathwise delta 0/0, and a terminal spot that overflows made Welford's
+        // variance inf * (inf - inf).
+        constexpr double spots[] = {0.0, 1e-300, 1e-8, 100.0, 1e8, 1e300, 1.7e308};
+        constexpr double strikes[] = {0.0, 1e-300, 1e-8, 100.0, 1e8, 1e300};
+        constexpr double vols[] = {0.0, 1e-300, 0.2, 30.0, 1e100};
+        constexpr double expiries[] = {0.0, 1e-300, 1.0, 1e6, 1e300};
+        constexpr double rates[] = {-0.5, 0.0, 0.05};
+
+        MonteCarloSettings settings{};
+        settings.paths = 64;
+
+        std::size_t priced = 0;
+        std::size_t rejected = 0;
+        std::size_t infinite = 0;
+
+        for (const double spot : spots) {
+            for (const double strike : strikes) {
+                for (const double vol : vols) {
+                    for (const double years : expiries) {
+                        for (const double rate : rates) {
+                            for (const OptionType type : {OptionType::Call, OptionType::Put}) {
+                                const EuropeanVanilla option{strike, years, type};
+                                const BlackScholesMarket market{spot, vol, rate, 0.01};
+
+                                MonteCarloResult result{};
+                                try {
+                                    result = touchstone::monte_carlo(option, market, settings);
+                                } catch (const std::invalid_argument&) {
+                                    ++rejected;
+                                    continue;
+                                }
+                                ++priced;
+
+                                CAPTURE(spot);
+                                CAPTURE(strike);
+                                CAPTURE(vol);
+                                CAPTURE(years);
+                                CAPTURE(rate);
+                                REQUIRE_FALSE(std::isnan(result.price));
+                                REQUIRE_FALSE(std::isnan(result.price_standard_error));
+                                REQUIRE_FALSE(std::isnan(result.delta));
+                                REQUIRE_FALSE(std::isnan(result.delta_standard_error));
+                                if (!std::isfinite(result.price) || !std::isfinite(result.delta)) {
+                                    ++infinite;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        MESSAGE("domain sweep: " << priced << " priced, " << rejected
+                                 << " rejected as unrepresentable, " << infinite
+                                 << " saturated at an infinity, none a NaN");
+        REQUIRE(priced > 1000u);
     }
 
     TEST_CASE("the golden grid, priced by Monte Carlo")
@@ -556,33 +716,26 @@ TEST_SUITE("monte-carlo")
             }
 
             // --- the price -------------------------------------------------
-            if (mc.in_the_money == 0) {
-                // Not one path in the money, so the estimate is exactly zero
-                // and its standard error is exactly zero, and neither number
-                // means what it looks like. Whether zero was the right thing to
-                // see is the hit-count test's business, above.
-                ++empty;
-                CAPTURE(describe(row));
-                CHECK(mc.price == 0.0);
-                CHECK(mc.price_standard_error == 0.0);
-                continue;
-            }
-
-            if (row.market.vol * std::sqrt(row.option.expiry_years) == 0.0) {
+            //
+            // Which test a row gets is decided by its expected hit count and
+            // its volatility, both of which the closed form knows before a
+            // single path is drawn. Nothing here looks at what the paths
+            // actually did: a row admitted because its own sample came out
+            // favourably would be a row chosen by the statistic under test.
+            if (row.market.vol * row.market.vol * row.option.expiry_years == 0.0) {
                 // No volatility or no time: every path is the same path, and
                 // the comparison is exact rather than statistical.
                 ++deterministic;
                 CAPTURE(describe(row));
+                CHECK(mc.price_standard_error == 0.0);
                 CHECK(std::abs(mc.price - closed.price)
                       <= 1e-12 * std::max(std::abs(closed.price), 1.0));
                 continue;
             }
 
-            REQUIRE(mc.price_standard_error > 0.0);
-            const double z = (mc.price - closed.price) / mc.price_standard_error;
-
-            if (mc.in_the_money >= clt_paths_in_the_money) {
-                price_z.push_back(z);
+            if (expected_hits >= clt_expected_in_the_money) {
+                REQUIRE(mc.price_standard_error > 0.0);
+                price_z.push_back((mc.price - closed.price) / mc.price_standard_error);
                 price_labels.push_back(describe(row));
 
                 if (mc.delta_standard_error > 0.0) {
@@ -592,36 +745,46 @@ TEST_SUITE("monte-carlo")
                 continue;
             }
 
-            // Fewer than a hundred paths in the money: unbiased, still
-            // converging, but not yet normal, so a z-score is a diagnostic
-            // rather than a ruler. The answer is more paths, not a looser
-            // bound — so the row is run again with thirty-two times as many.
-            MonteCarloSettings deeper = settings;
-            deeper.paths = deep_paths;
-            deeper.seed = stream_seed(index + rows.size());
-            const MonteCarloResult again = touchstone::monte_carlo(row.option, row.market, deeper);
+            if (expected_hits * static_cast<double>(deep_paths)
+                    / static_cast<double>(grid_paths)
+                >= clt_expected_in_the_money) {
+                // Too rare to be normal at this path count, but not too rare to
+                // be normal at all. The answer is more paths, not a looser
+                // bound, so the row is run again with thirty-two times as many.
+                MonteCarloSettings deeper = settings;
+                deeper.paths = deep_paths;
+                deeper.seed = stream_seed(index + rows.size());
+                const MonteCarloResult again =
+                    touchstone::monte_carlo(row.option, row.market, deeper);
 
-            if (again.in_the_money >= clt_paths_in_the_money
-                && again.price_standard_error > 0.0) {
+                REQUIRE(again.price_standard_error > 0.0);
                 deep_z.push_back((again.price - closed.price) / again.price_standard_error);
                 deep_labels.push_back(describe(row));
                 continue;
             }
 
-            // Below about one path in ten thousand, Monte Carlo cannot price
-            // this row at any path count this suite can afford, and the reason
-            // is worth naming: the estimate and its error bar collapse
-            // together. A handful of sampled payoffs from a heavy right tail
-            // produce a small mean *and* a small sample spread, so the
-            // z-score is large and means nothing. `golden/SCHEMA.md` already
-            // calls this part of the grid numerically dead and keeps it for
-            // coverage. What covers it here is the hit-count test: the paths
-            // are landing in the money at the rate the closed form says, which
-            // is the part of the claim Monte Carlo can still speak to.
+            // Below about one path in seventy, at a million paths, Monte Carlo
+            // cannot price this row within anything this suite can afford, and
+            // the reason is worth naming: the estimate and its error bar
+            // collapse together. A handful of sampled payoffs from a heavy
+            // right tail produce a small mean *and* a small sample spread, so
+            // the z-score is large and means nothing. `golden/SCHEMA.md`
+            // already calls this part of the grid numerically dead and keeps it
+            // for coverage. What covers it here is the hit-count test: the
+            // paths are landing in the money at the rate the closed form says,
+            // which is the part of the claim Monte Carlo can still speak to.
             ++unreachable;
-            if (std::abs(z) > unreachable_worst) {
-                unreachable_worst = std::abs(z);
-                unreachable_worst_at = describe(row);
+            if (mc.in_the_money == 0) {
+                ++empty;
+                CAPTURE(describe(row));
+                CHECK(mc.price == 0.0);
+                CHECK(mc.price_standard_error == 0.0);
+            } else if (mc.price_standard_error > 0.0) {
+                const double z = (mc.price - closed.price) / mc.price_standard_error;
+                if (std::abs(z) > unreachable_worst) {
+                    unreachable_worst = std::abs(z);
+                    unreachable_worst_at = describe(row);
+                }
             }
         }
 
@@ -629,12 +792,13 @@ TEST_SUITE("monte-carlo")
         census << std::fixed << std::setprecision(2);
         census << "grid sweep: " << rows.size() << " rows at " << grid_paths << " paths"
                << " (stride " << grid_stride << ")"
-               << "\n    " << price_z.size() << " with at least " << clt_paths_in_the_money
-               << " paths in the money"
+               << "\n    " << price_z.size() << " expecting at least "
+               << clt_expected_in_the_money << " paths in the money"
                << "\n    " << deep_z.size() << " more once re-run at " << deep_paths << " paths"
-               << "\n    " << unreachable << " still too rare to price, worst |z| "
+               << "\n    " << unreachable << " too rare to price at either count, of which "
+               << empty << " saw no path in the money at all and are priced at exactly zero"
+               << "\n        worst |z| among the rest, which nothing asserts: "
                << unreachable_worst << " at " << unreachable_worst_at
-               << "\n    " << empty << " with no path in the money at all, priced at exactly zero"
                << "\n    " << deterministic << " with no randomness at all, compared exactly";
         MESSAGE(census.str());
 
@@ -644,6 +808,9 @@ TEST_SUITE("monte-carlo")
         check_standard_normal(hit_z, hit_labels, "paths finishing in the money vs N(w d2)");
         if (deep_z.size() > 30) {
             check_standard_normal(deep_z, deep_labels, "rare rows re-run with more paths");
+        } else {
+            MESSAGE("rare rows re-run with more paths: " << deep_z.size()
+                                                         << " rows, too few to standardise");
         }
 
         // The rare rows, summed: independent Poisson counts add to a Poisson
@@ -686,10 +853,12 @@ TEST_SUITE("monte-carlo")
             settings.paths = grid_paths;
             settings.antithetic = true;
 
-            const MonteCarloResult mc = touchstone::monte_carlo(row.option, row.market, settings);
-            if (mc.price_standard_error == 0.0 || mc.in_the_money < clt_paths_in_the_money) {
+            if (static_cast<double>(grid_paths) * in_the_money_probability(row.option, row.market)
+                < clt_expected_in_the_money) {
                 continue;
             }
+            const MonteCarloResult mc = touchstone::monte_carlo(row.option, row.market, settings);
+            REQUIRE(mc.price_standard_error > 0.0);
             z.push_back((mc.price - touchstone::price(row.option, row.market))
                         / mc.price_standard_error);
             labels.push_back(describe(row));

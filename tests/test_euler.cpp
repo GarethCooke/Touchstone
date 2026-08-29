@@ -14,6 +14,8 @@
 // tutorial's D4 shows the path picture while its D6 uses the price, so both
 // claims are made on the site and both have to be tested here (I1).
 
+#include "rng_fixture.hpp"
+
 #include <touchstone/black_scholes.hpp>
 #include <touchstone/monte_carlo.hpp>
 #include <touchstone/rng.hpp>
@@ -43,6 +45,7 @@ using touchstone::MonteCarloSettings;
 using touchstone::OptionType;
 using touchstone::Scheme;
 using touchstone::Xoshiro128SS;
+using touchstone::testing::stream_seed;
 
 /// A straight-line fit of log(error) against log(dt). The slope is the order of
 /// convergence; the residual says whether a straight line was the right shape.
@@ -147,7 +150,13 @@ TEST_SUITE("euler")
 
         double previous = 0.0;
         for (const std::size_t steps : levels) {
-            Xoshiro128SS rng(4000u + static_cast<std::uint32_t>(steps));
+            // Through `stream_seed` rather than `4000 + steps`: consecutive
+            // seeds expand into states built from the same words shifted by a
+            // place, and the slope fitted below treats its levels as
+            // independent measurements. `test_rng.cpp` asserts the separation
+            // this rule gives; using it here is what makes that assertion mean
+            // something for these sweeps too.
+            Xoshiro128SS rng(stream_seed(4000u + steps));
             std::vector<double> normals(steps, 0.0);
 
             double mean = 0.0;
@@ -256,7 +265,7 @@ TEST_SUITE("euler")
               << "\n    steps        dt          bias         SE   bias/SE   bias/dt";
 
         for (const std::size_t steps : levels) {
-            Xoshiro128SS rng(7000u + static_cast<std::uint32_t>(steps));
+            Xoshiro128SS rng(stream_seed(7000u + steps));
             std::vector<double> normals(steps, 0.0);
 
             double mean = 0.0;
@@ -358,9 +367,10 @@ TEST_SUITE("euler")
 
         const MonteCarloResult result = touchstone::monte_carlo(option, market, settings);
 
-        // The bias left at 512 steps, from the fit above: about 0.0009 on a
-        // price of 13.3, against a standard error of about 0.02. It is inside
-        // the noise, which is the point, and the bound below has room for both.
+        // The bias left at 512 steps, extrapolated from the fit above, is
+        // 6.5e-4 on a price of 13.02, against a standard error of 0.027. It is
+        // an order inside the noise, which is the point, and the bound below
+        // has room for both.
         std::ostringstream report;
         report << std::fixed << std::setprecision(5) << "Euler at 512 steps: " << result.price
                << " +/- " << result.price_standard_error << " against closed form " << reference;

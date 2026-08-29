@@ -3,6 +3,7 @@
 #include <touchstone/rng.hpp>
 
 #include <cmath>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -22,13 +23,31 @@ public:
     void add(double x) noexcept
     {
         ++count_;
+        if (!std::isfinite(x)) {
+            // A payoff that overflowed a double. Left to Welford, the next two
+            // lines would turn it into a NaN — `inf * (inf - inf)` — and a NaN
+            // compares false against every tolerance a caller might test it
+            // with, which is the failure mode T1 ruled out for the closed form.
+            // The infinity is kept instead and reported as both the mean and an
+            // infinite standard error: saturated, and comparing correctly.
+            //
+            // One sign only, whichever the option's payoff has: a payoff is
+            // never negative and a pathwise delta never changes sign within one
+            // option, so there is no case where the two would cancel.
+            overflowed_ = x;
+            return;
+        }
         const double delta = x - mean_;
         mean_ += delta / static_cast<double>(count_);
         m2_ += delta * (x - mean_);
     }
 
     [[nodiscard]] std::size_t count() const noexcept { return count_; }
-    [[nodiscard]] double mean() const noexcept { return mean_; }
+
+    [[nodiscard]] double mean() const noexcept
+    {
+        return (overflowed_ == 0.0) ? mean_ : overflowed_;
+    }
 
     /// The standard error of the mean: `s / sqrt(n)` with `s` the sample
     /// standard deviation on `n - 1` degrees of freedom. Zero for a single
@@ -36,6 +55,9 @@ public:
     /// the reason `MonteCarloResult::in_the_money` is reported beside it.
     [[nodiscard]] double standard_error() const noexcept
     {
+        if (overflowed_ != 0.0) {
+            return std::numeric_limits<double>::infinity();
+        }
         if (count_ < 2) {
             return 0.0;
         }
@@ -47,30 +69,68 @@ private:
     std::size_t count_{0};
     double mean_{0.0};
     double m2_{0.0};
+    double overflowed_{0.0};  ///< The first non-finite sample seen, if any.
 };
 
-/// Euler-Maruyama with every normal multiplied by `sign`. The antithetic
-/// partner is the same path with `sign = -1`, which is why this exists rather
-/// than a second buffer holding the negated draws.
-[[nodiscard]] double euler_terminal(const BlackScholesMarket& market,
-                                    double expiry_years,
-                                    std::span<const double> normals,
-                                    double sign) noexcept
+/// One path's growth factor, and the same factor discounted.
+///
+/// Both, because the two are not reliably one multiplication apart. A terminal
+/// spot far enough into the right tail overflows a double while its discount
+/// factor underflows to zero, and `0 * inf` is a NaN — which would be the worst
+/// of the three possible answers, since a NaN compares false against every
+/// tolerance a caller might test it with.
+struct PathGrowth {
+    double growth{};             ///< S_T / S.
+    double discounted_growth{};  ///< e^{-rT} S_T / S.
+};
+
+/// Euler-Maruyama's growth factors with every normal multiplied by `sign`. The
+/// antithetic partner is the same path with `sign = -1`, which is why this
+/// exists rather than a second buffer holding the negated draws.
+///
+/// The discounted factor is accumulated alongside rather than applied at the
+/// end: starting the product at `e^{-rT}` keeps every partial product on the
+/// scale it will finish at.
+[[nodiscard]] PathGrowth euler_growth(const BlackScholesMarket& market,
+                                      double expiry_years,
+                                      std::span<const double> normals,
+                                      double sign,
+                                      double discount) noexcept
 {
+    PathGrowth result{1.0, discount};
+
     const std::size_t steps = normals.size();
     if (steps == 0) {
-        return market.spot;
+        return result;
     }
 
     const double dt = expiry_years / static_cast<double>(steps);
     const double drift = (market.rate - market.dividend_yield) * dt;
     const double diffusion = market.vol * std::sqrt(dt);
 
-    double spot = market.spot;
     for (const double z : normals) {
-        spot *= 1.0 + drift + diffusion * sign * z;
+        const double factor = 1.0 + drift + diffusion * sign * z;
+        result.growth *= factor;
+        result.discounted_growth *= factor;
     }
-    return spot;
+    return result;
+}
+
+/// The exact scheme's two factors. The discounted one costs a second `exp` only
+/// where the single multiplication would not have been finite, which on the
+/// golden grid is never.
+[[nodiscard]] PathGrowth exact_growth(const BlackScholesMarket& market,
+                                      double expiry_years,
+                                      double z,
+                                      double discount) noexcept
+{
+    PathGrowth result{};
+    result.growth = terminal_growth_exact(market, expiry_years, z);
+    result.discounted_growth = result.growth * discount;
+    if (!std::isfinite(result.discounted_growth)) {
+        result.discounted_growth = discounted_growth_exact(market, expiry_years, z);
+    }
+    return result;
 }
 
 }  // namespace
@@ -90,18 +150,52 @@ void require_valid(const MonteCarloSettings& settings)
     }
 }
 
-double terminal_spot_exact(const BlackScholesMarket& market, double expiry_years, double z) noexcept
+double terminal_growth_exact(const BlackScholesMarket& market,
+                             double expiry_years,
+                             double z) noexcept
 {
     const double variance = market.vol * market.vol * expiry_years;
     const double drift = (market.rate - market.dividend_yield) * expiry_years - 0.5 * variance;
-    return market.spot * std::exp(drift + std::sqrt(variance) * z);
+    return std::exp(drift + std::sqrt(variance) * z);
+}
+
+double terminal_growth_euler(const BlackScholesMarket& market,
+                             double expiry_years,
+                             std::span<const double> normals) noexcept
+{
+    return euler_growth(market, expiry_years, normals, 1.0, 1.0).growth;
+}
+
+double discounted_growth_exact(const BlackScholesMarket& market,
+                               double expiry_years,
+                               double z) noexcept
+{
+    // e^{-rT} times the growth factor, with the r cancelling inside the
+    // exponent: exp(-qT - sigma^2 T / 2 + sigma sqrt(T) z).
+    const double variance = market.vol * market.vol * expiry_years;
+    const double drift = -market.dividend_yield * expiry_years - 0.5 * variance;
+    return std::exp(drift + std::sqrt(variance) * z);
+}
+
+double terminal_spot(const BlackScholesMarket& market, double growth) noexcept
+{
+    // Zero is an absorbing state: a process that starts at zero stays there,
+    // whatever the growth factor. Taken as a case rather than as a
+    // multiplication because the one input where the growth factor overflows
+    // would otherwise give `0 * inf`, which is a NaN.
+    return (market.spot == 0.0) ? 0.0 : market.spot * growth;
+}
+
+double terminal_spot_exact(const BlackScholesMarket& market, double expiry_years, double z) noexcept
+{
+    return terminal_spot(market, terminal_growth_exact(market, expiry_years, z));
 }
 
 double terminal_spot_euler(const BlackScholesMarket& market,
                            double expiry_years,
                            std::span<const double> normals) noexcept
 {
-    return euler_terminal(market, expiry_years, normals, 1.0);
+    return terminal_spot(market, terminal_growth_euler(market, expiry_years, normals));
 }
 
 double payoff(const EuropeanVanilla& option, double terminal_spot) noexcept
@@ -111,14 +205,14 @@ double payoff(const EuropeanVanilla& option, double terminal_spot) noexcept
 }
 
 double pathwise_payoff_delta(const EuropeanVanilla& option,
-                             double spot,
-                             double terminal_spot) noexcept
+                             double terminal_spot,
+                             double growth) noexcept
 {
     const double w = option_sign(option.type);
     if (w * (terminal_spot - option.strike) <= 0.0) {
         return 0.0;
     }
-    return w * terminal_spot / spot;
+    return w * growth;
 }
 
 MonteCarloResult monte_carlo(const EuropeanVanilla& option,
@@ -157,17 +251,36 @@ MonteCarloResult monte_carlo(const EuropeanVanilla& option,
         for (std::size_t path = 0; path < paths_per_sample; ++path) {
             const double sign = (path == 0) ? 1.0 : -1.0;
 
-            const double terminal = (settings.scheme == Scheme::ExactTerminal)
-                                        ? terminal_spot_exact(market, expiry, sign * normals[0])
-                                        : euler_terminal(market, expiry, normals, sign);
+            const PathGrowth path_growth =
+                (settings.scheme == Scheme::ExactTerminal)
+                    ? exact_growth(market, expiry, sign * normals[0], discount)
+                    : euler_growth(market, expiry, normals, sign, discount);
+            const double terminal = terminal_spot(market, path_growth.growth);
 
             const double path_payoff = payoff(option, terminal);
             if (path_payoff > 0.0) {
                 ++in_the_money;
             }
 
-            price_sum += discount * path_payoff;
-            delta_sum += discount * pathwise_payoff_delta(option, market.spot, terminal);
+            double discounted_payoff = discount * path_payoff;
+            if (std::isnan(discounted_payoff)) {
+                // The discount underflowed to zero on a path whose payoff
+                // overflowed. The same quantity with the discount taken inside:
+                // w (S e^{-rT} S_T/S - K e^{-rT}), whose second term
+                // `require_valid` has already guaranteed is representable.
+                discounted_payoff =
+                    option_sign(option.type)
+                    * (terminal_spot(market, path_growth.discounted_growth)
+                       - option.strike * discount);
+            }
+
+            price_sum += discounted_payoff;
+
+            // The discounted growth factor goes in where the raw one would, so
+            // the discounted derivative is one multiplication rather than two —
+            // and never the one multiplication that is `0 * inf`.
+            delta_sum +=
+                pathwise_payoff_delta(option, terminal, path_growth.discounted_growth);
         }
 
         // The sample is the pair, not the path. Averaging here and accumulating
