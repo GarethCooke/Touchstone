@@ -87,8 +87,10 @@ tell within thirty seconds that nothing is claimed beyond what is demonstrated.
   sessions edit only `touchstone`. Crucible and the portfolio are read-only source material.
 - **I19 — The stack is fixed.** Site: Next on Crucible's version line, MDX, KaTeX, Shiki,
   D3 plus canvas, Tailwind v4 with tokens copied from the portfolio, vitest, Amplify, Node 22.
-  Library: C++20, CMake, GCC and Clang, Emscripten, GitHub Actions. Experiments: Python
-  3.12+, numpy, scipy, uv. Additions are amendments.
+  Library: C++20, CMake, GCC and Clang, Emscripten, GitHub Actions, plus doctest and
+  nlohmann/json vendored as single headers in `third_party/`, linked by the test executable
+  only and reachable from neither `include/touchstone/` nor the WASM artifact. Experiments:
+  Python 3.12+, numpy, scipy, uv. Additions are amendments.
 - **I20 — Correctness is three-way agreement.** Closed form, Monte Carlo and finite
   differences MUST agree within stated tolerances; analytic and bump Greeks likewise; Monte
   Carlo standard error is reported, never hidden.
@@ -187,3 +189,11 @@ or owner)`.
   downstream · reason: L0 is a learn-site milestone, so under I18 the specification could
   only be written in `touchstone-learn`, and T2's deliverable already requires the copy that
   I17 as written forbids · authority: tollgate L0, recorded by the owner.
+- **A5** · 2026-08-29 · I19 · library stack is "C++20, CMake, GCC and Clang, Emscripten,
+  GitHub Actions" → the same, plus doctest and nlohmann/json vendored as single headers in
+  `third_party/`, linked by the test executable only and reachable from neither
+  `include/touchstone/` nor the WASM artifact · reason: I19 requires additions to be
+  amendments; tech-decision B1 already directs the choice of test framework to "whatever Anvil
+  uses", which is doctest, and the golden file is JSON, which C++20 cannot read without either
+  a dependency or an untested parser of our own sitting between the oracle and every assertion
+  · authority: owner, during T1.

@@ -1,0 +1,277 @@
+T1 — test log
+=============
+
+1. ctest, host A (the owner's checkout, GCC 11.4)
+-------------------------------------------------
+
+Test project /sessions/rcw-01phd9cxvdpfkdancspfudtp/build/final
+    Start 1: ts_normal
+1/5 Test #1: ts_normal ........................   Passed    0.00 sec
+    Start 2: ts_closed-form
+2/5 Test #2: ts_closed-form ...................   Passed    0.13 sec
+    Start 3: ts_parity
+3/5 Test #3: ts_parity ........................   Passed    0.10 sec
+    Start 4: ts_limits
+4/5 Test #4: ts_limits ........................   Passed    0.05 sec
+    Start 5: ts_all
+5/5 Test #5: ts_all ...........................   Passed    0.15 sec
+
+100% tests passed out of 5
+
+Total Test time (real) =   0.45 sec
+
+2. The measured numbers, host A
+-------------------------------
+
+The sweeps report the worst scaled error per field whether they pass or
+fail, so the margin is on the record rather than inferred from a green tick.
+The comparison rule is golden/SCHEMA.md's: error = |actual - reference| /
+max(|reference|, 1.0) — relative above 1.0, absolute below it, because a
+deep out-of-the-money value is the residue of cancelling two numbers of
+order S and a relative comparison there measures only the noise floor.
+
+[doctest] doctest version is "2.4.12"
+[doctest] run with "--help" for options
+===============================================================================
+/sessions/rcw-01phd9cxvdpfkdancspfudtp/mnt/Touchstone/tests/test_closed_form.cpp:71:
+TEST SUITE: closed-form
+TEST CASE:  the golden file is the one these tests were written against
+
+/sessions/rcw-01phd9cxvdpfkdancspfudtp/mnt/Touchstone/tests/test_closed_form.cpp:74: MESSAGE: golden file /sessions/rcw-01phd9cxvdpfkdancspfudtp/mnt/Touchstone/golden/bs_vanilla.json
+    schema  touchstone/golden/bs_vanilla@1
+    oracle  QuantLib 1.43
+
+===============================================================================
+/sessions/rcw-01phd9cxvdpfkdancspfudtp/mnt/Touchstone/tests/test_closed_form.cpp:86:
+TEST SUITE: closed-form
+TEST CASE:  main grid: price and all six Greeks
+
+/sessions/rcw-01phd9cxvdpfkdancspfudtp/mnt/Touchstone/tests/test_closed_form.cpp:60: MESSAGE: main grid: 7200 rows at tolerance 1e-10; worst scaled error per field
+    price         1.197e-13
+    delta         4.163e-15
+    gamma         1.443e-15
+    vega          4.472e-14
+    theta         9.803e-14
+    rho           2.503e-13
+    dividend_rho  2.841e-13
+
+===============================================================================
+/sessions/rcw-01phd9cxvdpfkdancspfudtp/mnt/Touchstone/tests/test_closed_form.cpp:92:
+TEST SUITE: closed-form
+TEST CASE:  edge block: near-degenerate corners
+
+/sessions/rcw-01phd9cxvdpfkdancspfudtp/mnt/Touchstone/tests/test_closed_form.cpp:60: MESSAGE: edge block: 34 rows at tolerance 1e-08; worst scaled error per field
+    price         1.665e-14
+    delta         1.010e-14
+    gamma         6.176e-16
+    vega          2.081e-14
+    theta         1.619e-11
+    rho           1.283e-14
+    dividend_rho  1.319e-14
+
+===============================================================================
+/sessions/rcw-01phd9cxvdpfkdancspfudtp/mnt/Touchstone/tests/test_closed_form.cpp:98:
+TEST SUITE: closed-form
+TEST CASE:  the single-value accessors agree with price_and_greeks
+
+/sessions/rcw-01phd9cxvdpfkdancspfudtp/mnt/Touchstone/tests/test_closed_form.cpp:127: MESSAGE: accessors vs price_and_greeks: worst scaled difference over 7200 rows x 7 values: 0.000e+00
+
+===============================================================================
+/sessions/rcw-01phd9cxvdpfkdancspfudtp/mnt/Touchstone/tests/test_limits.cpp:352:
+TEST SUITE: limits
+TEST CASE:  nothing in the accepted domain produces a NaN
+
+/sessions/rcw-01phd9cxvdpfkdancspfudtp/mnt/Touchstone/tests/test_limits.cpp:437: MESSAGE: domain sweep: 16570 priced, 9350 rejected as unrepresentable, 550 with an infinite gamma
+
+===============================================================================
+/sessions/rcw-01phd9cxvdpfkdancspfudtp/mnt/Touchstone/tests/test_parity.cpp:128:
+TEST SUITE: parity
+TEST CASE:  main grid: parity and its six Greek identities
+
+/sessions/rcw-01phd9cxvdpfkdancspfudtp/mnt/Touchstone/tests/test_parity.cpp:107: MESSAGE: main grid: 3600 call/put pairs at tolerance 1e-13; worst scaled departure from the identity
+    price         1.421e-14
+    delta         1.110e-16
+    gamma         0.000e+00
+    vega          0.000e+00
+    theta         3.997e-15
+    rho           2.172e-16
+    dividend_rho  2.094e-16
+
+===============================================================================
+/sessions/rcw-01phd9cxvdpfkdancspfudtp/mnt/Touchstone/tests/test_parity.cpp:133:
+TEST SUITE: parity
+TEST CASE:  edge block: parity where the formulas are least comfortable
+
+/sessions/rcw-01phd9cxvdpfkdancspfudtp/mnt/Touchstone/tests/test_parity.cpp:107: MESSAGE: edge block: 17 call/put pairs at tolerance 1e-13; worst scaled departure from the identity
+    price         7.105e-15
+    delta         1.110e-16
+    gamma         0.000e+00
+    vega          0.000e+00
+    theta         5.219e-15
+    rho           0.000e+00
+    dividend_rho  1.435e-16
+
+===============================================================================
+[doctest] test cases:     22 |     22 passed | 0 failed | 0 skipped
+[doctest] assertions: 255999 | 255999 passed | 0 failed |
+[doctest] Status: SUCCESS!
+
+3. Margin against what was required
+-----------------------------------
+
+  block       field           required     observed    margin
+  ---------------------------------------------------------------
+  main grid   price            1e-10      1.197e-13      836x
+  main grid   delta            1e-10      4.163e-15    24000x
+  main grid   gamma            1e-10      1.443e-15    69000x
+  main grid   vega             1e-10      4.472e-14     2200x
+  main grid   theta            1e-10      9.803e-14     1020x
+  main grid   rho              1e-10      2.503e-13      400x
+  main grid   dividend_rho     1e-10      2.841e-13      352x
+  edge block  worst (theta)     1e-8      1.619e-11      618x
+
+  The roadmap's figure for T1 is 1e-10, and the golden file carries it, so the
+  tests read it rather than restate it.
+
+  The narrowest margin is rho and dividend_rho at a few times 1e-13, which is
+  where it belongs: both carry a factor of T, so a five-year row multiplies the
+  price-level error by five before the comparison is made.
+
+  The edge block's worst is theta at 1.6e-11 on a one-day option. SCHEMA.md
+  predicts exactly this and says not to chase it: QuantLib derives theta by a
+  route that divides by the year fraction, so the reference itself is only good
+  to about 1e-11 absolute at one day. The closed form here is the more accurate
+  of the two, and the gap is the oracle's.
+
+4. What the four suites would catch
+-----------------------------------
+
+  normal       N(x) or phi(x) wrong, including the left tail. N(-10) is 7.6e-24;
+               an implementation computing it as 1 - N(10) returns exactly zero,
+               and the suite demonstrates that collapse rather than asserting it.
+               Tolerances are (4 + x^2) * eps, which is the conditioning of the
+               problem — the rounding of x itself is amplified by |d ln N/dx|,
+               and that grows like |x| in the tail — not a number chosen to pass.
+
+  closed-form  Any of the seven values disagreeing with QuantLib on any of 7234
+               rows. Also: the golden file silently becoming a different file
+               (its schema id is checked), and the seven single-value accessors
+               drifting from price_and_greeks (worst difference over 7200 rows x
+               7 values: exactly zero).
+
+  parity       Put-call parity or one of the six identities the Greeks inherit
+               from it. This suite reads the golden file for its parameter sweep
+               and for nothing else: every number compared is one this library
+               produced, so it would fail even if the oracle were wrong about
+               every row. Tolerance 1e-13, three orders tighter than the golden
+               sweep, because these are exact algebraic identities; not tighter
+               still because the identity is a difference of two numbers of order
+               S, and one ulp of the grid's largest spot is 2.8e-14.
+
+  limits       The closed form failing to reduce to a forward contract as
+               volatility goes to zero, or to its payoff as expiry does;
+               diverging where it should not; returning a number where the limit
+               is infinite; or producing a NaN anywhere in the domain
+               require_valid accepts. The last of those is a 25,920-point sweep
+               of the domain's boundary, including spots and strikes of 1e-300
+               and 1e300, vols of 1e-300 and 1e100, and expiries of 1e-300 and
+               1e300: 16,570 priced with no NaN in any of seven outputs, 9,350
+               rejected with a specific message, 550 with the infinite gamma the
+               mathematics has at the strike.
+
+5. The two hosts compiled the same bytes
+----------------------------------------
+
+SHA-256 of every file the C++ build reads, taken on host A (the checkout) and on
+host B (the container copy) after both had run. All sixteen match, so host B's
+Clang result is a result about this checkout and not about a copy that drifted.
+
+  14c5a6e852547684632e404b276d66efdbb2d3eea762ee1e7a6c80f87e5fe576  CMakeLists.txt
+  938ed1bb32ffb6bb25960cc5a66c8c6f4b69e4df94d2d1c147e3b583003e0334  golden/bs_vanilla.json
+  4b182b4d72cce3636f64bf4d6b4af670f3e2778593d3a188a72219b668018607  include/touchstone/black_scholes.hpp
+  4e97cc04de28bc2e6b782f3cf4c8822aec8beba2eb4d0e6cc66a4f364de60431  include/touchstone/normal.hpp
+  3b610ef4dcbe752320ed16b2b70300229646bc7de98abd5fd8b57d55682282b5  src/black_scholes.cpp
+  dc5177608a424064a6044242670568c70b2fb812e95d1061923335c421bd0c7e  tests/CMakeLists.txt
+  010cc5d71fa312cc2aef083c5a8ecbcfa076db95fd50a3761df2d3e5b29b12a5  tests/doctest_main.cpp
+  1df486c88989bb743d7ad1449b8b03e5e5d3980fb9a391039c8f75df735c9a22  tests/golden_file.cpp
+  145006c87771eca1dea78df8754fd1ab438de7003d3801906731d3e8f3a5f3bd  tests/golden_file.hpp
+  0fe3e18455e21db66d976198df34caf2505a08bb89b3dcf4e1e6cf5222315374  tests/test_closed_form.cpp
+  8283fa80c12b7444ddc7fb3670932b9ca0c2faa478570d98360b65ceae2a1ece  tests/test_limits.cpp
+  fde09f9edf46f9024741d4282848572059b490a50ea14f4e98db79c0752f8611  tests/test_normal.cpp
+  3f75dd52561cdd082ea13eb3fbc4d5dee7bbed1a771586593e11d15bb95d72cb  tests/test_parity.cpp
+  0d722252c6f323ac6340d84dec00aad9d288e9678a81d8c87dfcd55ab218ea0f  third_party/CMakeLists.txt
+  94029a7d32da24a56249658147dbd2b33ff0b9ed665295cbbaf19aafff5b0ced  third_party/doctest/doctest.h
+  aaf127c04cb31c406e5b04a63f1ae89369fccde6d8fa7cdda1ed4f32dfc5de63  third_party/nlohmann/json.hpp
+
+Host B reported these same sixteen digests. Their own SHA-256, taken over the
+sorted listing above, is 33970b2fb0287bfc80efb1e19b0ab44da1ccfa04eadb6fc6fdf3992f8201c75f
+on both hosts — one number to check rather than sixteen. The golden file's digest
+is also the one T0 recorded: 938ed1bb...0334.
+
+6. Regenerating the golden file on a third platform
+---------------------------------------------------
+
+Run before deciding whether CI could require byte-identity rather than merely
+recommend it. Ubuntu 24.04, Python 3.12, QuantLib 1.43 from the committed
+lockfile, on a machine unrelated to the one T0 generated the file on:
+
+  before  938ed1bb32ffb6bb25960cc5a66c8c6f4b69e4df94d2d1c147e3b583003e0334
+  uv run --frozen golden/generate_bs_vanilla.py
+  after   938ed1bb32ffb6bb25960cc5a66c8c6f4b69e4df94d2d1c147e3b583003e0334
+
+Byte-identical. That is what makes the CI step which regenerates the file and
+requires a clean git diff a check rather than a coin toss, and it independently
+confirms T0's reproducibility claim on a second platform.
+
+7. The golden file's own cross-check, re-run on host A
+------------------------------------------------------
+
+Not a T1 deliverable — this is T0's verifier, run again because T1's tests now
+depend on the file being right, and because CI runs it from here on.
+
+golden file : bs_vanilla.json
+schema      : touchstone/golden/bs_vanilla@1
+oracle      : QuantLib 1.43 (AnalyticEuropeanEngine on BlackScholesMertonProcess)
+cases       : 7200 main + 34 edge
+threshold   : 1e-13 of each quantity's natural scale
+
+schema conformance ...
+closed form against an independent erfc implementation ...
+put-call parity ...
+  3617 matched pairs
+sign and unit conventions ...
+
+worst deviation by field, in units of the quantity's natural scale:
+  price            1.540e-15   put S=60 K=90 vol=0.15 r=-0.005 q=0.05 T=91d
+  delta            1.010e-14   one-day-atm/put S=100 K=100 vol=0.2 r=0.03 q=0.01 T=1d
+  gamma            1.707e-14   call S=120 K=110 vol=0.05 r=0.05 q=0.02 T=730d
+  vega             2.250e-15   call S=120 K=120 vol=0.05 r=0.01 q=0.05 T=365d
+  theta            4.165e-16   one-day-deep-otm-call/put S=50 K=200 vol=0.2 r=0.03 q=0.01 T=1d
+  rho              4.987e-15   put S=100 K=100 vol=0.05 r=0.05 q=0.05 T=91d
+  dividend_rho     4.916e-15   call S=100 K=100 vol=0.05 r=0.05 q=0.05 T=91d
+  put-call parity  5.921e-16   call S=60 K=110 vol=0.6 r=0.05 q=0.02 T=365d
+
+PASS — 7234 cases x 7 fields, plus parity on 3617 pairs, all within 1e-13 of an independent implementation.
+verifier exit: 0
+
+8. Putting each defect back
+---------------------------
+
+A fix with no failing test behind it is a change, not a repair. Each of the four
+code fixes the adversarial review prompted was reverted in a scratch copy on host
+B, and the limits suite re-run against it. Baseline for that suite: 11 cases,
+251,909 assertions, all passing.
+
+  reverted fix                                   assertions failed
+  ------------------------------------------------------------------
+  at-the-forward decided on S e^-qT - K e^-rT              2
+  decay branch reading "sigma != 0" as "T == 0"            2
+  gamma forming S*v and dividing by the product         1042
+  representability checks removed from require_valid    1026
+
+A fifth change — moving the "nothing against nothing" guard above the arithmetic
+— has no such number, and should not be claimed to. Once require_valid rejects an
+overflowing discount factor, K * exp(-rT) can no longer be 0 * inf, so the
+poisoned kernel that motivated the reordering is unreachable. The guard stays
+because it is free and because it makes the comment beside it true, not because a
+test would notice its absence.
