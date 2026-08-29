@@ -1,0 +1,44 @@
+# T2 — diff against the milestone's base
+
+`git diff --stat 7c2942b`, where 7c2942b is `main` as it stood when `m/T2` was
+branched: the merge of T1 plus the owner's tick of the roadmap.
+
+```
+ .github/workflows/ci.yml           |   13 +-
+ CMakeLists.txt                     |   17 +-
+ docs/rng.md                        |  179 +++++++
+ golden/README.md                   |   44 ++
+ golden/rng-known-answers.json      |   91 ++++
+ include/touchstone/monte_carlo.hpp |  203 +++++++
+ include/touchstone/normal.hpp      |  109 +++-
+ include/touchstone/rng.hpp         |  130 +++++
+ src/monte_carlo.cpp                |  358 +++++++++++++
+ tests/CMakeLists.txt               |   13 +-
+ tests/rng_fixture.cpp              |   95 ++++
+ tests/rng_fixture.hpp              |   61 +++
+ tests/statistics.cpp               |   75 +++
+ tests/statistics.hpp               |   43 ++
+ tests/test_euler.cpp               |  414 ++++++++++++++
+ tests/test_monte_carlo.cpp         | 1036 ++++++++++++++++++++++++++++++++++++
+ tests/test_rng.cpp                 |  423 +++++++++++++++
+ 17 files changed, 3295 insertions(+), 9 deletions(-)
+```
+
+The two vendored headers are not touched by this milestone and are not in the
+diff; T1 committed them. `docs/rng.md` and `golden/rng-known-answers.json` are
+copies rather than this session's writing — amendment A4's one-way exception,
+byte-identical to `touchstone-learn` at bd16b71, with their digests in
+`golden/README.md`.
+
+Eight commits, so that the governance step, the specification copy, the two
+halves of the implementation and each round of review fixes can be read apart
+from one another:
+
+    4e4052b  copy the RNG specification and fixture from touchstone-learn (A4)
+    7c14e3c  the shared RNG in C++, against the browser's known answers
+    14ea082  Monte Carlo, and the two rates Euler converges at
+    49b1ad7  one knob for how much of the sweeps to run
+    64b3afb  fixes from the adversarial review
+    004135a  second round of review fixes: the NaN promise, kept properly
+    9bc8d6b  name the corner the overflow fallback exists for
+    8c6c914  pin the association of the total volatility
