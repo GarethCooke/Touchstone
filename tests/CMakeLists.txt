@@ -2,8 +2,11 @@ add_executable(touchstone_tests
     doctest_main.cpp
     golden_file.cpp
     rng_fixture.cpp
+    statistics.cpp
     test_normal.cpp
     test_rng.cpp
+    test_monte_carlo.cpp
+    test_euler.cpp
     test_closed_form.cpp
     test_parity.cpp
     test_limits.cpp)
@@ -30,7 +33,7 @@ target_compile_definitions(touchstone_tests
 # One ctest entry per suite, so a red run names the misunderstanding rather than
 # just the binary; plus one entry that runs the whole binary, so a mistyped
 # filter above can leave a suite unregistered but never unrun.
-foreach(suite IN ITEMS normal rng closed-form parity limits)
+foreach(suite IN ITEMS normal rng closed-form parity limits monte-carlo euler)
     add_test(NAME ts_${suite}
              COMMAND touchstone_tests --test-suite=${suite} --success=false)
 endforeach()
