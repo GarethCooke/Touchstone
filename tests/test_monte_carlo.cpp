@@ -771,6 +771,33 @@ TEST_SUITE("monte-carlo")
         MESSAGE(report.str());
         REQUIRE(priced > 1000u);
         REQUIRE(saturated > 0u);  // the saturation path is exercised, not just described
+
+        // One corner named rather than swept, because "not a NaN" is too weak a
+        // thing to ask of it. Here the undiscounted payoff overflows on its own
+        // and the discounted one is an ordinary small number, so a guard that
+        // fired only on a NaN would return an infinity where a value was
+        // available — 235 rows of the sweep above were doing exactly that
+        // before the guard was widened to anything not finite.
+        const EuropeanVanilla overflowing{0.0, 1.0, OptionType::Call};
+        const BlackScholesMarket extreme{1e-300, 0.2, 700.0, -233.33};
+        MonteCarloSettings settings{};
+        settings.paths = 4096;
+        const MonteCarloResult recovered =
+            touchstone::monte_carlo(overflowing, extreme, settings);
+        const double reference = touchstone::price(overflowing, extreme);
+
+        std::ostringstream corner;
+        corner << std::scientific << std::setprecision(6)
+               << "the payoff that overflows but the discounted payoff that does not: closed "
+                  "form "
+               << reference << ", Monte Carlo " << recovered.price;
+        MESSAGE(corner.str());
+
+        REQUIRE(std::isfinite(recovered.price));
+        // Five per cent, against a sampling spread of a third of one per cent
+        // at this path count. The failure this guards against is an infinity,
+        // not a small error.
+        CHECK(std::abs(recovered.price / reference - 1.0) <= 0.05);
     }
 
     TEST_CASE("the golden grid, priced by Monte Carlo")
