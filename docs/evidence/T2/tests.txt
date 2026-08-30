@@ -539,7 +539,7 @@ is a measurement rather than noise.
 
 And the practical statement, made once with the engine rather than the pieces:
 at 512 steps and 400,000 antithetic paths the Euler price is 13.04013 +/-
-0.02717 against a closed form of 13.020281, with an extrapolated bias of 6.5e-4.
+0.02717 against a closed form of 13.020281, with an extrapolated bias of 8.2e-4.
 
 --------------------------------------------------------------------------------
 ## 5  what each suite would catch
@@ -672,7 +672,7 @@ off, and 500 draws of five seeds must repeat exactly.
 
 32 files. Hashed in this order, the list of digests itself has SHA-256
 
-    2e8596cd5328af15f3de4e35a6a9cce7d589342d27b92292f20caa47fb0dc6ed
+    b9c5cbed6c4fb2d2ebe34eacef3f43dafb5aab213510296a5b297466d9e9b0fb
 
 on both hosts, so the clang and sanitizer results are results about this
 checkout rather than about a copy of it that might have drifted.
@@ -690,7 +690,7 @@ c70456de443347a39ec6eb9aeab2a5924d41f90563ee0e2765d1a9512c7da890  include/touchs
 1a4181cdeaeb96c90c14a698f17d4dbf3e4eac0d5960d8df814a2b7b00582d8f  include/touchstone/normal.hpp
 c7730d03e0c16187e2c1944540c3d548d988ca9a6147114b227d9252a7fb8630  include/touchstone/rng.hpp
 3b610ef4dcbe752320ed16b2b70300229646bc7de98abd5fd8b57d55682282b5  src/black_scholes.cpp
-a0b140fc658660b71122b49138298cabb65e0cedf89b94233f810aff04988ae6  src/monte_carlo.cpp
+edab3be04706100122f215e9c3b24eef977f7d1b9bc1a5eae0f8d45dc5bdb8ed  src/monte_carlo.cpp
 335cf0587576a1a031c956d59125b902bf3a7d566fbdc30fbddb2a141807843b  tests/CMakeLists.txt
 010cc5d71fa312cc2aef083c5a8ecbcfa076db95fd50a3761df2d3e5b29b12a5  tests/doctest_main.cpp
 1df486c88989bb743d7ad1449b8b03e5e5d3980fb9a391039c8f75df735c9a22  tests/golden_file.cpp
@@ -700,7 +700,7 @@ a0b140fc658660b71122b49138298cabb65e0cedf89b94233f810aff04988ae6  src/monte_carl
 895aa0361c491d46d8b1f080dcb1b6fbbb5fb1b8a231585db0b1b05dc3e4b5a7  tests/statistics.cpp
 43d2169c92ae34f6c443d71e4dde126060ca3fd1f300bb5bc5e42a987d00dd38  tests/statistics.hpp
 0fe3e18455e21db66d976198df34caf2505a08bb89b3dcf4e1e6cf5222315374  tests/test_closed_form.cpp
-b56cf5d83e43621ad12b478e5d42292d270a0247d7ae1d76c7840d84ba45bd68  tests/test_euler.cpp
+40afa096b81884cdc3efccce52d5454bd75bc85d06436940225a816e119f62be  tests/test_euler.cpp
 8283fa80c12b7444ddc7fb3670932b9ca0c2faa478570d98360b65ceae2a1ece  tests/test_limits.cpp
 fcd8bd4697391061fb9122974680cbd9c9986185111e8a32377b980fb9623ac6  tests/test_monte_carlo.cpp
 fde09f9edf46f9024741d4282848572059b490a50ea14f4e98db79c0752f8611  tests/test_normal.cpp
@@ -711,6 +711,14 @@ fde09f9edf46f9024741d4282848572059b490a50ea14f4e98db79c0752f8611  tests/test_nor
 94029a7d32da24a56249658147dbd2b33ff0b9ed665295cbbaf19aafff5b0ced  third_party/doctest/doctest.h
 aaf127c04cb31c406e5b04a63f1ae89369fccde6d8fa7cdda1ed4f32dfc5de63  third_party/nlohmann/json.hpp
 ```
+
+Two of the lines above changed on 2026-08-30, after the audit: comment-only edits to
+`src/monte_carlo.cpp` and `tests/test_euler.cpp` took the review's defect 2 and the two
+comment approximations its fix note records, so those two digests — and with them the
+list digest above — are new. Behaviour was shown unchanged the direct way: the suite
+was rebuilt on g++ 13.3 and clang++ 18.1.3 and re-run in full, and both outputs are
+byte-identical to the audited runs; the two files' digests were computed on the
+checkout and on the rebuild host and agree. Every other line is the audited original.
 
 The golden file's digest, 938ed1bb...0334, is the one T0 recorded and T1
 reproduced on a second platform; CI regenerates it and requires the working

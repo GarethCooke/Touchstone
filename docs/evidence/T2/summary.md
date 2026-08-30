@@ -47,6 +47,11 @@ library code (P8); log here, verdict beside this file.
   machines reproduce — and the stale figures below and in the exit-criteria table
   corrected: 0.4950/0.9664 to 0.4932 ± 0.0021 and 0.8831 ± 0.0621, the whole-range
   slope 0.51 to 0.63.
+- Defect 2 taken the same way, in a third commit, with the two `test_euler.cpp`
+  approximations beside it: three comment lines now say what the code does (last,
+  0.63, 8.2e-4). Comment-only — both compilers rebuilt, both outputs byte-identical
+  to the audited runs — with `tests.txt` §8's digests refreshed under a dated note
+  and `build.txt`'s copy of the list digest with them.
 - The grid criterion's reading — the battery in place of the unsatisfiable per-row rule
   — endorsed on the merits, for the owner to ratify at merge.
 
@@ -57,15 +62,15 @@ library code (P8); log here, verdict beside this file.
   would blur whose evidence it is, and P8 keeps implementation out of Fable's hands.
   *Decision — owner may overrule.* The owner did, in-session, for defect 1: that
   refresh is documentation only, and every number written in is one this session had
-  already re-measured. Defect 2 stays where it is.
+  already re-measured. Defect 2 then went the same way in a third commit, comments only, with the digests refreshed beside it.
 
 **Not done**
 
-- No library code, no test, no CI change touched. The TypeScript not executed (I18).
-  MSVC and Emscripten not built, as throughout.
-- Defect 2's one-line comment (`Accumulator::add`) stays: a comment edit is a code-file
-  edit, and it belongs to whoever next touches `src/monte_carlo.cpp` — as do the two
-  comment approximations in `test_euler.cpp` the verdict's fix note records.
+- No library behaviour touched: three comment lines are the only code-file change, and
+  the rebuilt suite's output is byte-identical to the audited runs. The TypeScript not
+  executed (I18). MSVC and Emscripten not built, as throughout.
+- Defect 3 stays an observation, deliberately: closing the NaN pinhole would be a
+  behaviour change — an executor's task under P8, if it is ever wanted at all.
 
 **Exact next step**
 

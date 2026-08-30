@@ -31,7 +31,7 @@ public:
             // The infinity is kept instead and reported as both the mean and an
             // infinite standard error: saturated, and comparing correctly.
             //
-            // Whichever arrived first. Two infinities of opposite signs can
+            // Whichever arrived last. Two infinities of opposite signs can
             // reach the same accumulator — under Euler a step's factor goes
             // negative whenever its normal is far enough below zero, so a
             // path's growth factor can be negative and a put's pathwise delta

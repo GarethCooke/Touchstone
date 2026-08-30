@@ -16,8 +16,9 @@ substance of this verdict.
 
 **PASS WITH DEFECTS.** All three exit criteria hold on the code as committed. The defects
 are in the evidence pack and a comment, not in the library: the pack's headline Euler
-figures come from a superseded run. Nothing blocks the merge once those numbers are
-refreshed.
+figures come from a superseded run. Both are now fixed on the
+branch — the figures in the second commit, the comments in the third — and nothing
+blocks the merge.
 
 ## Independently verified
 
@@ -91,7 +92,12 @@ refreshed.
    the first non-finite sample is kept ("Whichever arrived first"); the code keeps the
    last — each new non-finite sample overwrites `overflowed_`. Behaviour is fine, since
    the sign of a saturated estimate is documented as not a number to read; the sentence
-   is not. One line, whenever the file is next touched.
+   is not. **Fixed at the owner's direction** in a third commit, together with the two
+   `test_euler.cpp` approximations defect 1's note records (6.5e-4 → 8.2e-4, "near a
+   half" → 0.63, in the code comments and in `tests.txt` §4's closing line).
+   Comment-only: the suite was rebuilt on both compilers and both outputs are
+   byte-identical to the audited runs; `tests.txt` §8's digests are refreshed under a
+   dated note, and `build.txt`'s copy of the list digest with them.
 3. **Observation, no action.** The never-a-NaN promise has a measure-zero corner under
    Euler: a running growth product saturated at ±inf, followed within the same path by a
    step factor that rounds to exactly 0.0, makes the growth NaN — the price contribution

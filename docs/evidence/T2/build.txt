@@ -62,9 +62,10 @@ $ ldd --version
 ldd (Ubuntu GLIBC 2.39-0ubuntu8.7) 2.39
 
 Sources here are the same bytes as on host A: the SHA-256 of the 32 build
-inputs, hashed in the order below, is 2e8596cd5328af15f3de4e35a6a9cce7d589342d
-27b92292f20caa47fb0dc6ed on both machines. The per-file digests are in
-tests.txt section 8.
+inputs, hashed in the order below, is b9c5cbed6c4fb2d2ebe34eacef3f43dafb5aab21
+3510296a5b297466d9e9b0fb on both machines. The per-file digests are in
+tests.txt section 8, whose dated note records the 2026-08-30 comment-only edits
+that refreshed this digest.
 
 === configure and build, g++ 13.3, RelWithDebInfo, warnings as errors ===
 $ cmake -S . -B build-g -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_COMPILER=g++ -DTOUCHSTONE_WARNINGS_AS_ERRORS=ON

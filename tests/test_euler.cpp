@@ -247,7 +247,7 @@ TEST_SUITE("euler")
         // the strong test and more visibly: bias/dt below is 0.07 at half a
         // year a step and climbs to about a third, which is the constant the
         // first-order term has. A fit taken across the whole range would
-        // measure that climb and return a slope near a half, and the mistake
+        // measure that climb and return a slope of 0.63, and the mistake
         // would be the fit's rather than the scheme's.
         constexpr std::size_t paths = 1000000 / sweep_scale;
         const std::vector<std::size_t> levels{2, 4, 8, 16, 32, 64};
@@ -368,7 +368,7 @@ TEST_SUITE("euler")
         const MonteCarloResult result = touchstone::monte_carlo(option, market, settings);
 
         // The bias left at 512 steps, extrapolated from the fit above, is
-        // 6.5e-4 on a price of 13.02, against a standard error of 0.027. It is
+        // 8.2e-4 on a price of 13.02, against a standard error of 0.027. It is
         // an order inside the noise, which is the point, and the bound below
         // has room for both.
         std::ostringstream report;
