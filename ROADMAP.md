@@ -137,7 +137,7 @@ parity, σ→0 and T→0 limits; GitHub Actions on GCC and Clang with warnings a
 **Exit:** CI green on both compilers; every test named in the deliverables present.
 **Tollgate:** F — this milestone sets the code patterns for everything after it.
 **Executor:** Opus. **Size:** one to two sessions.
-**Passed** 2026-08-29 — evidence: docs/evidence/T1/.
+**Passed** 2026-08-29 — evidence: `docs/evidence/T1/`.
 
 ### ☑ T2 — Monte Carlo and the shared RNG
 **Entry:** T1, L0.
@@ -146,6 +146,8 @@ site; exact GBM sampling and Euler–Maruyama; standard error; antithetics; path
 **Exit:** RNG fixture green; MC price within three standard errors of closed form across the
 golden grid; Euler error scales as expected with dt.
 **Tollgate:** V. **Executor:** Opus. **Size:** one to two sessions.
+**Passed** 2026-08-30 — evidence: `docs/evidence/T2/`.
+Grid-criterion reading ratified at merge,
 
 ### ☐ T3 — Finite differences, implied vol, bump Greeks
 **Entry:** T2.
