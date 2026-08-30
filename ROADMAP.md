@@ -139,7 +139,7 @@ parity, σ→0 and T→0 limits; GitHub Actions on GCC and Clang with warnings a
 **Tollgate:** F — this milestone sets the code patterns for everything after it.
 **Executor:** Opus. **Size:** one to two sessions.
 
-### ☐ T2 — Monte Carlo and the shared RNG
+### ☑ T2 — Monte Carlo and the shared RNG
 **Entry:** T1, L0.
 **Deliverables:** RNG per `docs/rng.md`, passing the known-answer fixture copied from the
 site; exact GBM sampling and Euler–Maruyama; standard error; antithetics; pathwise delta.
