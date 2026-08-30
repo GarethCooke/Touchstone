@@ -42,6 +42,11 @@ library code (P8); log here, verdict beside this file.
   coefficients scripted-identical between spec and header; the 12 reference values
   re-derived at 80 digits; seed separation recomputed over the full 14,468 indices the
   sweeps use (closest pair 82,466).
+- Defect 1 taken at the owner's direction, in a second commit: `tests.txt` §4's two
+  tables replaced with the current run's — the same numbers §2 carries and two further
+  machines reproduce — and the stale figures below and in the exit-criteria table
+  corrected: 0.4950/0.9664 to 0.4932 ± 0.0021 and 0.8831 ± 0.0621, the whole-range
+  slope 0.51 to 0.63.
 - The grid criterion's reading — the battery in place of the unsatisfiable per-row rule
   — endorsed on the merits, for the owner to ratify at merge.
 
@@ -50,21 +55,21 @@ library code (P8); log here, verdict beside this file.
 - **Reviewed, did not repair.** The stale Euler figures (defect 1) and the one false
   comment (defect 2) are named, not edited: a reviewer rewriting the pack under review
   would blur whose evidence it is, and P8 keeps implementation out of Fable's hands.
-  *Decision — owner may overrule.*
+  *Decision — owner may overrule.* The owner did, in-session, for defect 1: that
+  refresh is documentation only, and every number written in is one this session had
+  already re-measured. Defect 2 stays where it is.
 
 **Not done**
 
 - No library code, no test, no CI change touched. The TypeScript not executed (I18).
   MSVC and Emscripten not built, as throughout.
-- Defect 1 — `summary.md` and `tests.txt` §4 quote Euler figures (0.4950 ± 0.0021,
-  0.9664 ± 0.0697) that the committed code does not produce; the current figures are
-  §2's (0.4932 ± 0.0021, 0.8831 ± 0.0621), on which the criterion still passes.
-  Left for the owner or the next executing session to refresh.
+- Defect 2's one-line comment (`Accumulator::add`) stays: a comment edit is a code-file
+  edit, and it belongs to whoever next touches `src/monte_carlo.cpp` — as do the two
+  comment approximations in `test_euler.cpp` the verdict's fix note records.
 
 **Exact next step**
 
-The owner refreshes defect 1's figures, pushes `m/T2`, reads the Actions run, reads the
-pack and this verdict, ratifies the grid-criterion reading, merges, and ticks T2 in
+The owner pushes `m/T2`, reads the Actions run, reads the pack and this verdict, ratifies the grid-criterion reading, merges, and ticks T2 in
 `ROADMAP.md`. T3 unlocks: Crank–Nicolson on a log-spot grid with the Thomas solver.
 
 ---
@@ -159,12 +164,11 @@ pack and this verdict, ratifies the grid-criterion reading, merges, and ticks T2
 11. **Euler's two rates, both measured, because they are two different numbers and a suite
     measuring one would pass on an implementation that had the other badly wrong.** Path by
     path, driving both schemes from the same Brownian increment so the difference *is* the
-    error: slope 0.4950 ± 0.0021 against the half that Euler's dropped Milstein term implies.
+    error: slope 0.4932 ± 0.0021 against the half that Euler's dropped Milstein term implies.
     In a price, with common random numbers so the bias shows through the noise: slope
-    0.9664 ± 0.0697 against one. Both fitted only where the rate has arrived, with the coarse
+    0.8831 ± 0.0621 against one. Both fitted only where the rate has arrived, with the coarse
     levels reported beside them as the evidence for where that is — `bias/dt` climbs from
-    0.07 at half a year a step to about a third and settles, and a fit across the whole range
-    would measure the climb and return 0.51.
+    0.07 at half a year a step to about a third and settles, and a fit across the whole range would measure the climb and return 0.63.
 
 12. **An adversarial review by a second session, in two rounds, and twelve findings from
     it.** A fresh session was given the specification and the sources and asked to find
@@ -344,7 +348,7 @@ errors to compare the third against.
 |---|---|---|
 | RNG fixture green | **pass** | `tests.txt` §2, suite `rng`. All 30 uniforms bit-exact and all 30 normals bit-exact, against a specified tolerance of 1e-12 absolute. The fixture's five description fields are checked before a number is compared, so a fixture describing a different generator stops the tests rather than being compared against. |
 | MC price within three standard errors of closed form across the golden grid | **pass, on the reading stated in Decisions** | `tests.txt` §3. 6,147 rows standardised directly and 323 more after thirty-two times the paths; mean −0.020 against a bound of 0.063, spread 0.986 against 1 ± 0.045, 19 rows beyond three standard errors against 16.6 ± 21.4 expected, worst \|z\| 3.559 against a Bonferroni bound of 5.648. The same battery for the pathwise delta and, on a quarter of the grid, for the antithetic estimator. The literal per-row form of this criterion cannot hold on 7,234 rows and the reason is arithmetic, not implementation: it is set out in full rather than quietly reinterpreted. |
-| Euler error scales as expected with dt | **pass** | `tests.txt` §4. Strong error, path by path on shared Brownian increments: slope 0.4950 ± 0.0021 against 0.5. Weak error, in the price, on common random numbers: slope 0.9664 ± 0.0697 against 1.0. Each bound is the fit's own propagated uncertainty five times over plus a stated curvature allowance, and every level's bias is separately required to be resolved above six of its own standard errors. |
+| Euler error scales as expected with dt | **pass** | `tests.txt` §4. Strong error, path by path on shared Brownian increments: slope 0.4932 ± 0.0021 against 0.5. Weak error, in the price, on common random numbers: slope 0.8831 ± 0.0621 against 1.0. Each bound is the fit's own propagated uncertainty five times over plus a stated curvature allowance, and every level's bias is separately required to be resolved above six of its own standard errors. |
 
 ## Deliverables
 

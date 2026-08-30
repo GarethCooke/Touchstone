@@ -81,9 +81,12 @@ refreshed.
    (`4000 + steps` → `stream_seed`), which changed the drawn paths; `tests.txt` thereby
    contradicts itself between §2 and §4. The criterion passes on the true figures — both
    slopes inside their stated bounds, every fitted level resolved at ≥ 8.1 of its own SE
-   — so the defect is the pack's, not the scheme's. Fix: refresh §4's tables and the
-   summary's quoted numbers from a current run; docs-only, the owner's or the next
-   executing session's edit.
+   — so the defect is the pack's, not the scheme's. **Fixed in this session**, at the owner's direction, in a second commit on `m/T2`:
+   §4's two tables replaced with the current run's, the summary's quoted figures
+   corrected, and the whole-range slope 0.51 → 0.63. The code and its tests remain
+   untouched; two comment approximations in `test_euler.cpp` join defect 2's class —
+   an extrapolated 512-step bias of 6.5e-4 where the current fit gives 8.2e-4, and
+   "a slope near a half" for the whole-range fit that now returns 0.63.
 2. **`src/monte_carlo.cpp`, `Accumulator::add` comment — cosmetic.** The comment says
    the first non-finite sample is kept ("Whichever arrived first"); the code keeps the
    last — each new non-finite sample overwrites `overflowed_`. Behaviour is fine, since
@@ -110,8 +113,7 @@ the roadmap's `golden/`) remain open at the owner's option, as at T0 and T1.
 T3 — finite differences, implied vol, bump Greeks (entry: T2, on the owner's merge).
 First step per the roadmap: Crank–Nicolson on a log-spot grid with the Thomas solver,
 toward I20's three-way agreement — for which T2 now supplies the second way and the
-standard errors to compare the third against. Owner actions, in order: refresh defect 1's
-figures; `git push -u origin m/T2` and read the Actions run (`ci.yml` changed: both
+standard errors to compare the third against. Owner actions, in order: `git push -u origin m/T2` and read the Actions run (`ci.yml` changed: both
 actions to v6, sanitizer job at a sixteenth); read the pack, ratify the grid-criterion
 reading, merge, tick T2 in `ROADMAP.md`; consider `require_valid`'s association hazard
 (the pack's Not-done) before T3 forms new products; delete `.git/stale-locks/` and
