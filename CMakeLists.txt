@@ -15,6 +15,16 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 option(TOUCHSTONE_BUILD_TESTS "Build the test suite" ON)
+
+# How much of the statistical sweeps to run: 1 is all of it, and CI's two
+# compiler jobs use that. The sanitizer job sets it higher, because ASan and
+# UBSan are looking for memory and undefined-behaviour errors, which every row
+# of a sweep exercises equally — there is nothing to be found in the seven
+# thousandth that was not in the first, and the build is nine times slower.
+# Every statistical bound in the suite is computed from the sample actually
+# taken, so a scaled run is a smaller valid test rather than a weaker one; the
+# single assertion that needs the full sample says so and stands aside.
+set(TOUCHSTONE_SWEEP_SCALE 1 CACHE STRING "Divide the statistical sweeps by this")
 option(TOUCHSTONE_WARNINGS_AS_ERRORS "Fail the build on any warning" ON)
 
 # --- Warnings ---------------------------------------------------------------
@@ -51,7 +61,8 @@ endif()
 
 # --- The library ------------------------------------------------------------
 add_library(touchstone STATIC
-    src/black_scholes.cpp)
+    src/black_scholes.cpp
+    src/monte_carlo.cpp)
 add_library(touchstone::touchstone ALIAS touchstone)
 
 target_include_directories(touchstone
@@ -65,7 +76,9 @@ target_link_libraries(touchstone PRIVATE touchstone_warnings)
 # which at T4 is the Emscripten binding, the least convenient place to find out.
 set(TOUCHSTONE_PUBLIC_HEADERS
     black_scholes.hpp
-    normal.hpp)
+    monte_carlo.hpp
+    normal.hpp
+    rng.hpp)
 
 set(touchstone_header_check_sources "")
 foreach(header IN LISTS TOUCHSTONE_PUBLIC_HEADERS)

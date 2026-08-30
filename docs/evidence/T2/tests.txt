@@ -1,0 +1,733 @@
+# T2 — test log
+
+49 test cases, 4,111,444 assertions, green on three compilers across two
+machines and again under AddressSanitizer and UndefinedBehaviorSanitizer.
+
+Sections:
+
+  1  ctest, on both hosts and under the sanitizers
+  2  the full run, with every number the suite reports
+  3  the grid criterion: what "within three standard errors" was tested as
+  4  Euler's two rates
+  5  what each suite would catch
+  6  the adversarial review, and the mutations that prove the fixes
+  7  the same numbers on three compilers
+  8  SHA-256 of every build input, on both hosts
+
+--------------------------------------------------------------------------------
+## 1  ctest
+
+Eight entries: one per suite, so a red run names the misunderstanding rather
+than the binary, plus one that runs the whole binary so a mistyped filter can
+leave a suite unregistered but never unrun.
+
+### host A — the owner's checkout, g++ 11.4
+```
+Test project /tmp/final
+    Start 1: ts_normal
+1/8 Test #1: ts_normal ........................   Passed    0.00 sec
+    Start 2: ts_rng
+2/8 Test #2: ts_rng ...........................   Passed    0.18 sec
+    Start 3: ts_closed-form
+3/8 Test #3: ts_closed-form ...................   Passed    0.08 sec
+    Start 4: ts_parity
+4/8 Test #4: ts_parity ........................   Passed    0.07 sec
+    Start 5: ts_limits
+5/8 Test #5: ts_limits ........................   Passed    0.04 sec
+    Start 6: ts_monte-carlo
+6/8 Test #6: ts_monte-carlo ...................   Passed   39.15 sec
+    Start 7: ts_euler
+7/8 Test #7: ts_euler .........................   Passed    5.62 sec
+    Start 8: ts_all
+8/8 Test #8: ts_all ...........................   Passed   45.03 sec
+
+100% tests passed out of 8
+
+Total Test time (real) =  90.18 sec
+```
+
+### host B — the container, g++ 13.3
+
+```
+1/8 Test #1: ts_normal ........................   Passed    0.00 sec
+2/8 Test #2: ts_rng ...........................   Passed    0.19 sec
+3/8 Test #3: ts_closed-form ...................   Passed    0.06 sec
+4/8 Test #4: ts_parity ........................   Passed    0.06 sec
+5/8 Test #5: ts_limits ........................   Passed    0.04 sec
+6/8 Test #6: ts_monte-carlo ...................   Passed   28.90 sec
+7/8 Test #7: ts_euler .........................   Passed    5.35 sec
+8/8 Test #8: ts_all ...........................   Passed   34.93 sec
+
+100% tests passed, 0 tests failed out of 8
+Total Test time (real) =  69.54 sec
+```
+
+### host B — the container, clang++ 18.1.3
+
+```
+6/8 Test #6: ts_monte-carlo ...................   Passed   35.15 sec
+7/8 Test #7: ts_euler .........................   Passed    4.41 sec
+8/8 Test #8: ts_all ...........................   Passed   39.65 sec
+
+100% tests passed, 0 tests failed out of 8
+Total Test time (real) =  79.55 sec
+```
+
+### host B — Debug, ASan + UBSan, `-fno-sanitize-recover=undefined`, sweep scale 16
+
+```
+1/8 Test #1: ts_normal ........................   Passed    0.03 sec
+2/8 Test #2: ts_rng ...........................   Passed    3.08 sec
+3/8 Test #3: ts_closed-form ...................   Passed    2.01 sec
+4/8 Test #4: ts_parity ........................   Passed    1.85 sec
+5/8 Test #5: ts_limits ........................   Passed    0.51 sec
+6/8 Test #6: ts_monte-carlo ...................   Passed   19.08 sec
+7/8 Test #7: ts_euler .........................   Passed    2.58 sec
+8/8 Test #8: ts_all ...........................   Passed   24.84 sec
+
+100% tests passed, 0 tests failed out of 8
+Total Test time (real) =  53.99 sec
+```
+
+Not one sanitizer diagnostic. The sweep scale is what CI's sanitizer job uses:
+one row of the golden grid in sixteen, and a sixteenth of the Euler sweeps'
+paths. Every statistical bound in the suite is computed from the sample actually
+taken, so that run is a smaller valid test rather than a weaker one; the single
+assertion that needs the full sample -- that Euler's weak bias is resolved above
+its own noise -- stands aside and says so in its own output. 4,097,146
+assertions there against 4,111,444 at full scale.
+
+--------------------------------------------------------------------------------
+## 2  the full run
+
+Host A, `touchstone_tests --success=false`, which prints every MESSAGE and every
+failure and nothing else. Sections 3 to 5 read the numbers in it.
+
+```
+[doctest] doctest version is "2.4.12"
+[doctest] run with "--help" for options
+===============================================================================
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_closed_form.cpp:71:
+TEST SUITE: closed-form
+TEST CASE:  the golden file is the one these tests were written against
+
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_closed_form.cpp:74: MESSAGE: golden file /sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/golden/bs_vanilla.json
+    schema  touchstone/golden/bs_vanilla@1
+    oracle  QuantLib 1.43
+
+===============================================================================
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_closed_form.cpp:86:
+TEST SUITE: closed-form
+TEST CASE:  main grid: price and all six Greeks
+
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_closed_form.cpp:60: MESSAGE: main grid: 7200 rows at tolerance 1e-10; worst scaled error per field
+    price         1.197e-13
+    delta         4.163e-15
+    gamma         1.443e-15
+    vega          4.472e-14
+    theta         9.803e-14
+    rho           2.503e-13
+    dividend_rho  2.841e-13
+
+===============================================================================
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_closed_form.cpp:92:
+TEST SUITE: closed-form
+TEST CASE:  edge block: near-degenerate corners
+
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_closed_form.cpp:60: MESSAGE: edge block: 34 rows at tolerance 1e-08; worst scaled error per field
+    price         1.665e-14
+    delta         1.010e-14
+    gamma         6.176e-16
+    vega          2.081e-14
+    theta         1.619e-11
+    rho           1.283e-14
+    dividend_rho  1.319e-14
+
+===============================================================================
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_closed_form.cpp:98:
+TEST SUITE: closed-form
+TEST CASE:  the single-value accessors agree with price_and_greeks
+
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_closed_form.cpp:127: MESSAGE: accessors vs price_and_greeks: worst scaled difference over 7200 rows x 7 values: 0.000e+00
+
+===============================================================================
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_euler.cpp:132:
+TEST SUITE: euler
+TEST CASE:  path by path, Euler's error shrinks as the square root of dt
+
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_euler.cpp:214: MESSAGE: strong error: mean |S_T Euler - S_T exact| on shared Brownian paths
+    steps        dt      mean error        SE     ratio   fitted
+        1   1.000000      4.396988   0.036459         -       no
+        2   0.500000      3.376613   0.023409     1.302       no
+        4   0.250000      2.513907   0.016537     1.343       no
+        8   0.125000      1.818615   0.011623     1.382      yes
+       16   0.062500      1.284463   0.007765     1.416      yes
+       32   0.031250      0.921620   0.005620     1.394      yes
+       64   0.015625      0.655078   0.003962     1.407      yes
+      128   0.007812      0.466709   0.002792     1.404      yes
+      256   0.003906      0.326473   0.001950     1.430      yes
+    slope over dt < 0.13: 0.4932 +/- 0.0021 (0.5 expected), worst residual 0.0084
+
+===============================================================================
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_euler.cpp:233:
+TEST SUITE: euler
+TEST CASE:  in a price, Euler's error shrinks as dt itself
+
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_euler.cpp:343: MESSAGE: weak error: E[discounted payoff, Euler] - E[same, exact], common random numbers
+    closed form 13.020281
+    steps        dt          bias         SE   bias/SE   bias/dt
+        2   0.500000     0.036115   0.003638       9.9    0.0722
+        4   0.250000     0.050836   0.002617      19.4    0.2033
+        8   0.125000     0.033433   0.001887      17.7    0.2675
+       16   0.062500     0.017557   0.001353      13.0    0.2809
+       32   0.031250     0.008636   0.000965       9.0    0.2764
+       64   0.015625     0.005505   0.000682       8.1    0.3523
+    slope over dt < 0.13: 0.8831 +/- 0.0621 (1.0 expected)
+
+===============================================================================
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_euler.cpp:352:
+TEST SUITE: euler
+TEST CASE:  with enough steps, the Euler price is the closed form
+
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_euler.cpp:377: MESSAGE: Euler at 512 steps: 13.04013 +/- 0.02717 against closed form 13.02028
+
+===============================================================================
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_limits.cpp:352:
+TEST SUITE: limits
+TEST CASE:  nothing in the accepted domain produces a NaN
+
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_limits.cpp:437: MESSAGE: domain sweep: 16570 priced, 9350 rejected as unrepresentable, 550 with an infinite gamma
+
+===============================================================================
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_monte_carlo.cpp:337:
+TEST SUITE: monte-carlo
+TEST CASE:  the standard error is the spread of the estimator
+
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_monte_carlo.cpp:398: MESSAGE: crude, 400 runs of 4096 paths
+    price    mean 13.1504 vs closed form 13.1511
+             observed spread 0.3462, reported SE 0.3392
+    delta    observed spread 0.0104, reported SE 0.0100
+
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_monte_carlo.cpp:398: MESSAGE: antithetic, 400 runs of 4096 paths
+    price    mean 13.1424 vs closed form 13.1511
+             observed spread 0.2753, reported SE 0.2697
+    delta    observed spread 0.0039, reported SE 0.0038
+
+===============================================================================
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_monte_carlo.cpp:420:
+TEST SUITE: monte-carlo
+TEST CASE:  antithetic sampling reduces the variance it is supposed to
+
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_monte_carlo.cpp:452: MESSAGE: standard error at 8192 paths
+    K = 80.0000   crude 0.2550   antithetic 0.1177   ratio 0.4615
+    K = 100.0000   crude 0.1975   antithetic 0.1519   ratio 0.7692
+    K = 120.0000   crude 0.1299   antithetic 0.1198   ratio 0.9225
+
+===============================================================================
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_monte_carlo.cpp:455:
+TEST SUITE: monte-carlo
+TEST CASE:  the terminal spot has the law it should
+
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_monte_carlo.cpp:490: MESSAGE: E[S_T] = 106.1769 vs forward 106.1837 (SE 0.0333); E[S_T^2] within 0.0001 relative
+
+===============================================================================
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_monte_carlo.cpp:586:
+TEST SUITE: monte-carlo
+TEST CASE:  the discounted growth factor is the growth factor, discounted
+
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_monte_carlo.cpp:649: MESSAGE: discounted growth against growth times the discount, over 540 parameter sets: worst difference is 0.508 of its bound
+
+===============================================================================
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_monte_carlo.cpp:652:
+TEST SUITE: monte-carlo
+TEST CASE:  no input the closed form accepts makes the engine return a NaN
+
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_monte_carlo.cpp:771: MESSAGE: domain sweep, four scheme and pairing combinations: 17032 priced, 13688 refused as unrepresentable, 744 saturated at an infinity, none a NaN
+
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_monte_carlo.cpp:794: MESSAGE: the payoff that overflows but the discounted payoff that does not: closed form 2.157404e-199, Monte Carlo 2.155409e-199
+
+===============================================================================
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_monte_carlo.cpp:815:
+TEST SUITE: monte-carlo
+TEST CASE:  the golden grid, priced by Monte Carlo
+
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_monte_carlo.cpp:961: MESSAGE: grid sweep: 7234 rows at 32768 paths (stride 1)
+    6147 expecting at least 450.00 paths in the money
+    323 more once re-run at 1048576 paths
+    764 too rare to price at either count, of which 630 saw no path in the money at all and are priced at exactly zero
+        worst |z| among the rest, which nothing asserts: 440.84 at put S=150 K=80 vol=0.14999999999999999 r=0.01 q=0.02 days=365 T=1
+    0 with no randomness at all, compared exactly
+
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_monte_carlo.cpp:157: MESSAGE: price vs closed form: 6147 rows in standard-error units
+    mean          -0.020   (0 +/- 0.013 expected)
+    sd            0.986   (1 +/- 0.009 expected)
+    beyond 3 SE   19   (16.596 +/- 4.074 expected)
+    worst |z|     3.559   (bound 5.648)
+    worst row     put S=60 K=100 vol=0.59999999999999998 r=-0.0050000000000000001 q=0.02 days=1826 T=5.0027397260273974
+
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_monte_carlo.cpp:157: MESSAGE: pathwise delta vs analytic delta: 6147 rows in standard-error units
+    mean          -0.004   (0 +/- 0.013 expected)
+    sd            0.999   (1 +/- 0.009 expected)
+    beyond 3 SE   21   (16.596 +/- 4.074 expected)
+    worst |z|     3.829   (bound 5.648)
+    worst row     call S=80 K=80 vol=0.29999999999999999 r=-0.0050000000000000001 q=0.02 days=91 T=0.24931506849315069
+
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_monte_carlo.cpp:157: MESSAGE: paths finishing in the money vs N(w d2): 5752 rows in standard-error units
+    mean          -0.004   (0 +/- 0.013 expected)
+    sd            0.994   (1 +/- 0.009 expected)
+    beyond 3 SE   14   (15.529 +/- 3.941 expected)
+    worst |z|     4.148   (bound 5.636)
+    worst row     put S=80 K=80 vol=0.29999999999999999 r=-0.0050000000000000001 q=0.050000000000000003 days=1826 T=5.0027397260273974
+
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_monte_carlo.cpp:157: MESSAGE: rare rows re-run with more paths: 323 rows in standard-error units
+    mean          -0.051   (0 +/- 0.056 expected)
+    sd            1.031   (1 +/- 0.039 expected)
+    beyond 3 SE   3   (0.872 +/- 0.934 expected)
+    worst |z|     4.055   (bound 5.118)
+    worst row     [very-high-vol-long] call S=100 K=100 vol=1.5 r=0.029999999999999999 q=0.01 days=3652 T=10.005479452054795
+
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_monte_carlo.cpp:993: MESSAGE: the tails of the grid, summed
+    in the money on rows too rare to standardise: 387.0 against 413.2 expected (+/- 20.3)
+    out of the money on rows where that is the rare event: 414.0 against 413.2 expected (+/- 20.3)
+
+===============================================================================
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_monte_carlo.cpp:1000:
+TEST SUITE: monte-carlo
+TEST CASE:  the golden grid again, with antithetic sampling
+
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_monte_carlo.cpp:157: MESSAGE: antithetic price vs closed form: 1343 rows in standard-error units
+    mean          0.031   (0 +/- 0.027 expected)
+    sd            1.005   (1 +/- 0.019 expected)
+    beyond 3 SE   3   (3.626 +/- 1.904 expected)
+    worst |z|     3.915   (bound 5.380)
+    worst row     call S=150 K=80 vol=0.29999999999999999 r=-0.0050000000000000001 q=0 days=91 T=0.24931506849315069
+
+===============================================================================
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_parity.cpp:128:
+TEST SUITE: parity
+TEST CASE:  main grid: parity and its six Greek identities
+
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_parity.cpp:107: MESSAGE: main grid: 3600 call/put pairs at tolerance 1e-13; worst scaled departure from the identity
+    price         1.421e-14
+    delta         1.110e-16
+    gamma         0.000e+00
+    vega          0.000e+00
+    theta         3.997e-15
+    rho           2.172e-16
+    dividend_rho  2.094e-16
+
+===============================================================================
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_parity.cpp:133:
+TEST SUITE: parity
+TEST CASE:  edge block: parity where the formulas are least comfortable
+
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_parity.cpp:107: MESSAGE: edge block: 17 call/put pairs at tolerance 1e-13; worst scaled departure from the identity
+    price         7.105e-15
+    delta         1.110e-16
+    gamma         0.000e+00
+    vega          0.000e+00
+    theta         5.219e-15
+    rho           0.000e+00
+    dividend_rho  1.435e-16
+
+===============================================================================
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_rng.cpp:142:
+TEST SUITE: rng
+TEST CASE:  the fixture describes the generator docs/rng.md specifies
+
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_rng.cpp:145: MESSAGE: fixture /sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/golden/rng-known-answers.json: 3 seeds x 10 values, spec docs/rng.md
+
+===============================================================================
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_rng.cpp:168:
+TEST SUITE: rng
+TEST CASE:  the fixture's normals are reproduced within the specified tolerance
+
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_rng.cpp:195: MESSAGE: normals: worst absolute error 0.000e+00 against a tolerance of 1.000e-12; 30 of 30 agree bit for bit with the TypeScript
+
+===============================================================================
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_rng.cpp:226:
+TEST SUITE: rng
+TEST CASE:  uniforms are 53-bit values in [0, 1)
+
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_rng.cpp:243: MESSAGE: 200000 uniforms in [1.25798e-05, 0.999998]
+
+===============================================================================
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_rng.cpp:274:
+TEST SUITE: rng
+TEST CASE:  AS241 matches high-precision reference values in all three branches
+
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_rng.cpp:288: MESSAGE: {?}AS241 worst relative error 3.47e-16 over 12 reference values
+
+===============================================================================
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_rng.cpp:293:
+TEST SUITE: rng
+TEST CASE:  AS241 round-trips through N(x)
+
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_rng.cpp:328: MESSAGE: {?}round trip over 1199 values of p from 1e-300 to 0.5: worst error is 0.778 of its bound, at p = 1e-179
+
+===============================================================================
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_rng.cpp:372:
+TEST SUITE: rng
+TEST CASE:  the seeds a sweep uses are far apart and their streams do not correlate
+
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_rng.cpp:391: MESSAGE: closest pair among 8000 sweep seeds: 341411 apart
+
+/sessions/rcw-016qvoysnqkqcxxm3bweevon/mnt/Touchstone/tests/test_rng.cpp:419: MESSAGE: {?}worst |correlation| over 2016 stream pairs: 0.0506, bound 0.0972
+
+===============================================================================
+[doctest] test cases:      49 |      49 passed | 0 failed | 0 skipped
+[doctest] assertions: 4111444 | 4111444 passed | 0 failed |
+[doctest] Status: SUCCESS!
+```
+
+--------------------------------------------------------------------------------
+## 3  the grid criterion
+
+The roadmap's exit criterion reads "MC price within three standard errors of
+closed form across the golden grid". It cannot be tested the way it reads, and
+the reason is arithmetic rather than a difficulty with the code: three standard
+errors is the bound for **one** comparison, 99.73% of which fall inside it, so
+7,234 of them expect about twenty outside. A suite demanding none would be red
+on a correct library and green only on a seed someone went looking for.
+
+So each row is standardised — (Monte Carlo minus closed form) over the standard
+error — and the sample of z-scores is held to being standard normal. That is
+strictly stronger than the per-row bound: an estimator biased by a tenth of a
+standard error passes every individual three-sigma test on this grid and fails
+the test of the mean by eight sigma. It was measured: a deliberate +0.10 SE bias
+is caught (grid mean 0.0768 against a bound of 0.0629), +0.05 and +0.03 are not.
+
+Every row of the grid gets a test. Which one is decided before a path is drawn,
+by the expected number of paths finishing in the money, `n N(w d2)`:
+
+| rows | expected in the money | what is asserted |
+|---|---|---|
+| 6,147 | at least 450 | the z battery below |
+| 323 | at least 450 once re-run at 1,048,576 paths | the same battery, separately |
+| 764 | fewer than that at either count | the hit-count battery only; 630 of them saw no path in the money and are asserted to be priced at exactly zero |
+| 0 | no randomness at all | exact comparison — this grid has no such row, and the branch is exercised by its own test case instead |
+
+**The cut-off is 450 and it is derived.** A vanilla's discounted payoff is a
+mixture: an atom at zero carrying 1 − p and a positive part above it. Writing
+X = B·Y with B Bernoulli(p), the skewness for small p is about
+(mu3/mu2^{3/2})/sqrt(p), and the first factor belongs to the payoff conditional
+on finishing in the money — near-exponential in the tail of this grid, so about
+6/2^{3/2} = 2.12. Cochran's condition for the central limit theorem to have
+arrived, |skew|/sqrt(n) below 0.1, is then n·p >= (2.12/0.1)^2 = 450. Measured
+independently at 20,000 repetitions per point, the mean z of a studentised
+estimator is −0.073 at n·p = 200, −0.047 at 400, −0.026 at 1,000 and −0.011 at
+4,000: the 0.05 level arrives near 400.
+
+**Expected, not observed**, and this is a defect the review caught. The observed
+count is correlated with the price estimate — the same paths make both — so
+admitting a row on the strength of it selects on the statistic under test.
+Measured on one row with an expected count of exactly 100, over 20,000
+independent runs: the mean z of all runs is −0.11; the mean z of the runs
+clearing an observed cut of 100 is **+0.45**. At the 450 cut-off the aggregate
+effect is small (grid mean −0.0243 observed against −0.0232 expected), but the
+principle is not, and the fix was one identifier.
+
+### the batteries, on this run
+
+```
+price vs closed form: 6147 rows in standard-error units
+    mean          -0.020   (0 +/- 0.013 expected)     bound 0.063
+    sd             0.986   (1 +/- 0.009 expected)     bound 1 +/- 0.045
+    beyond 3 SE   19       (16.6 +/- 4.1 expected)    bound 16.6 +/- 21.4
+    worst |z|      3.559                              bound 5.648
+
+pathwise delta vs analytic delta: 6147 rows
+    mean          -0.004    sd 0.999    beyond 3 SE 21    worst |z| 3.829
+
+paths finishing in the money vs N(w d2): 5752 rows
+    mean          -0.004    sd 0.994    beyond 3 SE 14    worst |z| 4.148
+
+rare rows re-run at 1,048,576 paths: 323 rows
+    mean          -0.051    sd 1.031    beyond 3 SE  3    worst |z| 4.055
+
+antithetic price vs closed form: 1343 rows
+    mean           0.031    sd 1.005    beyond 3 SE  3    worst |z| 3.915
+
+the tails of the grid, summed
+    in the money on rows too rare to standardise:  387 against 413.2 +/- 20.3
+    out of the money where that is the rare event: 414 against 413.2 +/- 20.3
+```
+
+Four assertions per battery, each at five sigma of its own sampling
+distribution rather than three. Five, because these bounds are the noise on a
+statistic, not on a measurement: a real defect arrives at tens of sigma — a
+standard error understated by a factor of two puts the sample sd at 2.0, which
+on 6,147 rows is 120 sigma — while a spurious failure at five sigma is a
+one-in-three-million event on a run that is deterministic anyway. Three would
+trade none of the power for a real chance of a red run on correct code.
+
+**What the mean leg does not separate.** A studentised mean of a right-skewed
+payoff has E[z] of about −c/sqrt(np) even when the estimator is exact, so a
+little of the budget is spent before any defect exists. Measured across five
+disjoint seed families the grid mean sits at −0.009 with a spread of 0.006,
+against a bound of 0.063: about a seventh. That is the price of a cut-off at 450
+rather than at four thousand, and it is stated in the test rather than left to
+be discovered.
+
+**The 764 rows Monte Carlo cannot price** are the ones `golden/SCHEMA.md`
+already calls numerically dead — 3.8% of the grid is below 1e-15 — and the
+reason they get no price assertion is worth naming: the estimate and its error
+bar collapse together. A handful of sampled payoffs from a heavy right tail
+produce a small mean *and* a small sample spread, so the z-score is large and
+means nothing; the worst on this run is 440.8, on a deep out-of-the-money put.
+What does cover them is the hit-count battery: the paths land in the money at
+the rate the closed form says, on 5,752 standardised rows and on both Poisson
+tails, which is the part of the claim Monte Carlo can still speak to.
+
+--------------------------------------------------------------------------------
+## 4  Euler's two rates
+
+Two errors, not one, and a suite measuring either alone would pass on an
+implementation that had the other badly wrong. Both are claims the site will
+make — D4 shows the path picture, D6 uses the price — so both are tested (I1).
+
+**Strong, order one half.** The exact sampler has no discretisation error, so
+driving both schemes from the same Brownian increment isolates Euler's mistake
+exactly: the difference *is* the error, with no sampling noise in front of it.
+
+```
+    steps        dt      mean error        SE     ratio   fitted
+        1   1.000000      4.396988   0.036459         -       no
+        2   0.500000      3.376613   0.023409     1.302       no
+        4   0.250000      2.513907   0.016537     1.343       no
+        8   0.125000      1.818615   0.011623     1.382      yes
+       16   0.062500      1.284463   0.007765     1.416      yes
+       32   0.031250      0.921620   0.005620     1.394      yes
+       64   0.015625      0.655078   0.003962     1.407      yes
+      128   0.007812      0.466709   0.002792     1.404      yes
+      256   0.003906      0.326473   0.001950     1.430      yes
+    slope over dt < 0.13: 0.4932 +/- 0.0021 (0.5 expected), worst residual 0.0084
+```
+
+Half, not one: the term Euler drops is (sigma^2/2)(Z^2 − 1) S dt per step, mean
+zero, so over T/dt steps the omissions add like a random walk to
+sqrt(T/dt)·dt = sqrt(T·dt). Milstein's correction is exactly that term. The
+ratios climb toward sqrt(2) = 1.414 and settle; the coarse levels are reported
+and not fitted, because at half a year a step Euler is not approximating
+anything yet and a fit across the whole range would measure the climb.
+
+**Weak, order one.** The same paths through a payoff and a discount factor, with
+common random numbers so the difference carries a fraction of the noise either
+estimate has alone.
+
+```
+    steps        dt          bias         SE   bias/SE   bias/dt
+        2   0.500000     0.036115   0.003638       9.9    0.0722
+        4   0.250000     0.050836   0.002617      19.4    0.2033
+        8   0.125000     0.033433   0.001887      17.7    0.2675
+       16   0.062500     0.017557   0.001353      13.0    0.2809
+       32   0.031250     0.008636   0.000965       9.0    0.2764
+       64   0.015625     0.005505   0.000682       8.1    0.3523
+    slope over dt < 0.13: 0.8831 +/- 0.0621 (1.0 expected)
+```
+
+The `bias/dt` column is the evidence that the fit is taken where the rate has
+arrived: 0.07 at half a year a step, climbing to about a third and staying
+there. Fitted across all six levels the slope would be 0.63, and the mistake
+would be the fit's rather than the scheme's.
+
+The bound on each slope is the measurement's own uncertainty five times over,
+propagated from the standard error each point carries, plus a stated allowance
+for the curvature a finite dt still has. Every level's bias is separately
+required to be resolved above six of its own standard errors, so what is fitted
+is a measurement rather than noise.
+
+And the practical statement, made once with the engine rather than the pieces:
+at 512 steps and 400,000 antithetic paths the Euler price is 13.04013 +/-
+0.02717 against a closed form of 13.020281, with an extrapolated bias of 8.2e-4.
+
+--------------------------------------------------------------------------------
+## 5  what each suite would catch
+
+**rng** — that the browser and the library have stopped drawing the same
+numbers. The fixture's uniforms are asserted bit for bit, not to a tolerance: a
+uniform is an integer expression times a power of two, so two correct
+implementations return the same double or one of them is wrong, and a swapped
+high and low word or an off-by-one shift is invisible at 1e-12. The normals are
+held to `docs/rng.md`'s 1e-12 and in fact agree bit for bit as well, all thirty
+of them. Also: that AS241 has been mistyped (12 mpmath reference values in all
+three branches, at 8 eps relative, plus a round-trip through erfc over 1,199
+values of p from 1e-300 to 0.5); that the seed expansion can reach the all-zero
+state (fmix32 inverted and round-tripped over 2^20 inputs, and the state checked
+over 2^20 seeds); that a sweep's rows are not independent (no two of 8,000 seeds
+within 341,411 of each other, worst correlation 0.0506 over 2,016 stream pairs
+against a computed bound of 0.0972).
+
+**monte-carlo** — that the estimator is biased, that its standard error is
+wrong, that the antithetic standard error is computed from paths rather than
+pairs, that the pathwise delta has lost its indicator or its sign for puts, that
+the stream is consumed at the wrong rate, that the discount is applied twice,
+that an antithetic partner draws fresh normals, that a NaN can escape from an
+input the closed form accepts. The standard error is pinned to roughly
+−5%/+3% by the grid battery's spread leg; the dedicated 400-run spread test is
+coarser at 17.7% and is there for what the grid cannot see, which is the whole
+estimator end to end.
+
+**euler** — that the discretisation converges at the wrong rate, in either of
+the two senses, or that the sign of the drift or the scaling of the diffusion is
+wrong. Also that Euler has quietly stopped being wrong: the strong slope would
+go to 1 if the Milstein term were added.
+
+--------------------------------------------------------------------------------
+## 6  the adversarial review
+
+A fresh session was given `docs/rng.md`, the sources and the tests and asked to
+find errors rather than confirm the work. It re-derived the specification symbol
+by symbol, checked all 48 AS241 coefficients character by character and measured
+how tightly each is pinned by the suite (all to 6.5e-12 relative or better, 36
+of them under 1e-14), transcribed Blackman and Vigna's reference implementation
+independently and confirmed 100,000 draws agree for five seeds, and mutation-
+tested. Two rounds, 69 mutations.
+
+### what it found, and what happened
+
+| # | finding | severity | outcome |
+|---|---|---|---|
+| 1 | The pathwise delta divided by the spot. At a spot of zero — inside the domain the closed form prices, and a row `test_limits.cpp` sweeps — that is 0/0, and a put there has a delta of −e^{−qT}. 977 NaN deltas over the T1 domain sweep. | real | fixed: the derivative is the growth factor, defined where the ratio is not |
+| 2 | The engine returned NaN prices on inputs `require_valid` accepts: a terminal spot that overflows while its discount underflows is 0·inf, and Welford's update made a NaN of it. 250 NaN prices over 16,570 accepted inputs. | real | fixed: the discount goes inside the exponent, and a non-finite sample saturates rather than poisoning the accumulator |
+| 3 | The promise was then still overclaimed: 216 NaNs in 971,552 accepted random inputs, by two further mechanisms — `require_valid` groups `0.5·sigma·sigma` where the engine formed `sigma^2·T`, accepting a band of volatility the engine could not use; and an antithetic Euler pair could put an infinity of each sign into one addition. | real | fixed: the total volatility is formed as `sigma sqrt(T)` the way the closed form forms it, the residual band is refused with a message, and a non-finite path is held aside before the sum |
+| 4 | The overflow fallback triggered on a NaN when it should trigger on anything not finite: 235 rows had a finite answer available and were returning an infinity. | real | fixed, one token |
+| 5 | The central-limit gate admitted rows on their observed hit count, selecting on the statistic under test; and the threshold's derivation was short by 4.5x. | real | fixed: expected hits, and 450 |
+| 6 | `in_the_money` had no assertion on its value under antithetic sampling — halving it was invisible. | real | fixed: asserted against a naive recount |
+| 7 | The regression test for finding 2 could not reach the region it was written for, and one of the two defects it claimed to re-break was not caught. | real | fixed: four scheme and pairing combinations, rates and yields of several hundred, and a zero spot checked by value rather than for not being a NaN |
+| 8 | The deep battery could be emptied by a one-line change with no assertion firing, taking 323 rows' only price check with it. | real | fixed: required non-empty at full sweep scale |
+| 9 | The saturating accumulator's behaviour was documented and untested; `discounted_growth_exact` was new public API with nothing testing its value; the sweep-scale knob divided the deep path count too, making a comment false. | real, low | all fixed |
+| 10 | Wrong numbers in comments: three in one sentence about Euler's residual bias; a 3.5% named where the code allows 17.7%; the accumulator's claim that a pathwise delta never changes sign, which is false under Euler; the header's account of what reaches an infinity. | cosmetic | all corrected |
+| 11 | The Euler sweeps seeded as `4000 + steps`, one apart, against the separation rule the suite asserts elsewhere; the correlation test checked a different seed set than the sweeps use; the deterministic branch tested a condition the engine does not use and never fired. | cosmetic | all fixed; the branch now has its own test case |
+| 12 | `statistics.cpp` computes its acceptance bounds with the same `norm_inv` that drives the draws. | named, not changed | neutralised: the rng suite pins `norm_inv` independently and goes red first — a mutation inverting its tail sent the bound negative, and the rng suite caught it |
+
+### the mutations that hold the fixes
+
+Each defect was put back and the suite run. Numbers are failing assertions.
+
+| mutation | result | first assertion to fire |
+|---|---|---|
+| pathwise delta back to `S_T / S` | RED, 2 | the zero-spot case; then a NaN delta in the domain sweep |
+| the accumulator's non-finite guard removed | RED, 1 | `REQUIRE_FALSE(isnan(result.price))` |
+| `terminal_spot`'s zero-spot case removed | RED, 1 | the zero spot compared by value, not by not-being-NaN |
+| the same case keyed on `growth == 0` instead | RED, 1 | as above |
+| the overflow fallback triggering on NaN only | RED, 1 | the named corner: a finite price where an infinity was returned |
+| the total volatility re-associated to `sqrt(sigma^2 T)` | RED, 1 | the 1.6e154 volatility, refused instead of priced |
+| the per-path guard removed from the delta sum | RED, 1 | a NaN delta, antithetic Euler |
+| `Accumulator::mean` ignoring the sentinel | RED, 1 | `REQUIRE(saturated > 0)` |
+| `standard_error` dropping the overflow branch | RED, 1 | `REQUIRE(isinf(price_standard_error))` |
+| the sentinel storing a negated value | RED, 1 | `REQUIRE(result.price > 0)` |
+| `discounted_growth_exact`: sign of q flipped | RED, 361 | the agreement test against the product |
+| `discounted_growth_exact`: half the variance correction | RED, 540 | the same |
+| `discounted_growth_exact`: returns 1.0 | RED, 541 | the same |
+| `in_the_money` counted per pair | RED, 2 | `CHECK(engine.in_the_money == hits)`, 406 == 832 |
+| the deep gate emptied | RED, 1 | `REQUIRE(deep_z.size() > 100)` |
+| antithetic SE from paths, not pairs | RED | antithetic grid sd 0.414 against a bound of 0.096 |
+| swap hi and lo in the uniform | RED | fixture uniforms, 0.536723 == 0.512269 |
+| `rotl<7>` to `rotl<6>`; `s1 << 9` to `<< 8`; the state update reordered | RED | fixture uniforms or normals |
+| AS241: a coefficient by 113 ulps; Horner reversed; a branch boundary moved; the p<=0 clamp weakened | RED | the mpmath references or the round-trip |
+| drop the `-sigma^2 T/2` drift correction | RED | the naive reimplementation, 1.813 against 8.5e-12 |
+| exact terminal uses `sigma T` not `sigma sqrt(T)` | RED, 27 | the E[S_T] moment test, 9.99 against 0.167 |
+| Euler antithetic negates only the first normal | RED | the naive reimplementation |
+| Euler diffusion `sigma dt` not `sigma sqrt(dt)` | RED | both slopes |
+| the same seed for every grid row | RED | grid mean 0.0945 against 0.0629, sd 0.594 |
+| a bias of +0.10 standard errors on rows over 10,000 paths | RED | grid mean 0.0768 against 0.0629 |
+
+### mutations that survive, and what that says about the suite's power
+
+| mutation | why it survives |
+|---|---|
+| `n` instead of `n − 1` in the sample variance | a 1/(2n) = 1.5e-5 effect at 32,768 samples, four orders below the noise floor |
+| the standard error scaled by 1.02, 1.03, 0.97 or 0.95 | the grid's spread leg pins it to about −5%/+3%; 1.05 and 0.90 are caught |
+| a bias of +0.03 or +0.05 standard errors | the mean leg's budget is 0.063; +0.10 is caught |
+| `payoff`'s `>` to `>=` | differs only in the sign of a zero |
+| the central-limit cut-off back to 100 | correct at 450 for the reason in section 3, but the aggregate difference on this grid is 0.001 of a standard error |
+
+The first four are limits of resolution, stated rather than papered over. The
+last is a methodological fix whose numerical effect here is small.
+
+--------------------------------------------------------------------------------
+## 7  the same numbers on three compilers
+
+The full output of `touchstone_tests --success=false`, with the source path and
+doctest's line numbers normalised away, has SHA-256
+
+    d960971446eb0915b1b0c9a50592e7e7523e58ec441ea72bbfc68294e37295d0
+
+on all three of g++ 11.4 (host A), g++ 13.3 and clang++ 18.1.3 (host B). Not
+similar to four significant figures: identical, character for character, every
+z-score and every fitted slope. The generator is integer arithmetic and the
+uniforms are an integer expression times a power of two, so that part is exact
+by construction; that the normals, the prices and the statistics come out the
+same as well is a stronger result than I6 asks for, and it is reported rather
+than relied on — every comparison in the suite is still to a stated tolerance.
+
+Determinism within a compiler is asserted directly: two runs of the same seed
+and settings must agree bit for bit, in both schemes and with pairing on and
+off, and 500 draws of five seeds must repeat exactly.
+
+
+--------------------------------------------------------------------------------
+## 8  SHA-256 of every build input
+
+32 files. Hashed in this order, the list of digests itself has SHA-256
+
+    b9c5cbed6c4fb2d2ebe34eacef3f43dafb5aab213510296a5b297466d9e9b0fb
+
+on both hosts, so the clang and sanitizer results are results about this
+checkout rather than about a copy of it that might have drifted.
+
+```
+aa5d2d54876064c8f4edf0d50ba97814e87c9f899d98611236c6bd1f80da0036  CMakeLists.txt
+3eb6af3a04d6c10f4b0d2778f7e59200fc07b05d6330c49657521a6f73816750  golden/README.md
+6bfef1fa37db1bbce68dec2ece6f392f0195df4717fa9e0120939d701c8547f8  golden/SCHEMA.md
+938ed1bb32ffb6bb25960cc5a66c8c6f4b69e4df94d2d1c147e3b583003e0334  golden/bs_vanilla.json
+d034ccc85c6603097d296381a8630f49ec0129ca53c95049e2e98259f62053d3  golden/generate_bs_vanilla.py
+6fe9c0a518ff1a5a5769a320e7bde4b147316deedfb58fad93043f226331fd6c  golden/rng-known-answers.json
+8738f1e50050f22724ce9ed8c5477760d94ec4f7ec3e4f3ebc72924b7b00a900  golden/verify_bs_vanilla.py
+4b182b4d72cce3636f64bf4d6b4af670f3e2778593d3a188a72219b668018607  include/touchstone/black_scholes.hpp
+c70456de443347a39ec6eb9aeab2a5924d41f90563ee0e2765d1a9512c7da890  include/touchstone/monte_carlo.hpp
+1a4181cdeaeb96c90c14a698f17d4dbf3e4eac0d5960d8df814a2b7b00582d8f  include/touchstone/normal.hpp
+c7730d03e0c16187e2c1944540c3d548d988ca9a6147114b227d9252a7fb8630  include/touchstone/rng.hpp
+3b610ef4dcbe752320ed16b2b70300229646bc7de98abd5fd8b57d55682282b5  src/black_scholes.cpp
+edab3be04706100122f215e9c3b24eef977f7d1b9bc1a5eae0f8d45dc5bdb8ed  src/monte_carlo.cpp
+335cf0587576a1a031c956d59125b902bf3a7d566fbdc30fbddb2a141807843b  tests/CMakeLists.txt
+010cc5d71fa312cc2aef083c5a8ecbcfa076db95fd50a3761df2d3e5b29b12a5  tests/doctest_main.cpp
+1df486c88989bb743d7ad1449b8b03e5e5d3980fb9a391039c8f75df735c9a22  tests/golden_file.cpp
+145006c87771eca1dea78df8754fd1ab438de7003d3801906731d3e8f3a5f3bd  tests/golden_file.hpp
+5ff1f3f99f63e907d9283a5e1ba512ef279d9e89153a865b15d1ad9db1c97f8e  tests/rng_fixture.cpp
+8e54ef61936cc5bec9c65a2fedb494b7ca5ca1d6b2b935e4750dc5cbbc6d4db4  tests/rng_fixture.hpp
+895aa0361c491d46d8b1f080dcb1b6fbbb5fb1b8a231585db0b1b05dc3e4b5a7  tests/statistics.cpp
+43d2169c92ae34f6c443d71e4dde126060ca3fd1f300bb5bc5e42a987d00dd38  tests/statistics.hpp
+0fe3e18455e21db66d976198df34caf2505a08bb89b3dcf4e1e6cf5222315374  tests/test_closed_form.cpp
+40afa096b81884cdc3efccce52d5454bd75bc85d06436940225a816e119f62be  tests/test_euler.cpp
+8283fa80c12b7444ddc7fb3670932b9ca0c2faa478570d98360b65ceae2a1ece  tests/test_limits.cpp
+fcd8bd4697391061fb9122974680cbd9c9986185111e8a32377b980fb9623ac6  tests/test_monte_carlo.cpp
+fde09f9edf46f9024741d4282848572059b490a50ea14f4e98db79c0752f8611  tests/test_normal.cpp
+3f75dd52561cdd082ea13eb3fbc4d5dee7bbed1a771586593e11d15bb95d72cb  tests/test_parity.cpp
+5a231d73fd7b5021879c9ea4b69a70bdbe5a1d420ea24b1aa4ce1b42d5b74fd7  tests/test_rng.cpp
+0d722252c6f323ac6340d84dec00aad9d288e9678a81d8c87dfcd55ab218ea0f  third_party/CMakeLists.txt
+57bccb250b92cee0775efc0a12200c820383bc23a409a0e3b82a4efb8011654c  third_party/README.md
+94029a7d32da24a56249658147dbd2b33ff0b9ed665295cbbaf19aafff5b0ced  third_party/doctest/doctest.h
+aaf127c04cb31c406e5b04a63f1ae89369fccde6d8fa7cdda1ed4f32dfc5de63  third_party/nlohmann/json.hpp
+```
+
+Two of the lines above changed on 2026-08-30, after the audit: comment-only edits to
+`src/monte_carlo.cpp` and `tests/test_euler.cpp` took the review's defect 2 and the two
+comment approximations its fix note records, so those two digests — and with them the
+list digest above — are new. Behaviour was shown unchanged the direct way: the suite
+was rebuilt on g++ 13.3 and clang++ 18.1.3 and re-run in full, and both outputs are
+byte-identical to the audited runs; the two files' digests were computed on the
+checkout and on the rebuild host and agree. Every other line is the audited original.
+
+The golden file's digest, 938ed1bb...0334, is the one T0 recorded and T1
+reproduced on a second platform; CI regenerates it and requires the working
+tree to stay clean, which is now a fourth machine.
+
+--------------------------------------------------------------------------------
+## what is not here
+
+No screenshots. P5 requires them for UI, and T2 has none — the library has no
+rendering surface until L1 puts D6 on a page. No performance measurement: the
+grid sweep's 29 seconds is a fact about this suite, not a claim about the
+engine, and nothing in T2 rests on speed. No MSVC and no Emscripten build.
