@@ -20,6 +20,55 @@ where the copied fixture lives, and how the grid criterion can be tested at all 
 
 ---
 
+### 2026-08-30 · claude-fable-5 · The review, redone by Fable at the owner's request: every claim re-established independently — one stale-figures defect in the pack, none in the code
+
+Work order (P3): redo T2's adversarial review as Fable — the first run of it was made
+with Opus by mistake, and P8 gives reviews to Fable. Verify rather than trust; change no
+library code (P8); log here, verdict beside this file.
+
+**Done**
+
+- **Verdict: PASS WITH DEFECTS** — `verdict.md`, beside this file. All three exit
+  criteria hold on the code as committed; the defects are documentation.
+- The A4 copy verified byte-identical to `touchstone-learn` at the pin itself
+  (`git show bd16b71`), and all 32 build-input digests of `tests.txt` §8 reproduced
+  from the working tree.
+- The suite rebuilt and re-run on an independent container: g++ 13.3 and clang++ 18.1.3
+  with `-Werror`, 49 cases and 4,111,444 assertions green on both, the two outputs
+  identical after normalisation, and the same again clean under ASan/UBSan at scale 16.
+  Every battery figure matches `tests.txt` §2 exactly.
+- The fixture re-derived from `docs/rng.md` alone, in a third implementation written for
+  this review: all 30 uniforms and all 30 normals bit-identical. All 48 AS241
+  coefficients scripted-identical between spec and header; the 12 reference values
+  re-derived at 80 digits; seed separation recomputed over the full 14,468 indices the
+  sweeps use (closest pair 82,466).
+- The grid criterion's reading — the battery in place of the unsatisfiable per-row rule
+  — endorsed on the merits, for the owner to ratify at merge.
+
+**Decisions (with why)**
+
+- **Reviewed, did not repair.** The stale Euler figures (defect 1) and the one false
+  comment (defect 2) are named, not edited: a reviewer rewriting the pack under review
+  would blur whose evidence it is, and P8 keeps implementation out of Fable's hands.
+  *Decision — owner may overrule.*
+
+**Not done**
+
+- No library code, no test, no CI change touched. The TypeScript not executed (I18).
+  MSVC and Emscripten not built, as throughout.
+- Defect 1 — `summary.md` and `tests.txt` §4 quote Euler figures (0.4950 ± 0.0021,
+  0.9664 ± 0.0697) that the committed code does not produce; the current figures are
+  §2's (0.4932 ± 0.0021, 0.8831 ± 0.0621), on which the criterion still passes.
+  Left for the owner or the next executing session to refresh.
+
+**Exact next step**
+
+The owner refreshes defect 1's figures, pushes `m/T2`, reads the Actions run, reads the
+pack and this verdict, ratifies the grid-criterion reading, merges, and ticks T2 in
+`ROADMAP.md`. T3 unlocks: Crank–Nicolson on a log-spot grid with the Thomas solver.
+
+---
+
 ### 2026-08-29 · claude-opus-5 · The browser's generator in C++, reproducing its known answers bit for bit, and a Monte Carlo that agrees with the closed form on 6,470 rows of the golden grid in the only form the three-standard-error rule can take on a grid that size
 
 **Done**
