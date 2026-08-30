@@ -119,7 +119,6 @@ committed; `touchstone-learn` public; README current.
 ## Track T — Touchstone library
 
 ### ☑ T0 — Repo, experiments, golden values
-**Passed** 2026-08-29 — evidence: docs/evidence/T1/.
 **Entry:** repo exists, public, `LICENSE` (MIT) committed (I12).
 **Deliverables:** README stating what Touchstone is and pointing at the constitution; `uv`
 project; `experiments/` with a README describing the script-plus-JSON discipline;
@@ -128,7 +127,7 @@ European calls and puts over a grid of spot, strike, vol, rate, dividend yield a
 `golden/bs_vanilla.json` committed with the QuantLib version.
 **Exit:** the generator reruns reproducibly; JSON schema documented; no C++ yet.
 **Tollgate:** V. **Executor:** Opus, or Sonnet (mechanical). **Size:** under an evening.
-Passed 2026-08-29 — evidence: `docs/evidence/T0/`.
+**Passed** 2026-08-29 — evidence: `docs/evidence/T0/`.
 
 ### ☑ T1 — Core: closed form and analytic Greeks
 **Entry:** T0.
@@ -138,6 +137,7 @@ parity, σ→0 and T→0 limits; GitHub Actions on GCC and Clang with warnings a
 **Exit:** CI green on both compilers; every test named in the deliverables present.
 **Tollgate:** F — this milestone sets the code patterns for everything after it.
 **Executor:** Opus. **Size:** one to two sessions.
+**Passed** 2026-08-29 — evidence: docs/evidence/T1/.
 
 ### ☑ T2 — Monte Carlo and the shared RNG
 **Entry:** T1, L0.
