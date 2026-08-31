@@ -73,7 +73,8 @@ and L1b (D5–D6) with one tollgate at the end.
 **Passed** 2026-08-30 — evidence: `touchstone-learn/docs/evidence/L1/`.
 
 ### ☐ L2 — Part 2 ingestion
-**Entry:** L1; owner drafts 2.1–2.11 and their experiments committed (S1–S11).
+**Entry:** L1; Entry: L1; batches ingest as drafts land, each batch's drafts and experiments committed;
+the F tollgate runs once, at the end, over all eleven.
 **Deliverables:** MDX for every Part 2 page from the owner's drafts, verbatim in substance;
 snippets extracted from the committed experiments; demos embedded per the index; checks with
 at least three questions per page; status `draft`.
