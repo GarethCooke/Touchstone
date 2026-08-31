@@ -151,13 +151,16 @@ golden grid; Euler error scales as expected with dt.
 **Passed** 2026-08-30 — evidence: `docs/evidence/T2/`.
 Grid-criterion reading ratified at merge,
 
-### ☐ T3 — Finite differences, implied vol, bump Greeks
+### ☑ T3 — Finite differences, implied vol, bump Greeks
 **Entry:** T2.
 **Deliverables:** Crank–Nicolson on a log-spot grid with the Thomas solver; implied vol by
 Newton with Brent fallback; bump-and-revalue Greeks; American early exercise as a stretch.
 **Exit:** three-way agreement (I20) within stated tolerances across the golden grid; bump
 Greeks match analytic within tolerance; implied vol round-trips golden prices to 1e-8.
 **Tollgate:** V. **Executor:** Opus. **Size:** two sessions.
+**Passed** 2026-08-31 — evidence: `docs/evidence/T3/`. American exercise included as
+the stretch; `require_valid` repaired in `black_scholes.cpp`, which edits T1 after
+its tollgate.
 
 ### ☐ T4 — WASM artifact
 **Entry:** T3.
