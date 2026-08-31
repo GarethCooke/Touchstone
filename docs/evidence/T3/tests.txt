@@ -15,6 +15,7 @@ Contents
   6. ctest and the full run on host B, the owner's checkout
   7. The sanitizers
   8. SHA-256 of every build input
+  9. CI
 
 --------------------------------------------------------------------------------
 ## 1. ctest, host A — g++ 13.3, RelWithDebInfo, warnings as errors
@@ -1025,3 +1026,40 @@ files. It is not a build input — the C++ never runs it — and its own
 reproducibility is a CI job rather than a digest, because the claim there is
 that the generator still produces the committed bytes rather than that the
 generator has not changed.
+
+--------------------------------------------------------------------------------
+## 9. CI
+--------------------------------------------------------------------------------
+
+Added after the fact, and it is the only section of this pack that reports
+something no local evidence could establish.
+
+Every pack from T0 onward has had to record that CI had never run, because no
+session in this programme has been able to push: the owner's credentials live in
+Windows' credential manager, which the mount does not expose, and this session's
+own git proxy holds credentials scoped to a repository it was not created for.
+The owner pushed `m/T3` by hand, and the run is green.
+
+    workflow   library #16
+    commit     66f719e  ("T3 — evidence pack")
+    branch     m/T3
+    duration   7m 21s
+    result     success — 1 success, 0 failures on this branch
+
+Four jobs, and two of them say something this pack could not say on its own.
+
+**The two compiler jobs and the sanitizer job** ran on GitHub's `ubuntu-24.04`
+runners: a fourth and fifth machine, neither of which either host in section 6
+had any contact with. They agree.
+
+**The `golden` job matters more, because of its two new steps.** The first
+re-derives all 864 American rows with the numpy lattice. The second regenerates
+`american_vanilla.json` from QuantLib and requires `git diff --exit-code` to be
+clean — so the committed file was reproduced **byte for byte on a machine that
+has never seen the one that generated it**. Determinism claimed by a generator
+that has only ever run in one place is a hope; this is the measurement. The same
+step has held `bs_vanilla.json` since T0, and the American file now stands on the
+same footing.
+
+What CI still does not establish, and what nothing here claims: MSVC, Emscripten,
+or any platform other than Ubuntu x86-64. Those arrive with T4.

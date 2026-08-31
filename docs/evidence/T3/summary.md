@@ -173,23 +173,25 @@ cost.
 
 **Not done**
 
-- **The branch is committed but not pushed, so CI has never run.** The same wall as T0, T1
-  and T2, and this time both routes were tried rather than assumed. `git push --dry-run`
-  from the owner's checkout: *"No anonymous write access"* — the credentials live in
-  Windows' credential manager, which the mount does not expose, and no credential helper is
-  reachable from the Linux side. From the session's own clone: *"access denied by the git
-  proxy: GarethCooke/Touchstone is not in this session's authorized repository set, so the
-  proxy will not inject a credential for it."* No credential was sought or supplied by other
-  means.
+- **The branch could not be pushed by this session, so the owner pushed it.** The same wall
+  as T0, T1 and T2, and this time both routes were tried rather than assumed.
+  `git push --dry-run` from the owner's checkout: *"No anonymous write access"* — the
+  credentials live in Windows' credential manager, which the mount does not expose, and no
+  credential helper is reachable from the Linux side. From the session's own clone: *"access
+  denied by the git proxy: GarethCooke/Touchstone is not in this session's authorized
+  repository set."* No credential was sought or supplied by other means.
 
-  **The second of those is fixable and worth fixing.** Adding `GarethCooke/Touchstone` to
-  the session's sources would let a future milestone push its own branch and read its own CI
-  run, which would close the one gap every pack from T0 onward has had to record.
+  The proxy's message reads like a setting to change, and this pack briefly said so. It is
+  not: a cloud session's git proxy holds credentials scoped to the repository the session was
+  created for, and this session was created from the desktop with two folders attached and no
+  repository. The alternative — running the milestone as a repository-scoped cloud session —
+  would buy the push and lose the device bridge, which is what gave T3 its second machine and
+  its third compiler. Not obviously a trade worth making.
 
-  `ci.yml` changed — two new steps — so the Actions run is worth a look rather than a
-  glance. **`ci.yml` could not be written by the file-transfer tool at all** (workflow files
-  are protected from remote writes); it was edited in place on the owner's machine instead,
-  and its digest is in `tests.txt` §8 like everything else.
+  **CI has now run, and it is green** — see `tests.txt` §9. `ci.yml` changed, so it was worth
+  a look rather than a glance. **`ci.yml` could not be written by the file-transfer tool at
+  all** (workflow files are protected from remote writes); it was edited in place on the
+  owner's machine instead, and its digest is in `tests.txt` §8 like everything else.
 
 - **Three mutations survive the suite**, all named in `tests.txt` §5 with the measurement
   behind each: removing Newton entirely leaves a correct solver, because Brent is
@@ -242,11 +244,10 @@ the roadmap's `golden/`. Neither blocks the path to T5.
 
 ## Owner actions
 
-1. **`git push -u origin m/T3`**, then read the Actions run. Two new steps in the `golden`
-   job, and the American generator takes about two and a half minutes. Note that the branch
-   also carries `62f6320`, the roadmap edit made on it mid-session, which merges with T3.
-   Worth doing once, separately: add `GarethCooke/Touchstone` to this session type's
-   authorised sources, so that T4 can push and read its own CI run instead of asking.
+1. ~~**`git push -u origin m/T3`**~~ — **done**, and the Actions run is green: `library`
+   #16 on `66f719e`, 7m21s, all four jobs. `tests.txt` §9 has what that establishes that no
+   local evidence could. Note that the branch also carries `62f6320`, the roadmap edit made
+   on it mid-session, which merges with T3.
 2. **Read this pack and merge.** T3's tollgate is V: there is no Fable session to run. On a
    merge, tick T3 in `ROADMAP.md` with a pointer to `docs/evidence/T3/`.
 3. **Note the T1 edit in the tollgate record** if the record should stay exact:
@@ -265,7 +266,7 @@ the roadmap's `golden/`. Neither blocks the path to T5.
 - `tests.txt` — ctest and the full run with every number the suite reports; the three exit
   criteria worked through with their tolerances stated; what each new suite would catch; the
   twenty-four mutations and the three that survive; the two hosts' agreement digest; the
-  sanitizers; and the SHA-256 of all 47 build inputs.
+  sanitizers; the SHA-256 of all 47 build inputs; and the CI run.
 - `diff.txt` — `git diff --stat` against `62f6320`, HEAD's parent, which is `a296fae` plus
   the owner's roadmap edit; 30 files, 6,757 insertions, 27 deletions.
 - No `screenshots/`. P5 requires them for UI; T3 has none.
