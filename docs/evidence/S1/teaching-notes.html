@@ -1,0 +1,689 @@
+<title>S1 · Random Walks and Scaling</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #F4F6F9;
+    --card: #FCFCFD;
+    --ink: #1B2330;
+    --muted: #59657A;
+    --line: #DEE3EC;
+    --line-faint: #E9EDF3;
+    --walk: #2E59C7;
+    --walk-soft: rgba(46, 89, 199, 0.13);
+    --theory: #B07818;
+    --theory-soft: rgba(176, 120, 24, 0.12);
+    --code-bg: #EEF1F6;
+    --good: #1E7A46;
+    --shadow: 0 1px 2px rgba(27, 35, 48, 0.05), 0 4px 16px rgba(27, 35, 48, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0F141D;
+      --card: #161C27;
+      --ink: #E6EAF2;
+      --muted: #97A2B5;
+      --line: #29323F;
+      --line-faint: #1F2733;
+      --walk: #5B7FE3;
+      --walk-soft: rgba(91, 127, 227, 0.16);
+      --theory: #B08422;
+      --theory-soft: rgba(176, 132, 34, 0.16);
+      --code-bg: #1B2230;
+      --good: #4CAF79;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0F141D;
+    --card: #161C27;
+    --ink: #E6EAF2;
+    --muted: #97A2B5;
+    --line: #29323F;
+    --line-faint: #1F2733;
+    --walk: #5B7FE3;
+    --walk-soft: rgba(91, 127, 227, 0.16);
+    --theory: #B08422;
+    --theory-soft: rgba(176, 132, 34, 0.16);
+    --code-bg: #1B2230;
+    --good: #4CAF79;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
+    font-size: 17px;
+    line-height: 1.68;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 40px 20px 80px; }
+  .wide { max-width: 880px; margin-left: auto; margin-right: auto; }
+
+  .eyebrow {
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  header.top { padding: 28px 0 8px; border-bottom: 1px solid var(--line); margin-bottom: 36px; }
+  header.top .eyebrow .sess { color: var(--walk); }
+  h1 {
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: clamp(30px, 6vw, 42px);
+    font-weight: 700;
+    line-height: 1.12;
+    letter-spacing: -0.01em;
+    margin: 10px 0 12px;
+    text-wrap: balance;
+  }
+  .standfirst { color: var(--muted); font-size: 16px; margin: 0 0 18px; max-width: 62ch; }
+  .standfirst strong { color: var(--ink); font-weight: 600; }
+
+  section { margin: 44px 0; }
+  h2 {
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    font-size: 21px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    margin: 6px 0 14px;
+    text-wrap: balance;
+  }
+  h2 .stepno { color: var(--walk); font-variant-numeric: tabular-nums; margin-right: 6px; }
+  p { margin: 0 0 14px; max-width: 66ch; }
+  .note { color: var(--muted); font-size: 15px; max-width: 66ch; }
+
+  code, .mono {
+    font-family: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+    font-size: 0.86em;
+  }
+  code { background: var(--code-bg); border-radius: 4px; padding: 0.1em 0.35em; }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line-faint);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-size: 14px;
+    line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 20px 22px;
+    box-shadow: var(--shadow);
+  }
+  .predictions { display: flex; flex-direction: column; gap: 12px; }
+  .prediction { display: flex; gap: 14px; align-items: baseline; }
+  .prediction .tag {
+    flex: none;
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--walk);
+    border: 1px solid var(--walk);
+    border-radius: 99px;
+    padding: 2px 10px;
+    white-space: nowrap;
+  }
+  .prediction q { font-style: italic; }
+
+  .runsteps { counter-reset: rs; margin: 14px 0; padding: 0; list-style: none; }
+  .runsteps li {
+    counter-increment: rs;
+    position: relative;
+    padding: 0 0 0 40px;
+    margin: 0 0 12px;
+    max-width: 66ch;
+  }
+  .runsteps li::before {
+    content: counter(rs);
+    position: absolute; left: 0; top: 2px;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--walk);
+    color: var(--card);
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .facts { margin: 16px 0; display: flex; flex-direction: column; gap: 10px; }
+  .fact { display: flex; gap: 12px; align-items: baseline; }
+  .fact .fno {
+    flex: none;
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 12px; font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    padding-top: 2px;
+  }
+
+  figure { margin: 26px 0; }
+  .figbox {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px;
+    box-shadow: var(--shadow);
+  }
+  canvas { display: block; width: 100%; height: auto; }
+  figcaption { font-size: 14px; color: var(--muted); margin-top: 10px; max-width: 76ch; }
+  .figbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; font-family: "IBM Plex Sans", sans-serif; font-size: 12.5px; color: var(--muted); }
+  .swatch { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+  .sw-walk { background: var(--walk); }
+  .sw-theory { background: var(--theory); }
+  button.redraw {
+    margin-left: auto;
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 13px; font-weight: 500;
+    color: var(--walk);
+    background: none;
+    border: 1px solid var(--walk);
+    border-radius: 6px;
+    padding: 5px 12px;
+    cursor: pointer;
+  }
+  button.redraw:hover { background: var(--walk-soft); }
+  button.redraw:focus-visible { outline: 2px solid var(--walk); outline-offset: 2px; }
+  .readout { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--muted); min-height: 1.2em; }
+
+  .tablewrap { overflow-x: auto; margin: 18px 0; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 560px;
+    font-size: 14.5px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  th {
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 12px; font-weight: 600;
+    letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--muted);
+    text-align: right;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+    background: var(--code-bg);
+  }
+  th:first-child, td:first-child { text-align: left; }
+  td {
+    font-family: "IBM Plex Mono", monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 13.5px;
+    text-align: right;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--line-faint);
+  }
+  tr:last-child td { border-bottom: none; }
+  td.hl { color: var(--walk); font-weight: 500; }
+  td.th2 { color: var(--theory); }
+  tr.limit td { background: var(--theory-soft); border-top: 1px solid var(--line); font-weight: 500; }
+
+  .aside {
+    border-left: 3px solid var(--theory);
+    background: var(--theory-soft);
+    border-radius: 0 8px 8px 0;
+    padding: 14px 18px;
+    margin: 22px 0;
+  }
+  .aside .eyebrow { color: var(--theory); margin-bottom: 6px; display: block; }
+  .aside p { font-size: 15.5px; }
+
+  .qcard { margin: 18px 0; }
+  .qcard .qno { color: var(--walk); font-weight: 600; font-family: "IBM Plex Sans", sans-serif; font-size: 13px; letter-spacing: 0.06em; }
+  .qcard .stem { font-weight: 600; margin: 6px 0 12px; }
+  .opt { display: flex; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line-faint); }
+  .opt .mark { flex: none; width: 20px; font-family: "IBM Plex Sans", sans-serif; font-weight: 600; }
+  .opt.right .mark { color: var(--good); }
+  .opt.wrong .mark { color: var(--muted); }
+  .opt .body { font-size: 15px; }
+  .opt .mc {
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--theory);
+  }
+  .opt .fb { color: var(--muted); font-size: 14px; margin-top: 2px; }
+
+  .mjx-container { overflow-x: auto; overflow-y: hidden; max-width: 100%; }
+  mjx-container[display="true"] { margin: 14px 0 !important; }
+
+  footer {
+    margin-top: 60px; padding-top: 18px;
+    border-top: 1px solid var(--line);
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 13px; color: var(--muted);
+    line-height: 1.7;
+  }
+  a { color: var(--walk); }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Touchstone · study track · <span class="sess">Session S1</span> — teaching notes</div>
+  <h1>Random walks and scaling</h1>
+  <p class="standfirst">Working material for <strong>page 2.1</strong>, which you will write in your own words (constitution I2 — none of this text is page prose). Pitch: <strong>rusty</strong> — every probability fact is named where it's used; the load-bearing one is proved. Read §1, run the experiment, then read on.</p>
+</header>
+
+<!-- ============ 0 · PREDICTIONS ============ -->
+<section>
+  <div class="eyebrow">On the record</div>
+  <h2>Your predictions, before any code ran</h2>
+  <div class="card predictions">
+    <div class="prediction"><span class="tag">P1</span><span>A fair ±1 walk, 10,000 steps — typical end distance from zero: <q>~0 — heads and tails cancel, so it ends near where it started.</q></span></div>
+    <div class="prediction"><span class="tag">P2</span><span>Same walk run 4× as long — the typical distance is: <q>about the same.</q></span></div>
+  </div>
+  <p class="note" style="margin-top:12px">These are the answers most readers will give, which is exactly why they were worth committing to. The experiment settles both; §3 and §4 return to them by name.</p>
+</section>
+
+<!-- ============ 1 · RUN ============ -->
+<section>
+  <div class="eyebrow">Step 1 · do this first</div>
+  <h2><span class="stepno">1</span>Run the experiment</h2>
+  <ol class="runsteps">
+    <li>From the <code>Touchstone</code> repo root: <code>uv run experiments/2_1_random_walks.py</code></li>
+    <li>Wait ~20–40 s. It prints progress and nine <span class="mono">PASS</span> lines, and writes <code>2_1_random_walks.json</code> beside the script. The JSON is the artifact of record; stdout is only progress (the <code>experiments/README.md</code> discipline).</li>
+    <li>Say <em>done</em> in the chat and I'll read your JSON from the repo.</li>
+  </ol>
+  <p class="note">What it does: simulates 10,000 walks and reads each one at n = 100, 1,000, 10,000 and 100,000 steps — once with coin steps, once with Gaussian steps — then simulates the sixteen-cell scaling table of §6. Seed 20260830, recorded in the JSON: same seed, same file (I6).</p>
+</section>
+
+<!-- ============ 2 · THE OBJECT ============ -->
+<section>
+  <div class="eyebrow">Step 2 · the object and the three facts</div>
+  <h2><span class="stepno">2</span>The walk, and everything 2.1 borrows from probability</h2>
+  <p>The object is as small as it looks. Flip a fair coin; step \(\xi_i = +1\) or \(-1\); your position after \(n\) steps is the sum</p>
+  $$S_n = \xi_1 + \xi_2 + \dots + \xi_n .$$
+  <p>Each step has mean \(\mathbb{E}[\xi_i] = 0\) and variance \(\operatorname{Var}(\xi_i) = \mathbb{E}[\xi_i^2] = 1\). This page uses exactly three facts about randomness, no more:</p>
+  <div class="facts">
+    <div class="fact"><span class="fno">F1</span><span>Expectations add, always: \(\mathbb{E}[X+Y] = \mathbb{E}[X] + \mathbb{E}[Y]\).</span></div>
+    <div class="fact"><span class="fno">F2</span><span>Variances add <em>for independent</em> variables: \(\operatorname{Var}(X+Y) = \operatorname{Var}(X) + \operatorname{Var}(Y)\).</span></div>
+    <div class="fact"><span class="fno">F3</span><span>Standard deviation is the square root of variance — it carries the units of the thing itself.</span></div>
+  </div>
+  <p>F2 is the load-bearing one, so here is its two-line proof for zero-mean \(X, Y\) (which is all we need; means shift nothing). Expand the square and take expectations with F1:</p>
+  $$\mathbb{E}\!\left[(X+Y)^2\right] = \mathbb{E}[X^2] + 2\,\mathbb{E}[XY] + \mathbb{E}[Y^2],$$
+  <p>and independence makes the cross term factor: \(\mathbb{E}[XY] = \mathbb{E}[X]\,\mathbb{E}[Y] = 0\). What's left is \(\operatorname{Var}(X) + \operatorname{Var}(Y)\). That's the whole proof — <em>independence is what kills the cross term</em>, and killing cross terms is what this entire subject runs on.</p>
+  <p>Applied \(n\) times to the walk:</p>
+  $$\mathbb{E}[S_n] = 0 \quad\text{(exactly)}, \qquad \operatorname{Var}(S_n) = n, \qquad \operatorname{sd}(S_n) = \sqrt{n}.$$
+</section>
+
+<!-- ============ 3 · PREDICTION 1 ============ -->
+<section class="wide">
+  <div class="eyebrow">Step 3 · prediction 1 resolved</div>
+  <h2><span class="stepno">3</span>Zero mean is not zero distance</h2>
+  <div class="wrap" style="padding:0;max-width:760px;margin:0">
+  <p>Your P1 contains a true statement: \(\mathbb{E}[S_n] = 0\), exactly, at every \(n\). The walk has no drift and never develops one. But that expectation averages over <em>worlds</em>, not over a world: for every walk that ends at +80 there's an equally likely mirror ending at −80, and they cancel <em>in the average</em> while both end 80 away. The number that answers "how far, typically?" is not the mean of \(S_n\) but its typical size — the standard deviation, \(\sqrt{n}\) — and for the mean of \(|S_n|\) itself the experiment measures</p>
+  $$\mathbb{E}\,|S_n| \;\approx\; 0.80\,\sqrt{n} \qquad\text{(the exact asymptote is } \sqrt{2/\pi} = 0.7979\ldots\text{, } \S5).$$
+  <p class="note">The bars carry all the weight there: \(\mathbb{E}[S_n]\) is the average <em>position</em> (exactly 0, forever); \(\mathbb{E}\,|S_n|\) is the average <em>distance</em> (growing like √n, forever). One easy-to-miss glyph, two different animals — worth protecting the reader from when you write this up.</p>
+  <p>So after 10,000 steps: sd \(=100\), mean distance \(\approx 80\). Not zero — and not 5,000 either. Cancellation is real but imperfect, and the leftover grows like \(\sqrt{n}\), forever.</p>
+  </div>
+
+  <figure>
+    <div class="figbox">
+      <canvas id="fan" height="360" aria-label="Sixty simulated random walks fanning out between square-root-of-n envelopes"></canvas>
+      <div class="figbar">
+        <span class="chip"><span class="swatch sw-walk"></span>60 walks (one emphasised)</span>
+        <span class="chip"><span class="swatch sw-theory"></span>±√n and ±2√n</span>
+        <span class="readout" id="fan-readout"></span>
+        <button class="redraw" id="fan-redraw" type="button">Redraw</button>
+      </div>
+    </div>
+    <figcaption>Sixty coin walks to n = 1,000. No individual path knows about √n, yet the ensemble fans out precisely between the envelopes: roughly two-thirds of paths sit inside ±√n at any moment, ~95% inside ±2√n. Redraw as often as you like — the envelope is the invariant, the paths are weather. (Session illustration only; the site's demo D1 covers this properly.)</figcaption>
+  </figure>
+
+  <div class="wrap" style="padding:0;max-width:760px;margin:0">
+  <p>What your run should show at the four checkpoints (coin walk; my validation run, seed 20260830, numpy 2.4.4 — <strong>your JSON is the file of record</strong>):</p>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>n</th><th>Var(Sₙ)</th><th>Var/n</th><th>E|Sₙ|</th><th>E|Sₙ|/√n</th><th>E|Sₙ|/n</th></tr></thead>
+      <tbody>
+        <tr><td>100</td><td>103.3</td><td class="hl">1.033</td><td>8.07</td><td class="hl">0.807</td><td>0.0808</td></tr>
+        <tr><td>1,000</td><td>1,028.9</td><td class="hl">1.029</td><td>25.61</td><td class="hl">0.810</td><td>0.0256</td></tr>
+        <tr><td>10,000</td><td>10,215.9</td><td class="hl">1.022</td><td>80.84</td><td class="hl">0.808</td><td>0.0081</td></tr>
+        <tr><td>100,000</td><td>101,122.3</td><td class="hl">1.011</td><td>254.23</td><td class="hl">0.804</td><td>0.0025</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="wrap" style="padding:0;max-width:760px;margin:0">
+  <p class="note">Read the two highlighted columns: Var/n pins near 1 (variance adds — F2, four decades deep) and E|Sₙ|/√n pins near 0.80. At 10,000 paths a variance estimate carries a ±3% sampling band, and the checkpoints share paths so they wobble together — the reliable readout is the log–log slope across the decades: <span class="mono">0.997</span> for variance against a theoretical 1, <span class="mono">0.499</span> for E|Sₙ| against 0.5. You can read those slopes straight off the table as ratios between consecutive rows: each ×10 in n multiplies Var by ≈ 9.9–10.0 (one decade, exponent 1) and E|Sₙ| by ≈ 3.15–3.17 ≈ √10 (half a decade, exponent ½); the fitted slope just averages those per-decade factors in log space.</p>
+  </div>
+</section>
+
+<!-- ============ 4 · PREDICTION 2 ============ -->
+<section>
+  <div class="eyebrow">Step 4 · prediction 2 resolved</div>
+  <h2><span class="stepno">4</span>Variance adds; standard deviation doesn't</h2>
+  <p>P2 asked what 4× the time does. Variance is the thing that adds (F2): four times the steps means four times the variance, always. But distance lives in sd units, and the square root undoes the linearity:</p>
+  $$\operatorname{Var}(S_{4n}) = 4n \;\Rightarrow\; \operatorname{sd}(S_{4n}) = 2\sqrt{n}.$$
+  <p>Quadruple the time, <em>double</em> the typical distance. Not "about the same": the spread never stops growing — your last column shows E|Sₙ|/n falling from 0.081 to 0.0025 across ×1,000 more steps — a factor of \(\sqrt{1000} \approx 32\), which is the index's phrasing "mean absolute distance does not grow linearly" made numerical. And not 4× either: sds don't add. \(\sqrt{a} + \sqrt{b} \ne \sqrt{a+b}\) — writing it out, \((\sqrt a + \sqrt b)^2 = a + b + 2\sqrt{ab}\), which double-counts co-movement that independent stretches don't have.</p>
+  <p>This is why the maths runs its bookkeeping in variance and only converts to sd at the end, and it is the first useful desk fact of the course: independent risks combine in quadrature.</p>
+</section>
+
+<!-- ============ 5 · THE CURIOUS + UNIVERSALITY ============ -->
+<section>
+  <div class="eyebrow">Step 5 · two remarks before the punchline</div>
+  <h2><span class="stepno">5</span>A rigid rule under the noise — and the coin doesn't matter</h2>
+  <div class="aside">
+    <span class="eyebrow">For the curious — where E|Sₙ| ≈ 0.80√n comes from</span>
+    <p>At large \(n\), \(S_n/\sqrt{n}\) behaves like a standard Gaussian \(Z\) (that's 2.2's business — here we only borrow the constant), and \(\mathbb{E}|Z| = \sqrt{2/\pi} \approx 0.7979\). Your table's 0.804–0.810 sits just above it — the gap is finite-n effects plus a ±1% sampling band, and the check only asks for 3%.</p>
+  </div>
+  <p>Second remark, and hold onto it for 2.3. Watch the <em>squared</em> position for one step, using F1 and independence:</p>
+  $$\mathbb{E}\!\left[S_{n+1}^2\right] = \mathbb{E}\!\left[(S_n + \xi_{n+1})^2\right] = \mathbb{E}[S_n^2] + 2\,\mathbb{E}[S_n]\,\mathbb{E}[\xi_{n+1}] + \mathbb{E}[\xi_{n+1}^2] = \mathbb{E}[S_n^2] + 1.$$
+  <p>The expected squared position climbs by <em>exactly one per step</em> — deterministic bookkeeping ticking away underneath genuine randomness. When this course reaches quadratic variation, \((\mathrm{d}W)^2 = \mathrm{d}t\) will be this same fact wearing continuous clothes.</p>
+  <p>Third: nothing above used the coin. The proof in §2 used independence and finite variance — full stop. That's why your run does everything twice, once with ±1 steps and once with Gaussian steps: same slopes (<span class="mono">0.994 / 0.497</span> in my validation run), same 0.80 constant. The scaling law is a property of <em>accumulating independent noise</em>, not of any particular noise. This universality is what earns Brownian motion its throne in 2.2.</p>
+</section>
+
+<!-- ============ 6 · THE PINCER ============ -->
+<section class="wide">
+  <div class="eyebrow">Step 6 · the punchline</div>
+  <h2><span class="stepno">6</span>Why the continuous limit forces √dt</h2>
+  <div class="wrap" style="padding:0;max-width:760px;margin:0">
+  <p>Now the question the page exists for. Fix a horizon — one year, \(T = 1\) — and chop it into steps of length \(\mathrm{d}t\), so there are \(n = T/\mathrm{d}t\) of them. To reach a continuous-time model you must shrink \(\mathrm{d}t \to 0\) while the step <em>size</em> shrinks too. Shrink it as \(\mathrm{d}t^{\alpha}\) — which exponent survives? F2 answers by itself:</p>
+  $$\operatorname{Var}(S_T) = n \cdot \left(\mathrm{d}t^{\alpha}\right)^2 = \frac{T}{\mathrm{d}t}\,\mathrm{d}t^{2\alpha} = T\,\mathrm{d}t^{\,2\alpha - 1}.$$
+  <p>Read the exponent: \(\alpha > \tfrac12\) sends the variance to zero — the model freezes into a flat line. \(\alpha < \tfrac12\) sends it to infinity — the model explodes. Only \(\alpha = \tfrac12\) leaves something alive: \(\operatorname{Var}(S_T) = T\), finite, nonzero, and — pleasingly — <em>linear in the horizon</em>, which is §3's variance-adds law surviving into continuous time. √dt isn't a convention someone chose; it's the only exchange rate between step size and step count at which randomness neither dies nor explodes.</p>
+  </div>
+
+  <figure>
+    <div class="figbox">
+      <div style="display:flex; flex-wrap:wrap; gap:10px">
+        <div style="flex:1 1 220px"><canvas class="pincer" data-alpha="1" height="240" aria-label="Walks with steps of size dt: flat lines at zero"></canvas></div>
+        <div style="flex:1 1 220px"><canvas class="pincer" data-alpha="0.5" height="240" aria-label="Walks with steps of size square root of dt: healthy randomness"></canvas></div>
+        <div style="flex:1 1 220px"><canvas class="pincer" data-alpha="0.25" height="240" aria-label="Walks with steps of size dt to the quarter power: leaving the frame"></canvas></div>
+      </div>
+      <div class="figbar">
+        <span class="chip">24 walks per panel · T = 1 · dt = 10⁻³ · same vertical scale, ±3.5</span>
+        <button class="redraw" id="pincer-redraw" type="button">Redraw</button>
+      </div>
+    </div>
+    <figcaption>The pincer, drawn. Steps of dt (left): terminal sd 0.03 — a dead flat line, randomness gone. Steps of √dt (middle): terminal sd 1 = √T, alive, with the ±√t envelope from §3. Steps of dt<sup>¼</sup> (right): terminal sd 5.6, already leaving the frame — and it grows without bound as dt shrinks further.</figcaption>
+  </figure>
+
+  <div class="wrap" style="padding:0;max-width:760px;margin:0">
+  <p>Your run fills this table with sixteen independently simulated cells (measured Var(S₁); exact value \(T\,\mathrm{d}t^{2\alpha-1}\) in brackets):</p>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>dt</th><th>α = 1</th><th>α = ¾</th><th>α = ½</th><th>α = ¼</th></tr></thead>
+      <tbody>
+        <tr><td>10⁻¹</td><td>0.1005 (0.1)</td><td>0.323 (0.316)</td><td class="hl">1.001 (1)</td><td>3.13 (3.16)</td></tr>
+        <tr><td>10⁻²</td><td>0.0099 (0.01)</td><td>0.0998 (0.1)</td><td class="hl">1.006 (1)</td><td>10.07 (10)</td></tr>
+        <tr><td>10⁻³</td><td>0.0010 (0.001)</td><td>0.0317 (0.0316)</td><td class="hl">1.019 (1)</td><td>31.74 (31.6)</td></tr>
+        <tr><td>10⁻⁴</td><td>0.0001 (0.0001)</td><td>0.0100 (0.01)</td><td class="hl">1.017 (1)</td><td>99.80 (100)</td></tr>
+        <tr class="limit"><td>dt → 0</td><td class="th2">0</td><td class="th2">0</td><td class="th2">T</td><td class="th2">∞</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="wrap" style="padding:0;max-width:760px;margin:0">
+  <p>One generalisation, and it's the road map for the rest of Part 2. Over \([0,T]\) there are \(T/\mathrm{d}t\) slots. A <em>deterministic</em> per-slot quantity survives summation if it is order \(\mathrm{d}t\) (count × size \(= T\)). A <em>zero-mean, independent random</em> per-slot quantity survives if it is order \(\sqrt{\mathrm{d}t}\) (count × size² \(= T\) in variance — F2 again). Everything else vanishes or blows up. So a continuous-time model of anything has exactly two kinds of term available:</p>
+  $$\mathrm{d}X = \mu\,\mathrm{d}t + \sigma\,\mathrm{d}W$$
+  <p class="note">(That \(W\) is a glyph borrowed one page early: it names the walk itself in its continuous limit — Brownian motion, 2.2's headline object — and \(\mathrm{d}W\) is its next √dt-sized increment, not a derivative. Nothing new is being used; it's this page's object wearing next page's name.)</p>
+  <p>— a drift built from the surviving deterministic scale and noise built from the surviving random scale. When you meet this in 2.6 it will not be a modelling choice to justify but the only two survivors of the limit. And the classic implementation bug of 2.6 — writing <code>sigma * Z * dt</code> instead of <code>sigma * Z * sqrt(dt)</code> — is now diagnosable on sight: it picks α = 1 for the noise, the left-hand panel above, and simulates a market whose randomness quietly freezes to nothing as you refine the grid.</p>
+  </div>
+</section>
+
+<!-- ============ 7 · CLAIM MAP ============ -->
+<section class="wide">
+  <div class="eyebrow">Step 7 · what the page may claim (I1)</div>
+  <h2><span class="stepno">7</span>Claim → evidence map for your draft</h2>
+  <div class="wrap" style="padding:0;max-width:760px;margin:0">
+  <p>Every quantitative sentence in <code>drafts/2.1.md</code> must map to a committed result (I1). These are the claims the experiment licenses, and where each lives in <code>2_1_random_walks.json</code>:</p>
+  </div>
+  <div class="tablewrap">
+    <table style="min-width:640px">
+      <thead><tr><th style="text-align:left">Claim in the draft</th><th style="text-align:left">Evidence in the JSON</th><th style="text-align:left">Check</th></tr></thead>
+      <tbody>
+        <tr><td style="text-align:left;font-family:'Source Serif 4',serif;font-size:14.5px">Variance adds: Var(Sₙ) = n·Var(step)</td><td style="text-align:left">walks.coin.var_over_n ≈ 1; slope 0.997</td><td style="text-align:left">C1</td></tr>
+        <tr><td style="text-align:left;font-family:'Source Serif 4',serif;font-size:14.5px">Typical distance grows like √n, and E|Sₙ| ≈ 0.80√n</td><td style="text-align:left">walks.coin.mean_abs_over_sqrt_n; asymptote field</td><td style="text-align:left">C2</td></tr>
+        <tr><td style="text-align:left;font-family:'Source Serif 4',serif;font-size:14.5px">Mean absolute distance does not grow linearly</td><td style="text-align:left">walks.coin.mean_abs_over_n falls ×32 over 10³× steps; slope 0.499</td><td style="text-align:left">C2</td></tr>
+        <tr><td style="text-align:left;font-family:'Source Serif 4',serif;font-size:14.5px">Only √dt survives the continuous limit</td><td style="text-align:left">scaling_pincer: 16 cells vs T·dt^(2α−1)</td><td style="text-align:left">C3</td></tr>
+        <tr><td style="text-align:left;font-family:'Source Serif 4',serif;font-size:14.5px">The law needs only independence + finite variance, not the coin</td><td style="text-align:left">walks.gaussian slopes match coin</td><td style="text-align:left">C4</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="wrap" style="padding:0;max-width:760px;margin:0">
+  <p><strong>Not yet claimable</strong> (no evidence committed, wrong page, or both): that \(S_n/\sqrt{n}\) is Gaussian-shaped or anything about the limit's <em>distribution</em> (2.2's experiment); the quadratic-variation rulebook \((\mathrm{d}W)^2 = \mathrm{d}t\) (2.3 — §5's identity is its finite-n shadow, not its proof); anything about prices, hedging or markets. The desk aside in §4 (risks combine in quadrature) is F2 restated, so it's safe.</p>
+  <p class="note">Your outline is the index entry itself: <em>"Variance adds, standard deviation doesn't: √n. Why the continuous limit needs increments of size √dt."</em> Write to that, in your voice; I'll review the draft against this map before you commit.</p>
+  </div>
+</section>
+
+<!-- ============ 8 · CHECKS ============ -->
+<section>
+  <div class="eyebrow">For your approval · I5</div>
+  <h2>Draft check questions</h2>
+  <p class="note">Four questions; every wrong option names the misconception it encodes, and feedback says why it's wrong (I5). Two distractors are your own answers from this morning — that's a compliment to their quality as distractors, and it means the page will catch real readers. Approve, amend or strike; on approval these land in <code>touchstone-learn</code> beside the draft.</p>
+
+  <div class="card qcard">
+    <span class="qno">Q1</span>
+    <p class="stem">A fair ±1 walk runs 10,000 steps. Typically, how far from zero does it end?</p>
+    <div class="opt right"><span class="mark">✓</span><div class="body">About 100. <span class="fb">sd = √10,000 = 100; the mean absolute distance is ≈ 0.8 × 100 = 80. The √n law.</span></div></div>
+    <div class="opt wrong"><span class="mark">✗</span><div class="body">About 0 — the +1s and −1s cancel. <span class="mc">zero mean ⇒ zero distance</span><div class="fb">E[Sₙ] = 0 is exact, but it averages over runs: +80 and −80 cancel in the mean while both sit 80 away. Cancellation within one run is imperfect, and the leftover grows like √n.</div></div></div>
+    <div class="opt wrong"><span class="mark">✗</span><div class="body">About 5,000 — roughly half the steps go uncancelled. <span class="mc">linear growth</span><div class="fb">Distance from the start grows like √n, not n: the fraction of steps surviving cancellation shrinks as 1/√n. After 10,000 steps only ~1% of them show as net distance.</div></div></div>
+    <div class="opt wrong"><span class="mark">✗</span><div class="body">About 10,000 — it took 10,000 steps. <span class="mc">displacement = path length</span><div class="fb">The path walked is always exactly n steps long; displacement is where you ended up. The gap between those two numbers is the whole subject of this page.</div></div></div>
+  </div>
+
+  <div class="card qcard">
+    <span class="qno">Q2</span>
+    <p class="stem">A random walk's typical distance from start after time t is d. After time 4t it is typically:</p>
+    <div class="opt right"><span class="mark">✓</span><div class="body">2d. <span class="fb">Variance adds: Var ∝ t, so sd ∝ √t. Four times the variance is twice the sd.</span></div></div>
+    <div class="opt wrong"><span class="mark">✗</span><div class="body">4d. <span class="mc">sd adds like variance</span><div class="fb">It's the variance that quadruples. sd is its square root: √(4t) = 2√t. Standard deviations of independent stretches never add linearly — (√a+√b)² = a+b+2√(ab), which overcounts.</div></div></div>
+    <div class="opt wrong"><span class="mark">✗</span><div class="body">Still about d — extra steps bring extra cancellation. <span class="mc">spread saturates</span><div class="fb">Every independent step adds variance; the spread grows without bound. It only grows slower than time — √t, not t.</div></div></div>
+    <div class="opt wrong"><span class="mark">✗</span><div class="body">16d. <span class="mc">variance mistaken for sd</span><div class="fb">16 = 4² squares the growth a second time. Var goes ×4; sd goes ×2; nothing goes ×16.</div></div></div>
+  </div>
+
+  <div class="card qcard">
+    <span class="qno">Q3</span>
+    <p class="stem">Building a continuous-time model on a grid of step dt over a fixed horizon, the random increment must be sized like:</p>
+    <div class="opt right"><span class="mark">✓</span><div class="body">√dt. <span class="fb">n = T/dt steps of size c·√dt give Var(S_T) = c²T — finite and nonzero. The only surviving exponent.</span></div></div>
+    <div class="opt wrong"><span class="mark">✗</span><div class="body">dt, like every other increment in calculus. <span class="mc">noise scales like drift</span><div class="fb">Var = (T/dt)·dt² = T·dt → 0: the randomness freezes to a flat line as the grid refines. This is also 2.6's classic bug, σ·Z·dt.</div></div></div>
+    <div class="opt wrong"><span class="mark">✗</span><div class="body">Any power of dt — it's a normalising convention. <span class="mc">√dt is a convention</span><div class="fb">The pincer table shows α > ½ dying to zero and α < ½ exploding to infinity across four decades of dt. ½ is forced by variance addition, not chosen.</div></div></div>
+    <div class="opt wrong"><span class="mark">✗</span><div class="body">It depends on the step distribution. <span class="mc">distribution sets the scaling</span><div class="fb">Coin and Gaussian steps produce identical slopes (the experiment runs both). Independence and finite variance fix the scaling; the distribution only matters for finer questions than this page asks.</div></div></div>
+  </div>
+
+  <div class="card qcard">
+    <span class="qno">Q4</span>
+    <p class="stem">Two independent sources of daily P&amp;L noise have standard deviations £30k and £40k. The combined daily sd is:</p>
+    <div class="opt right"><span class="mark">✓</span><div class="body">£50k. <span class="fb">Variances add: 900 + 1600 = 2500 (£k²), and √2500 = 50. Independent risks combine in quadrature.</span></div></div>
+    <div class="opt wrong"><span class="mark">✗</span><div class="body">£70k. <span class="mc">sds add</span><div class="fb">30 + 40 adds the sds — that's the worst case of perfectly co-moving risks, not independent ones. Independence kills the cross term (§2's proof), leaving √(30² + 40²).</div></div></div>
+    <div class="opt wrong"><span class="mark">✗</span><div class="body">£35k — roughly the average of the two. <span class="mc">diversification averages risk away</span><div class="fb">Adding an independent risk always increases total variance; it can't pull the combined sd below the larger source (£40k). Diversification helps relative to £70k, not relative to £40k.</div></div></div>
+  </div>
+</section>
+
+<!-- ============ NEXT ============ -->
+<section>
+  <div class="eyebrow">Then</div>
+  <h2>After the run</h2>
+  <ol class="runsteps">
+    <li>Tell me <em>done</em> — I'll read your JSON and we compare it to the tables above.</li>
+    <li>Write <code>drafts/2.1.md</code> in your own words, to the index outline, against the §7 map. In your editor or dictated in chat — either way the words are yours (I2).</li>
+    <li>Approve/amend the four checks above.</li>
+    <li>I review the draft against I1; you commit all of it: <code>experiments/2_1_random_walks.py</code> + <code>.json</code> in <code>touchstone</code>, the draft + checks in <code>touchstone-learn</code>.</li>
+  </ol>
+</section>
+
+<footer>
+  S1 · 2026-08-30 · teaching per constitution §7 · inputs read: CONSTITUTION.md, ROADMAP.md (S1), docs/quant-learn-index-v1.md §2.1, experiments/README.md, T2 log · these notes are session material and never page prose (I2, I13) · figures here are illustrations; the site's demo is D1.
+</footer>
+</div>
+
+<script>
+window.MathJax = { tex: { inlineMath: [['\\(', '\\)']] }, svg: { fontCache: 'global' } };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.min.js"></script>
+<script>
+(function () {
+  "use strict";
+  // deterministic small PRNG (mulberry32)
+  function rng(seed) {
+    var a = seed >>> 0;
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function cssVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+  function setupCanvas(cv) {
+    var dpr = window.devicePixelRatio || 1;
+    var w = cv.clientWidth, h = parseInt(cv.getAttribute("height"), 10);
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    cv.style.height = h + "px";
+    var ctx = cv.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx: ctx, w: w, h: h };
+  }
+  function grid(ctx, w, h) {
+    ctx.strokeStyle = cssVar("--line-faint"); ctx.lineWidth = 1;
+    for (var x = 0; x <= w; x += 40) { ctx.beginPath(); ctx.moveTo(x + 0.5, 0); ctx.lineTo(x + 0.5, h); ctx.stroke(); }
+    for (var y = 0; y <= h; y += 40) { ctx.beginPath(); ctx.moveTo(0, y + 0.5); ctx.lineTo(w, y + 0.5); ctx.stroke(); }
+  }
+
+  // ---- Figure A: the fan ----
+  var fanSeed = 20260830;
+  var FAN_N = 1000, FAN_PATHS = 60;
+  function drawFan() {
+    var cv = document.getElementById("fan");
+    if (!cv || cv.clientWidth === 0) return;
+    var s = setupCanvas(cv), ctx = s.ctx, w = s.w, h = s.h;
+    var yMax = 3.4 * Math.sqrt(FAN_N);
+    var X = function (i) { return (i / FAN_N) * (w - 64); };
+    var Y = function (v) { return h / 2 - (v / yMax) * (h / 2 - 12); };
+    ctx.clearRect(0, 0, w, h);
+    grid(ctx, w, h);
+    // zero line
+    ctx.strokeStyle = cssVar("--line"); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, Y(0) + 0.5); ctx.lineTo(w, Y(0) + 0.5); ctx.stroke();
+    // walks
+    var r = rng(fanSeed);
+    var emphIdx = FAN_PATHS - 1;
+    for (var p = 0; p < FAN_PATHS; p++) {
+      var pos = 0;
+      ctx.beginPath(); ctx.moveTo(X(0), Y(0));
+      for (var i = 1; i <= FAN_N; i++) {
+        pos += r() < 0.5 ? -1 : 1;
+        ctx.lineTo(X(i), Y(pos));
+      }
+      if (p === emphIdx) { ctx.strokeStyle = cssVar("--walk"); ctx.lineWidth = 1.8; ctx.globalAlpha = 1; }
+      else { ctx.strokeStyle = cssVar("--walk"); ctx.lineWidth = 1; ctx.globalAlpha = 0.16; }
+      ctx.stroke(); ctx.globalAlpha = 1;
+    }
+    // envelopes
+    var labels = [[1, "±√n"], [2, "±2√n"]];
+    ctx.setLineDash([6, 5]); ctx.lineWidth = 1.6; ctx.strokeStyle = cssVar("--theory");
+    labels.forEach(function (lab) {
+      [1, -1].forEach(function (sign) {
+        ctx.beginPath();
+        for (var i = 0; i <= FAN_N; i += 5) {
+          var v = sign * lab[0] * Math.sqrt(i);
+          if (i === 0) ctx.moveTo(X(i), Y(v)); else ctx.lineTo(X(i), Y(v));
+        }
+        ctx.stroke();
+      });
+    });
+    ctx.setLineDash([]);
+    ctx.font = "12px 'IBM Plex Sans', sans-serif"; ctx.fillStyle = cssVar("--theory");
+    labels.forEach(function (lab) {
+      var v = lab[0] * Math.sqrt(FAN_N);
+      ctx.fillText("+" + lab[1].slice(1), X(FAN_N) + 6, Y(v) + 4);
+      ctx.fillText("−" + lab[1].slice(1), X(FAN_N) + 6, Y(-v) + 4);
+    });
+    ctx.fillStyle = cssVar("--muted");
+    ctx.fillText("n →", w - 30, Y(0) - 8);
+  }
+  var fanBtn = document.getElementById("fan-redraw");
+  if (fanBtn) fanBtn.addEventListener("click", function () { fanSeed += 1; drawFan(); });
+  var fanCv = document.getElementById("fan");
+  var fanOut = document.getElementById("fan-readout");
+  if (fanCv && fanOut) {
+    fanCv.addEventListener("mousemove", function (e) {
+      var rect = fanCv.getBoundingClientRect();
+      var frac = (e.clientX - rect.left) / (rect.width - 64);
+      var n = Math.max(0, Math.min(FAN_N, Math.round(frac * FAN_N)));
+      fanOut.textContent = "n = " + n + " · √n = " + Math.sqrt(n).toFixed(1) + " · 2√n = " + (2 * Math.sqrt(n)).toFixed(1);
+    });
+    fanCv.addEventListener("mouseleave", function () { fanOut.textContent = ""; });
+  }
+
+  // ---- Figure B: the pincer ----
+  var pincerSeed = 7;
+  var P_N = 1000, P_PATHS = 24, P_DT = 0.001, P_YMAX = 3.5;
+  function drawPincer() {
+    document.querySelectorAll("canvas.pincer").forEach(function (cv, idx) {
+      if (cv.clientWidth === 0) return;
+      var alpha = parseFloat(cv.getAttribute("data-alpha"));
+      var step = Math.pow(P_DT, alpha);
+      var s = setupCanvas(cv), ctx = s.ctx, w = s.w, h = s.h;
+      var X = function (i) { return (i / P_N) * w; };
+      var Y = function (v) { return h / 2 - (v / P_YMAX) * (h / 2 - 24); };
+      ctx.clearRect(0, 0, w, h);
+      grid(ctx, w, h);
+      ctx.strokeStyle = cssVar("--line"); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(0, Y(0) + 0.5); ctx.lineTo(w, Y(0) + 0.5); ctx.stroke();
+      var r = rng(pincerSeed + idx * 1013);
+      ctx.save();
+      ctx.beginPath(); ctx.rect(0, 0, w, h); ctx.clip();
+      for (var p = 0; p < P_PATHS; p++) {
+        var pos = 0;
+        ctx.beginPath(); ctx.moveTo(X(0), Y(0));
+        for (var i = 1; i <= P_N; i++) {
+          pos += (r() < 0.5 ? -1 : 1) * step;
+          ctx.lineTo(X(i), Y(pos));
+        }
+        ctx.strokeStyle = cssVar("--walk"); ctx.globalAlpha = 0.3; ctx.lineWidth = 1;
+        ctx.stroke(); ctx.globalAlpha = 1;
+      }
+      // envelope on the alpha = 1/2 panel
+      if (Math.abs(alpha - 0.5) < 1e-9) {
+        ctx.setLineDash([6, 5]); ctx.lineWidth = 1.6; ctx.strokeStyle = cssVar("--theory");
+        [1, -1].forEach(function (sign) {
+          ctx.beginPath();
+          for (var i = 0; i <= P_N; i += 5) {
+            var v = sign * Math.sqrt(i * P_DT);
+            if (i === 0) ctx.moveTo(X(i), Y(v)); else ctx.lineTo(X(i), Y(v));
+          }
+          ctx.stroke();
+        });
+        ctx.setLineDash([]);
+      }
+      ctx.restore();
+      var sd = step * Math.sqrt(P_N);
+      var caption = alpha === 1 ? "steps of dt — freezes" : (alpha === 0.5 ? "steps of √dt — alive" : "steps of dt¼ — blows up");
+      ctx.font = "600 12px 'IBM Plex Sans', sans-serif";
+      ctx.fillStyle = cssVar("--ink");
+      ctx.fillText(caption, 8, 18);
+      ctx.font = "11px 'IBM Plex Mono', monospace";
+      ctx.fillStyle = cssVar("--muted");
+      ctx.fillText("sd(S₁) = " + (sd < 0.1 ? sd.toFixed(3) : sd.toFixed(2)), 8, h - 10);
+    });
+  }
+  var pBtn = document.getElementById("pincer-redraw");
+  if (pBtn) pBtn.addEventListener("click", function () { pincerSeed += 1; drawPincer(); });
+
+  function drawAll() { drawFan(); drawPincer(); }
+  window.addEventListener("resize", drawAll);
+  if (window.matchMedia) {
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", drawAll);
+  }
+  new MutationObserver(drawAll).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", drawAll);
+  else drawAll();
+  // fonts load after first paint; redraw once they settle
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawAll);
+  setTimeout(drawAll, 300);
+})();
+</script>
