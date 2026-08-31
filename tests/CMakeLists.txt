@@ -9,7 +9,15 @@ add_executable(touchstone_tests
     test_euler.cpp
     test_closed_form.cpp
     test_parity.cpp
-    test_limits.cpp)
+    test_limits.cpp
+    test_associations.cpp
+    test_tridiagonal.cpp
+    test_pde.cpp
+    test_implied_vol.cpp
+    test_bump_greeks.cpp
+    test_american.cpp
+    test_three_way.cpp
+    american_file.cpp)
 
 target_link_libraries(touchstone_tests
     PRIVATE
@@ -31,12 +39,14 @@ target_compile_definitions(touchstone_tests
 # is how CI checks a regenerated file against the same tests.
 target_compile_definitions(touchstone_tests
     PRIVATE TOUCHSTONE_GOLDEN_PATH="${PROJECT_SOURCE_DIR}/golden/bs_vanilla.json"
-            TOUCHSTONE_RNG_FIXTURE_PATH="${PROJECT_SOURCE_DIR}/golden/rng-known-answers.json")
+            TOUCHSTONE_RNG_FIXTURE_PATH="${PROJECT_SOURCE_DIR}/golden/rng-known-answers.json"
+            TOUCHSTONE_AMERICAN_PATH="${PROJECT_SOURCE_DIR}/golden/american_vanilla.json")
 
 # One ctest entry per suite, so a red run names the misunderstanding rather than
 # just the binary; plus one entry that runs the whole binary, so a mistyped
 # filter above can leave a suite unregistered but never unrun.
-foreach(suite IN ITEMS normal rng closed-form parity limits monte-carlo euler)
+foreach(suite IN ITEMS normal rng closed-form parity limits monte-carlo euler
+                       associations tridiagonal pde implied-vol bump-greeks american three-way)
     add_test(NAME ts_${suite}
              COMMAND touchstone_tests --test-suite=${suite} --success=false)
 endforeach()

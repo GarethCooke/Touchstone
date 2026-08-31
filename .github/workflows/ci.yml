@@ -1,5 +1,5 @@
 # The library's gate. Tech-decision B7: native build and tests on Linux with
-# both compilers, plus the golden-file check. The WASM build and artifact upload
+# both compilers, plus the golden-file checks. The WASM build and artifact upload
 # named there arrive at T4 and are deliberately not stubbed here.
 name: library
 
@@ -98,3 +98,17 @@ jobs:
         run: |
           uv run --frozen golden/generate_bs_vanilla.py
           git diff --exit-code -- golden/bs_vanilla.json
+
+      # T3's American reference. Re-derived by an independent lattice written in
+      # numpy rather than called from QuantLib, and checked against the two exact
+      # identities, the inequalities, and the put-call bounds where they hold.
+      - name: Every American row re-derived independently
+        run: uv run --frozen golden/verify_american_vanilla.py
+
+      # Three lattices at two thousand steps over 864 rows: about two and a half
+      # minutes, and the same reproducibility claim as above. A change here means
+      # QuantLib changed or the grid did.
+      - name: The American generator still produces the committed file
+        run: |
+          uv run --frozen golden/generate_american_vanilla.py
+          git diff --exit-code -- golden/american_vanilla.json
