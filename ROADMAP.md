@@ -56,7 +56,7 @@ curriculum integrity); `npm run check:snippets` green; `docs/rng.md` and the RNG
 exist; production build renders the holding page only.
 **Tollgate:** F. **Executor:** Opus. **Size:** one session, two at most.
 
-### ☐ L1 — Demos D1–D6 on the TypeScript backend
+### ☑ L1 — Demos D1–D6 on the TypeScript backend
 **Entry:** L0, T0.
 **Deliverables:** D2 quadratic-variation counter; D3 Itô integral, left-endpoint vs midpoint;
 D4 GBM paths, exact vs Euler with the dt/√dt toggle; D5 delta-hedging simulator with
@@ -70,6 +70,7 @@ against rebalance count is −0.5 ± 0.1. D6: prices and Greeks match the T0 gol
 and are operable by touch (I22).
 **Tollgate:** F. **Executor:** Opus. **Size:** two to three sessions; may split L1a (D2–D4)
 and L1b (D5–D6) with one tollgate at the end.
+**Passed** 2026-08-30 — evidence: `touchstone-learn/docs/evidence/L1/`.
 
 ### ☐ L2 — Part 2 ingestion
 **Entry:** L1; owner drafts 2.1–2.11 and their experiments committed (S1–S11).
