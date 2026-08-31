@@ -1,17 +1,22 @@
 # `golden/` — committed known answers
 
 Everything the C++ tests compare against that was produced somewhere other than this
-library. Two files, two different origins, and the difference matters when one of them
+library. Three files, three different origins, and the difference matters when one of them
 disagrees with the code.
 
 | File | Origin | Read by | Documented in |
 |---|---|---|---|
-| `bs_vanilla.json` | Generated here by `generate_bs_vanilla.py` from QuantLib-Python (constitution I4: the oracle, never a dependency) | `tests/test_closed_form.cpp`, `tests/test_parity.cpp` | [`SCHEMA.md`](SCHEMA.md) |
+| `bs_vanilla.json` | Generated here by `generate_bs_vanilla.py` from QuantLib-Python (constitution I4: the oracle, never a dependency) | `tests/test_closed_form.cpp`, `tests/test_parity.cpp`, and from T3 `test_pde.cpp`, `test_implied_vol.cpp`, `test_bump_greeks.cpp`, `test_three_way.cpp` | [`SCHEMA.md`](SCHEMA.md) |
+| `american_vanilla.json` | Generated here by `generate_american_vanilla.py` from QuantLib-Python: three lattices, and what they disagreed by | `tests/test_american.cpp` | [`AMERICAN-SCHEMA.md`](AMERICAN-SCHEMA.md) |
 | `rng-known-answers.json` | Copied from `touchstone-learn`, where the TypeScript implementation generated it at L0 | `tests/test_rng.cpp` | [`../docs/rng.md`](../docs/rng.md) §5 |
 
-A failure against the first means this library disagrees with QuantLib. A failure against
-the second means the C++ and the browser would draw different numbers from the same seed,
-which is the one thing the shared generator exists to prevent.
+A failure against the first means this library disagrees with QuantLib. A failure against the
+second means it disagrees with three lattices by more than they disagree with each other —
+which is a weaker statement than the first, deliberately, because an American value has no
+closed form to be right about; `AMERICAN-SCHEMA.md` sets out what that file is worth and
+where it can be checked against fifteen digits after all. A failure against the third means
+the C++ and the browser would draw different numbers from the same seed, which is the one
+thing the shared generator exists to prevent.
 
 ## Provenance of the RNG copy
 

@@ -1,0 +1,43 @@
+# T3 — diff against the milestone's base
+
+git diff --stat 62f6320..HEAD, which is everything T3 changed and nothing else.
+
+Two commits, not one. The milestone's base is a296fae, main as it stood when
+T3 began; 62f6320 is the owner's own edit to ROADMAP.md — L2's entry criteria,
+unrelated to T3 — committed onto this branch while the milestone was in
+progress. It is HEAD's parent, and diffing from it is what keeps this stat a
+statement about T3. The two differ by that one roadmap line and nothing else.
+
+The evidence pack is excluded: it describes the diff and cannot be part of it.
+
+ .github/workflows/ci.yml             |  16 +-
+ CMakeLists.txt                       |  14 +-
+ golden/AMERICAN-SCHEMA.md            | 172 ++++++++++
+ golden/README.md                     |  15 +-
+ golden/american_vanilla.json         | 953 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ golden/generate_american_vanilla.py  | 290 +++++++++++++++++
+ golden/verify_american_vanilla.py    | 343 ++++++++++++++++++++
+ include/touchstone/black_scholes.hpp |   9 +
+ include/touchstone/bump_greeks.hpp   | 186 +++++++++++
+ include/touchstone/implied_vol.hpp   | 184 +++++++++++
+ include/touchstone/pde.hpp           | 224 +++++++++++++
+ include/touchstone/root_finding.hpp  | 168 ++++++++++
+ include/touchstone/scales.hpp        |  86 +++++
+ include/touchstone/tridiagonal.hpp   | 110 +++++++
+ src/black_scholes.cpp                |  48 ++-
+ src/bump_greeks.cpp                  |  78 +++++
+ src/implied_vol.cpp                  | 278 ++++++++++++++++
+ src/monte_carlo.cpp                  |  19 +-
+ src/pde.cpp                          | 387 ++++++++++++++++++++++
+ src/tridiagonal.cpp                  | 132 ++++++++
+ tests/CMakeLists.txt                 |  16 +-
+ tests/american_file.cpp              | 111 +++++++
+ tests/american_file.hpp              |  72 +++++
+ tests/test_american.cpp              | 477 ++++++++++++++++++++++++++++
+ tests/test_associations.cpp          | 225 +++++++++++++
+ tests/test_bump_greeks.cpp           | 318 +++++++++++++++++++
+ tests/test_implied_vol.cpp           | 428 +++++++++++++++++++++++++
+ tests/test_pde.cpp                   | 608 +++++++++++++++++++++++++++++++++++
+ tests/test_three_way.cpp             | 291 +++++++++++++++++
+ tests/test_tridiagonal.cpp           | 526 ++++++++++++++++++++++++++++++
+ 30 files changed, 6757 insertions(+), 27 deletions(-)

@@ -1,6 +1,7 @@
 #include <touchstone/black_scholes.hpp>
 
 #include <touchstone/normal.hpp>
+#include <touchstone/scales.hpp>
 
 #include <cmath>
 #include <limits>
@@ -52,25 +53,26 @@ Kernel make_kernel(const EuropeanVanilla& option, const BlackScholesMarket& mark
     }
 
     kern.sqrt_t = std::sqrt(t);
-    kern.df_r = std::exp(-market.rate * t);
-    kern.df_q = std::exp(-market.dividend_yield * t);
+    kern.df_r = detail::discount_factor(market.rate, t);
+    kern.df_q = detail::discount_factor(market.dividend_yield, t);
     kern.sq = s * kern.df_q;
     kern.kr = k * kern.df_r;
 
     // v is the total volatility to expiry, sigma sqrt(T) — the only scale the
     // distribution of the terminal log-price has. Everything below turns on
     // whether it is positive.
-    const double v = sigma * kern.sqrt_t;
+    const double v = detail::total_volatility(sigma, t);
 
     // Log-moneyness measured against the forward: ln(S/K) + (r - q)T. Positive
     // means the forward is above the strike. It is the numerator of d1 without
     // the variance term, and both branches below decide on it, so the degenerate
     // branch and the general one cannot disagree about which side of the strike
     // the forward is on.
-    const double log_moneyness = std::log(s / k) + (market.rate - market.dividend_yield) * t;
+    const double log_moneyness =
+        detail::forward_log_moneyness(s, k, market.rate, market.dividend_yield, t);
 
     if (v > 0.0) {
-        const double d1 = (log_moneyness + 0.5 * sigma * sigma * t) / v;
+        const double d1 = (log_moneyness + detail::half_variance_time(sigma, t)) / v;
         const double d2 = d1 - v;
         const double phi1 = norm_pdf(d1);
 
@@ -163,8 +165,8 @@ void require_valid(const EuropeanVanilla& option, const BlackScholesMarket& mark
     // Nothing plausible is excluded. The bound on the first is |r| T > 709, and
     // on the second that S or K is within a few orders of the largest double.
     const double t = option.expiry_years;
-    const double df_r = std::exp(-market.rate * t);
-    const double df_q = std::exp(-market.dividend_yield * t);
+    const double df_r = detail::discount_factor(market.rate, t);
+    const double df_q = detail::discount_factor(market.dividend_yield, t);
     if (!std::isfinite(df_r) || !std::isfinite(df_q)) {
         throw std::invalid_argument(
             "touchstone: the discount factor overflows — |rate| or |dividend_yield| times "
@@ -176,8 +178,36 @@ void require_valid(const EuropeanVanilla& option, const BlackScholesMarket& mark
         throw std::invalid_argument(
             "touchstone: the discounted spot or strike overflows a double");
     }
-    if (!std::isfinite((market.rate - market.dividend_yield + 0.5 * market.vol * market.vol) * t)) {
-        throw std::invalid_argument("touchstone: drift times expiry_years overflows a double");
+    // The drift of the log-price is two products, and `make_kernel` forms and
+    // adds them separately: `(r - q) T` inside the log-moneyness, and `0.5 sigma^2 T`
+    // beside it in d1. They are therefore checked separately here, through the
+    // same functions the kernel calls, so that the domain this function guards
+    // and the expressions it is guarding cannot drift apart.
+    //
+    // T1 checked their sum instead — `(r - q + 0.5 sigma^2) T` — and that is a
+    // different domain, by more than an ulp. Put q = 0.5 sigma^2 with r = 0 and
+    // the sum is exactly zero, so every expiry passes; the two terms themselves
+    // are -inf and +inf, and d1's numerator is `-inf + inf`, which is a NaN.
+    // sigma = sqrt(2e300), q = 1e300, T = 1e10 is such an input: T1 accepted it
+    // and returned a NaN price for it, which is the one outcome this function
+    // exists to rule out. `tests/test_associations.cpp` pins that case, and the
+    // boundary of every other check here.
+    if (!std::isfinite(detail::carry_time(market.rate, market.dividend_yield, t))) {
+        throw std::invalid_argument(
+            "touchstone: the carry (rate - dividend_yield) times expiry_years overflows a double");
+    }
+    if (!std::isfinite(detail::half_variance_time(market.vol, t))) {
+        throw std::invalid_argument(
+            "touchstone: half the variance, 0.5 vol^2 times expiry_years, overflows a double");
+    }
+    // Implied by the line above — `sigma sqrt(T)` is the square root of twice it,
+    // to within a rounding — and checked anyway, because a guarantee that holds
+    // by derivation is one refactor away from not holding at all, and this is the
+    // quantity `d1` divides by and every other method in the library measures its
+    // width in.
+    if (!std::isfinite(detail::total_volatility(market.vol, t))) {
+        throw std::invalid_argument(
+            "touchstone: the total volatility vol times sqrt(expiry_years) overflows a double");
     }
     // rho and dividend_rho carry a factor of T; theta's carry terms carry r and q.
     // These are the remaining products the seven formulas form, and an overflow in

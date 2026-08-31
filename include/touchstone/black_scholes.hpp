@@ -71,6 +71,15 @@ struct PriceAndGreeks {
 /// only one of the two is ruled out. `tests/test_limits.cpp` holds this to a
 /// sweep of the domain including its boundary.
 ///
+/// The representability half is a promise about *these expressions*, not about
+/// the mathematics: floating-point multiplication does not associate, so a
+/// product grouped one way overflows where the same product grouped another way
+/// does not. Every quantity checked here is therefore formed by the function in
+/// `touchstone/scales.hpp` that the formulas themselves call, and adding a
+/// product to the formulas without adding it there is the way this promise gets
+/// broken. It has been broken once already, and `tests/test_associations.cpp`
+/// records how.
+///
 /// Every entry point below calls this first. A caller that wants to know
 /// without catching can call it directly.
 void require_valid(const EuropeanVanilla& option, const BlackScholesMarket& market);

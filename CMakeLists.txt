@@ -62,7 +62,11 @@ endif()
 # --- The library ------------------------------------------------------------
 add_library(touchstone STATIC
     src/black_scholes.cpp
-    src/monte_carlo.cpp)
+    src/monte_carlo.cpp
+    src/bump_greeks.cpp
+    src/implied_vol.cpp
+    src/pde.cpp
+    src/tridiagonal.cpp)
 add_library(touchstone::touchstone ALIAS touchstone)
 
 target_include_directories(touchstone
@@ -76,9 +80,15 @@ target_link_libraries(touchstone PRIVATE touchstone_warnings)
 # which at T4 is the Emscripten binding, the least convenient place to find out.
 set(TOUCHSTONE_PUBLIC_HEADERS
     black_scholes.hpp
+    bump_greeks.hpp
+    implied_vol.hpp
     monte_carlo.hpp
     normal.hpp
-    rng.hpp)
+    pde.hpp
+    rng.hpp
+    root_finding.hpp
+    scales.hpp
+    tridiagonal.hpp)
 
 set(touchstone_header_check_sources "")
 foreach(header IN LISTS TOUCHSTONE_PUBLIC_HEADERS)

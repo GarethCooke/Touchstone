@@ -1,6 +1,7 @@
 #include <touchstone/monte_carlo.hpp>
 
 #include <touchstone/rng.hpp>
+#include <touchstone/scales.hpp>
 
 #include <cmath>
 #include <limits>
@@ -155,16 +156,20 @@ void require_valid(const MonteCarloSettings& settings)
     }
 }
 
-/// sigma sqrt(T), the total volatility to expiry, and its square.
+/// sigma sqrt(T), the total volatility to expiry.
 ///
-/// Associated this way — the volatility scaled by the square root of the time
-/// first — because that is how `black_scholes.cpp` forms it, and two routes to
-/// the same quantity that round differently are two quantities. It also has more
-/// room: `sigma^2 T` overflows for a volatility above 1.3e154 however short the
-/// expiry, where `(sigma sqrt(T))^2` does not.
+/// One line, forwarding to `touchstone/scales.hpp`, because the association
+/// matters and belongs in one place: the volatility is scaled by the square root
+/// of the time rather than the variance by the time, which is how
+/// `black_scholes.cpp` forms it, and two routes to the same quantity that round
+/// differently are two quantities. It also has more room — `sigma^2 T` overflows
+/// for a volatility above 1.3e154 however short the expiry, where
+/// `(sigma sqrt(T))^2` does not. T3 moved the expression itself into
+/// `scales.hpp`; this signature stays because the callers below read better
+/// with it.
 [[nodiscard]] double total_volatility(const BlackScholesMarket& market, double expiry_years) noexcept
 {
-    return market.vol * std::sqrt(expiry_years);
+    return detail::total_volatility(market.vol, expiry_years);
 }
 
 double terminal_growth_exact(const BlackScholesMarket& market,

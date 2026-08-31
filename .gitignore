@@ -5,8 +5,11 @@ __pycache__/
 *.pyc
 .python-version.local
 
-# Build output (arrives at T1)
-build/
+# Build output (arrives at T1). The glob, not `build/`: ci.yml configures into
+# `build` and `build-san`, and a local two-compiler check naturally wants
+# `build-gcc` and `build-clang` beside them. Every one of those but the first was
+# untracked debris until T3 noticed.
+build*/
 out/
 
 # OS
