@@ -1,0 +1,340 @@
+{
+  "page": "2.1",
+  "script": "2_1_random_walks.py",
+  "params": {
+    "seed": 20260830,
+    "n_paths": 10000,
+    "checkpoints": [
+      100,
+      1000,
+      10000,
+      100000
+    ],
+    "step_distributions": [
+      "coin",
+      "gaussian"
+    ],
+    "chunk_paths": 250,
+    "pincer": {
+      "T": 1.0,
+      "n_paths": 10000,
+      "dts": [
+        0.1,
+        0.01,
+        0.001,
+        0.0001
+      ],
+      "alphas": [
+        1.0,
+        0.75,
+        0.5,
+        0.25
+      ],
+      "chunk_paths": 2000
+    }
+  },
+  "environment": {
+    "numpy": "2.5.2"
+  },
+  "results": {
+    "walks": {
+      "coin": {
+        "checkpoints": [
+          100,
+          1000,
+          10000,
+          100000
+        ],
+        "mean": [
+          0.122,
+          -0.0012,
+          -0.4252,
+          -3.1706
+        ],
+        "var": [
+          103.34745074507451,
+          1028.8636849284928,
+          10215.928797839784,
+          101122.33432907291
+        ],
+        "mean_abs": [
+          8.0748,
+          25.6076,
+          80.8364,
+          254.2294
+        ],
+        "var_over_n": [
+          1.0334745074507452,
+          1.028863684928493,
+          1.0215928797839784,
+          1.0112233432907292
+        ],
+        "mean_abs_over_sqrt_n": [
+          0.80748,
+          0.809783414105278,
+          0.808364,
+          0.8039439521780108
+        ],
+        "mean_abs_over_n": [
+          0.080748,
+          0.0256076,
+          0.00808364,
+          0.002542294
+        ],
+        "var_loglog_slope": 0.9968561972771628,
+        "mean_abs_loglog_slope": 0.4993520081313436
+      },
+      "gaussian": {
+        "checkpoints": [
+          100,
+          1000,
+          10000,
+          100000
+        ],
+        "mean": [
+          0.1344666307971269,
+          0.2838341867485093,
+          0.7393776006081876,
+          0.26009165642092646
+        ],
+        "var": [
+          101.65124295410578,
+          1006.3365895856615,
+          10073.750651780269,
+          97219.40360174936
+        ],
+        "mean_abs": [
+          8.071218820715819,
+          25.29530630825237,
+          79.78537208507143,
+          248.85673474000842
+        ],
+        "var_over_n": [
+          1.016512429541058,
+          1.0063365895856615,
+          1.0073750651780269,
+          0.9721940360174937
+        ],
+        "mean_abs_over_sqrt_n": [
+          0.8071218820715819,
+          0.7999078204570276,
+          0.7978537208507143,
+          0.7869540928507768
+        ],
+        "mean_abs_over_n": [
+          0.08071218820715818,
+          0.02529530630825237,
+          0.007978537208507143,
+          0.002488567347400084
+        ],
+        "var_loglog_slope": 0.9942368710729151,
+        "mean_abs_loglog_slope": 0.4965914162071334
+      }
+    },
+    "mean_abs_asymptote_sqrt_2_over_pi": 0.7978845608028654,
+    "scaling_pincer": [
+      {
+        "dt": 0.1,
+        "alpha": 1.0,
+        "n_steps": 10,
+        "step_size": 0.1,
+        "var_measured": 0.1004778873887389,
+        "var_exact": 0.1
+      },
+      {
+        "dt": 0.1,
+        "alpha": 0.75,
+        "n_steps": 10,
+        "step_size": 0.1778279410038923,
+        "var_measured": 0.32298158780010205,
+        "var_exact": 0.316227766016838
+      },
+      {
+        "dt": 0.1,
+        "alpha": 0.5,
+        "n_steps": 10,
+        "step_size": 0.31622776601683794,
+        "var_measured": 1.0012680268026803,
+        "var_exact": 1.0
+      },
+      {
+        "dt": 0.1,
+        "alpha": 0.25,
+        "n_steps": 10,
+        "step_size": 0.5623413251903491,
+        "var_measured": 3.132863398802978,
+        "var_exact": 3.1622776601683795
+      },
+      {
+        "dt": 0.01,
+        "alpha": 1.0,
+        "n_steps": 100,
+        "step_size": 0.01,
+        "var_measured": 0.009860473947394739,
+        "var_exact": 0.01
+      },
+      {
+        "dt": 0.01,
+        "alpha": 0.75,
+        "n_steps": 100,
+        "step_size": 0.03162277660168379,
+        "var_measured": 0.09983395839583957,
+        "var_exact": 0.09999999999999999
+      },
+      {
+        "dt": 0.01,
+        "alpha": 0.5,
+        "n_steps": 100,
+        "step_size": 0.1,
+        "var_measured": 1.0055758471847187,
+        "var_exact": 1.0
+      },
+      {
+        "dt": 0.01,
+        "alpha": 0.25,
+        "n_steps": 100,
+        "step_size": 0.31622776601683794,
+        "var_measured": 10.071061506150615,
+        "var_exact": 10.0
+      },
+      {
+        "dt": 0.001,
+        "alpha": 1.0,
+        "n_steps": 1000,
+        "step_size": 0.001,
+        "var_measured": 0.0010068425232523253,
+        "var_exact": 0.001
+      },
+      {
+        "dt": 0.001,
+        "alpha": 0.75,
+        "n_steps": 1000,
+        "step_size": 0.005623413251903491,
+        "var_measured": 0.031717201211971704,
+        "var_exact": 0.0316227766016838
+      },
+      {
+        "dt": 0.001,
+        "alpha": 0.5,
+        "n_steps": 1000,
+        "step_size": 0.03162277660168379,
+        "var_measured": 1.0185261071707168,
+        "var_exact": 0.9999999999999999
+      },
+      {
+        "dt": 0.001,
+        "alpha": 0.25,
+        "n_steps": 1000,
+        "step_size": 0.1778279410038923,
+        "var_measured": 31.735865490224835,
+        "var_exact": 31.6227766016838
+      },
+      {
+        "dt": 0.0001,
+        "alpha": 1.0,
+        "n_steps": 10000,
+        "step_size": 0.0001,
+        "var_measured": 0.00010094995575717574,
+        "var_exact": 0.0001
+      },
+      {
+        "dt": 0.0001,
+        "alpha": 0.75,
+        "n_steps": 10000,
+        "step_size": 0.001,
+        "var_measured": 0.009989904365436545,
+        "var_exact": 0.01
+      },
+      {
+        "dt": 0.0001,
+        "alpha": 0.5,
+        "n_steps": 10000,
+        "step_size": 0.01,
+        "var_measured": 1.016733534949495,
+        "var_exact": 1.0
+      },
+      {
+        "dt": 0.0001,
+        "alpha": 0.25,
+        "n_steps": 10000,
+        "step_size": 0.1,
+        "var_measured": 99.80190343474348,
+        "var_exact": 100.0
+      }
+    ]
+  },
+  "checks": [
+    {
+      "claim": "C1/C4 coin: log-log slope of Var(S_n) vs n is 1",
+      "measured": 0.9968561972771628,
+      "expected": 1.0,
+      "tolerance": 0.03,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2/C4 coin: log-log slope of E|S_n| vs n is 0.5",
+      "measured": 0.4993520081313436,
+      "expected": 0.5,
+      "tolerance": 0.03,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 coin: E|S_n|/sqrt(n) at n=100000 is sqrt(2/pi)",
+      "measured": 0.8039439521780108,
+      "expected": 0.7978845608028654,
+      "tolerance": 0.03,
+      "mode": "relative",
+      "pass": true
+    },
+    {
+      "claim": "sanity coin: |mean S_n| at n=100000 within 5 s.e. of 0",
+      "measured": 3.1706,
+      "expected": 0.0,
+      "tolerance": 15.899869050488507,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1/C4 gaussian: log-log slope of Var(S_n) vs n is 1",
+      "measured": 0.9942368710729151,
+      "expected": 1.0,
+      "tolerance": 0.03,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2/C4 gaussian: log-log slope of E|S_n| vs n is 0.5",
+      "measured": 0.4965914162071334,
+      "expected": 0.5,
+      "tolerance": 0.03,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 gaussian: E|S_n|/sqrt(n) at n=100000 is sqrt(2/pi)",
+      "measured": 0.7869540928507768,
+      "expected": 0.7978845608028654,
+      "tolerance": 0.03,
+      "mode": "relative",
+      "pass": true
+    },
+    {
+      "claim": "sanity gaussian: |mean S_n| at n=100000 within 5 s.e. of 0",
+      "measured": 0.26009165642092646,
+      "expected": 0.0,
+      "tolerance": 15.590013117517682,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3: every pincer cell matches Var = n * dt^(2*alpha) (worst rel. error)",
+      "measured": 0.021357459745974472,
+      "expected": 0.0,
+      "tolerance": 0.05,
+      "mode": "abs",
+      "pass": true
+    }
+  ]
+}
