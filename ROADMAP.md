@@ -94,7 +94,7 @@ is a route; the owner signs off.
 **Tollgate:** V, then owner. **Executor:** Opus. **Size:** under an evening.
 Unlocks P1.
 
-### ☐ L4a — Part 0
+### ☑ L4a — Part 0
 **Entry:** L2 batch 1 merged — its `scripts/routable.mjs` per-mode fix is what lets a `draft`
 page exist without breaking the production build; Fable drafts for 0.1 and 0.2. 0.3's notation
 ledger is already live from L2 batch 1 under a labelled placeholder; the rest of 0.3 lands here.
@@ -109,6 +109,7 @@ curriculum integrity green; both build modes green; I22 at 390 px; owner review.
 Retires the I2 exception at the head of 2.1: with 0.1 and 0.2 in front of it, 2.1 stops being
 the first page a reader meets, and its opening paragraph can be rewritten knowing what
 precedes it rather than to compensate for nothing preceding it.
+**Fable drafts for 0.1 and 0.2** — done 2026-09-05, `touchstone-learn/drafts/`, Project note `touchstone/L4a-drafting-session.md`
 
 ### ☐ L4b — Part 1
 **Entry:** L3; Fable drafts for 1.0–1.5.
