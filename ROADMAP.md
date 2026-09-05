@@ -18,7 +18,7 @@ evidenced by screenshots.
 ## Suggested order
 
 L0 → T0 → S1… (owner's cadence, in parallel with everything below) → T1 → L1 → T2 → T3 →
-L2 (once S11 is done) → L3 → P1 → L4 → T4 → T5 → L5 → P2 → L6.
+L2 (once S11 is done) → L4a → L3 → P1 → L4b → T4 → T5 → L5 → P2 → L6.
 
 Fable-review tollgates, eight in total: L0, L1, L2, T1, T5, L5, P2, L6.
 
@@ -29,7 +29,8 @@ Fable-review tollgates, eight in total: L0, L1, L2, T1, T5, L5, P2, L6.
 | L1 | L0, T0 (golden values for D6) |
 | L2 | L0, L1, S1–S11 |
 | L3 | L2 |
-| L4 | L3, owner drafts for Parts 0–1 |
+| L4a | L2 batch 1's draft-routing fix; Fable drafts for 0.1–0.3 |
+| L4b | L3, Fable drafts for 1.0–1.5 |
 | L5 | L3, T3, T4 |
 | L6 | L4, L5, P1, P2 |
 | T1 | T0 |
@@ -85,15 +86,32 @@ result or a source. **Executor:** Sonnet (mechanical), Opus if the conversion is
 **Size:** batches allowed; one tollgate at the end.
 
 ### ☐ L3 — First publication
-**Entry:** L2 passed.
-**Deliverables:** 2.1–2.11 set to `published`; landing paragraph live; sitemap; the
-production index renders the tree (I10).
-**Exit:** production shows Part 2 end to end; no `tbc` page is a route; the owner signs off.
+**Entry:** L2 passed; L4a if it has run.
+**Deliverables:** 2.1–2.11 set to `published`, and 0.1–0.3 with them if L4a has run; landing
+paragraph live; sitemap; the production index renders the tree (I10).
+**Exit:** production shows Part 2 end to end, preceded by Part 0 if L4a has run; no `tbc` page
+is a route; the owner signs off.
 **Tollgate:** V, then owner. **Executor:** Opus. **Size:** under an evening.
 Unlocks P1.
 
-### ☐ L4 — Parts 0 and 1
-**Entry:** L3; owner drafts for 0.1–0.3 and 1.0–1.5.
+### ☐ L4a — Part 0
+**Entry:** L2 batch 1 merged — its `scripts/routable.mjs` per-mode fix is what lets a `draft`
+page exist without breaking the production build; Fable drafts for 0.1 and 0.2. 0.3's notation
+ledger is already live from L2 batch 1 under a labelled placeholder; the rest of 0.3 lands here.
+**Deliverables:** 0.1, 0.2 and 0.3 as MDX with checks. 0.2 carries the thesis, the map of the
+parts, and how to read a demo, a check and an exercise — written about the affordances, not as
+a tour of specific demos, so that D7–D10 (L5) and D11 (L4b) arriving later does not date it.
+No demos, no snippets, no experiments: Part 0 makes no quantitative claim that needs one. Any
+market-structure figure on 0.1 carries a cited source (I1).
+**Exit:** the three pages `draft`, or `published` if L3 has already run; checks meet I5;
+curriculum integrity green; both build modes green; I22 at 390 px; owner review.
+**Tollgate:** V. **Executor:** Opus. **Size:** one session.
+Retires the I2 exception at the head of 2.1: with 0.1 and 0.2 in front of it, 2.1 stops being
+the first page a reader meets, and its opening paragraph can be rewritten knowing what
+precedes it rather than to compensate for nothing preceding it.
+
+### ☐ L4b — Part 1
+**Entry:** L3; Fable drafts for 1.0–1.5.
 **Deliverables:** pages with checks; the payoff-diagram builder (new demo, D11) for 1.4; the
 margin-account walk for 1.2 as a worked table; the day-count example for 1.0 as a runnable
 snippet.
