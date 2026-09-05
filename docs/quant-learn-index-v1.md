@@ -60,9 +60,10 @@ experiments while learning; the same invariants become library tests.
 - **2.1 Random walks and scaling.** Variance adds, standard deviation doesn't: √n. Why the
   continuous limit needs increments of size √dt. *Check:* simulate; verify variance ∝ t and
   that mean absolute distance does not grow linearly.
-- **2.2 Brownian motion.** Definition (independent Gaussian increments, continuous paths);
-  nowhere differentiable, self-similar, martingale, Markov. Simulation as a cumulative sum
-  of √dt·Z. *Check:* zoom demo; test the increment distribution.
+- **2.2 Brownian motion.** Continuous everywhere, differentiable nowhere, and the same
+  roughness at every magnification. Independent Gaussian increments, martingale, Markov;
+  simulated as a cumulative sum of √dt·Z. *Check:* zoom demo; test the increment
+  distribution.
 - **2.3 Quadratic variation.** Σ(ΔW)² → T while Σ|ΔW| → ∞. The rulebook: (dW)² = dt,
   dW·dt = 0, (dt)² = 0. The whole reason ordinary calculus fails. *Check:* the counter demo;
   a test asserting the QV of a simulated path is within tolerance of T.
