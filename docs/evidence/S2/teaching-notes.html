@@ -1,0 +1,465 @@
+<title>S2 · Brownian Motion</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #F4F6F9; --card: #FCFCFD; --ink: #1B2330; --muted: #59657A;
+    --line: #DEE3EC; --line-faint: #E9EDF3;
+    --walk: #2E59C7; --walk-soft: rgba(46, 89, 199, 0.13);
+    --theory: #B07818; --theory-soft: rgba(176, 120, 24, 0.12);
+    --code-bg: #EEF1F6; --good: #1E7A46; --bad: #B4413A;
+    --shadow: 0 1px 2px rgba(27, 35, 48, 0.05), 0 4px 16px rgba(27, 35, 48, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0F141D; --card: #161C27; --ink: #E6EAF2; --muted: #97A2B5;
+      --line: #29323F; --line-faint: #1F2733;
+      --walk: #5B7FE3; --walk-soft: rgba(91, 127, 227, 0.16);
+      --theory: #B08422; --theory-soft: rgba(176, 132, 34, 0.16);
+      --code-bg: #1B2230; --good: #4CAF79; --bad: #D9736B;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0F141D; --card: #161C27; --ink: #E6EAF2; --muted: #97A2B5;
+    --line: #29323F; --line-faint: #1F2733;
+    --walk: #5B7FE3; --walk-soft: rgba(91, 127, 227, 0.16);
+    --theory: #B08422; --theory-soft: rgba(176, 132, 34, 0.16);
+    --code-bg: #1B2230; --good: #4CAF79; --bad: #D9736B;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ground); color: var(--ink);
+    font-family: "Source Serif 4", Georgia, "Times New Roman", serif; font-size: 17px; line-height: 1.68;
+    -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 40px 20px 80px; }
+  .wide { max-width: 880px; margin-left: auto; margin-right: auto; }
+  .eyebrow { font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 11.5px; font-weight: 600;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  header.top { padding: 28px 0 8px; border-bottom: 1px solid var(--line); margin-bottom: 36px; }
+  header.top .eyebrow .sess { color: var(--walk); }
+  h1 { font-family: "Source Serif 4", Georgia, serif; font-size: clamp(30px, 6vw, 42px); font-weight: 700;
+    line-height: 1.12; letter-spacing: -0.01em; margin: 10px 0 12px; text-wrap: balance; }
+  .standfirst { color: var(--muted); font-size: 16px; margin: 0 0 18px; max-width: 62ch; }
+  .standfirst strong { color: var(--ink); font-weight: 600; }
+  section { margin: 44px 0; }
+  h2 { font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 21px; font-weight: 600;
+    letter-spacing: -0.005em; margin: 6px 0 14px; text-wrap: balance; }
+  h2 .stepno { color: var(--walk); font-variant-numeric: tabular-nums; margin-right: 6px; }
+  h3 { font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 15.5px; font-weight: 600; margin: 22px 0 8px; }
+  p { margin: 0 0 14px; max-width: 66ch; }
+  .note { color: var(--muted); font-size: 15px; max-width: 66ch; }
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, Consolas, monospace; font-size: 0.86em; }
+  code { background: var(--code-bg); border-radius: 4px; padding: 0.1em 0.35em; }
+  pre { background: var(--code-bg); border: 1px solid var(--line-faint); border-radius: 8px; padding: 14px 16px;
+    overflow-x: auto; font-size: 14px; line-height: 1.55; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+  .predictions { display: flex; flex-direction: column; gap: 12px; }
+  .prediction { display: flex; gap: 14px; align-items: baseline; }
+  .prediction .tag { flex: none; font-family: "IBM Plex Sans", sans-serif; font-size: 11px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--walk); border: 1px solid var(--walk);
+    border-radius: 99px; padding: 2px 10px; white-space: nowrap; }
+  .prediction q { font-style: italic; }
+  .verdict { font-family: "IBM Plex Sans", sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+  .verdict.ok { color: var(--good); } .verdict.no { color: var(--bad); } .verdict.half { color: var(--theory); }
+  .runsteps { counter-reset: rs; margin: 14px 0; padding: 0; list-style: none; }
+  .runsteps li { counter-increment: rs; position: relative; padding: 0 0 0 40px; margin: 0 0 12px; max-width: 66ch; }
+  .runsteps li::before { content: counter(rs); position: absolute; left: 0; top: 2px; width: 24px; height: 24px;
+    border-radius: 50%; background: var(--walk); color: var(--card); font-family: "IBM Plex Sans", sans-serif;
+    font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+  .facts { margin: 16px 0; display: flex; flex-direction: column; gap: 10px; }
+  .fact { display: flex; gap: 12px; align-items: baseline; }
+  .fact .fno { flex: none; font-family: "IBM Plex Sans", sans-serif; font-size: 12px; font-weight: 600;
+    color: var(--muted); letter-spacing: 0.06em; padding-top: 2px; min-width: 2.2em; }
+  figure { margin: 26px 0; }
+  .figbox { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; box-shadow: var(--shadow); }
+  canvas { display: block; width: 100%; height: auto; }
+  figcaption { font-size: 14px; color: var(--muted); margin-top: 10px; max-width: 76ch; }
+  .figbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; font-family: "IBM Plex Sans", sans-serif; font-size: 12.5px; color: var(--muted); }
+  .swatch { width: 14px; height: 3px; border-radius: 2px; }
+  .tablewrap { overflow-x: auto; margin: 14px 0; }
+  table { border-collapse: collapse; width: 100%; font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 14px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--line-faint); text-align: right; white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; }
+  td.hi { color: var(--walk); font-weight: 600; }
+  td.warn { color: var(--theory); }
+  .aside { border-left: 3px solid var(--theory); background: var(--theory-soft); padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 18px 0; }
+  .aside .eyebrow { color: var(--theory); margin-bottom: 4px; }
+  .aside p { font-size: 15.5px; }
+  .q { margin: 18px 0; padding: 16px 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+  .q .qno { font-family: "IBM Plex Sans", sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: var(--walk); text-transform: uppercase; }
+  .q p.stem { font-weight: 600; margin: 6px 0 10px; }
+  .q ul { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .q li { padding-left: 26px; position: relative; font-size: 15.5px; }
+  .q li::before { position: absolute; left: 0; top: 0; font-family: "IBM Plex Sans", sans-serif; font-weight: 600; }
+  .q li.ok::before { content: "✓"; color: var(--good); }
+  .q li.no::before { content: "✗"; color: var(--bad); }
+  .q li em.mis { color: var(--muted); font-style: italic; }
+  .kbd { font-family: "IBM Plex Mono", monospace; font-size: 0.85em; background: var(--code-bg); border: 1px solid var(--line); border-radius: 4px; padding: 0.05em 0.4em; }
+  mjx-container { overflow-x: auto; overflow-y: hidden; max-width: 100%; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Touchstone · study track · <span class="sess">Session S2</span> — teaching notes</div>
+  <h1>Brownian motion</h1>
+  <p class="standfirst">Working material for <strong>page 2.2</strong>, which you write in your own words (I2 — none of this is page prose). Pitch: <strong>solid</strong>, as decided at S1 — standard probability is assumed silently; the stochastic side is taught in full. The experiment has already run on your machine; every number below is in its JSON.</p>
+</header>
+
+<!-- ============ 0 · PREDICTIONS ============ -->
+<section>
+  <div class="eyebrow">On the record</div>
+  <h2>Your predictions, before any code ran</h2>
+  <div class="card predictions">
+    <div class="prediction"><span class="tag">P1</span><div><q>Normal, sd = √0.5 − √0.25</q> &nbsp;<span class="verdict no">shape right, number wrong</span> — resolved in §3</div></div>
+    <div class="prediction"><span class="tag">P2</span><div><q>Slope becomes flatter, gradient closer to 0</q> &nbsp;<span class="verdict no">the opposite</span> — §4</div></div>
+    <div class="prediction"><span class="tag">P3</span><div><q>Expected value 1.5, spread √2</q> &nbsp;<span class="verdict half">mean right, spread wrong</span> — §6</div></div>
+    <div class="prediction"><span class="tag">P4</span><div><q>×10</q> &nbsp;<span class="verdict ok">right</span> — §5</div></div>
+  </div>
+  <p class="note" style="margin-top:14px">P1, P2 and the spread in P3 are the page's three target misconceptions. All three are draft check distractors in §8.</p>
+</section>
+
+<!-- ============ 1 · WHAT RAN ============ -->
+<section>
+  <div class="eyebrow">Step 1 · already done — confirm it</div>
+  <h2><span class="stepno">1</span>The experiment on your disk</h2>
+  <ol class="runsteps">
+    <li>Run <span class="kbd">git status</span> in <code>Touchstone</code> — two untracked files under <code>experiments/</code>: <code>2_2_brownian_motion.py</code> and its <code>.json</code>.</li>
+    <li>Do not commit yet. Commit at §9, after the checks and the draft are approved, in one go as at S1.</li>
+  </ol>
+  <p class="note">The JSON was written by <code>uv run experiments/2_2_brownian_motion.py</code> on your machine (numpy 2.5.2, seed 20260903, 68/68 checks pass, ~18 s). My run on numpy 2.4.4 gives the same file to every printed digit — the seed is doing its job (I6).</p>
+</section>
+
+<!-- ============ 2 · THE OBJECT ============ -->
+<section>
+  <div class="eyebrow">Step 2 · the object</div>
+  <h2><span class="stepno">2</span>W is 2.1's walk with a name, and four facts are its whole definition</h2>
+  <p>Take the walk of 2.1 with Gaussian steps of size √dt and let dt → 0. What survives is one random function of time, written <em>W</em> (Wiener) or <em>B</em> (Brown). Everything anyone ever proves about it comes from four properties, and together they <em>are</em> the definition:</p>
+  <div class="facts">
+    <div class="fact"><span class="fno">D1</span><div><strong>Starts at zero.</strong> W₀ = 0.</div></div>
+    <div class="fact"><span class="fno">D2</span><div><strong>Independent increments.</strong> What W does over [s, t] is independent of everything it did before s.</div></div>
+    <div class="fact"><span class="fno">D3</span><div><strong>Gaussian increments with variance equal to elapsed time.</strong> W_t − W_s ~ N(0, t − s). Not sd = t − s; not sd = √t − √s. <em>Variance</em> is what adds (2.1), so variance is what is proportional to time.</div></div>
+    <div class="fact"><span class="fno">D4</span><div><strong>Continuous paths.</strong> No jumps. This is the one that is easy to say and expensive to prove; the experiment shows it rather than proves it.</div></div>
+  </div>
+  <p>Simulation is D2 and D3 read literally — draw independent N(0, dt) increments and add them up. This is the line the site's demos, the C++ and this experiment all share:</p>
+  <pre><code>np.cumsum(sampler(rng, (k, n_steps)) * sqrt_dt, axis=1, out=w[:, 1:])   # W = Σ √dt·Z</code></pre>
+
+  <h3>Why Gaussian — the coin says so</h3>
+  <p>D3 looks like an assumption. It isn't: it is what the continuous limit produces from <em>any</em> finite-variance step, by the central limit theorem. The experiment builds a second W from ±1 coin steps and measures the shape of its increments over k steps. A k-step coin increment is a scaled binomial with excess kurtosis exactly −2/k, and the measurement lands on that line:</p>
+  <div class="tablewrap"><table>
+    <tr><th>steps in the increment, k</th><th>excess kurtosis, coin walk</th><th>−2/k</th><th>excess kurtosis, Gaussian walk</th></tr>
+    <tr><td>1</td><td class="warn">−2.000</td><td>−2</td><td>−0.001</td></tr>
+    <tr><td>10</td><td class="warn">−0.198</td><td>−0.2</td><td>−0.001</td></tr>
+    <tr><td>100</td><td>−0.023</td><td>−0.02</td><td>−0.005</td></tr>
+    <tr><td>250</td><td class="hi">−0.001</td><td>−0.008</td><td>−0.002</td></tr>
+  </table></div>
+  <p class="note">One coin step is as un-Gaussian as a distribution gets (two points). Over 250 steps the coin walk and the Gaussian walk are indistinguishable at this sample size. The limit doesn't remember the coin — 2.1's C4, now for the shape as well as the scale.</p>
+  <figure>
+    <div class="figbox"><canvas id="figKurt" width="1200" height="460"></canvas>
+      <div class="figbar"><span class="chip"><span class="swatch" style="background:var(--bad)"></span>Laplace · excess +3 (leptokurtic)</span><span class="chip"><span class="swatch" style="background:var(--walk)"></span>Gaussian · 0 (mesokurtic)</span><span class="chip"><span class="swatch" style="background:var(--theory)"></span>uniform · −1.2 (platykurtic)</span><span class="chip"><span class="swatch" style="background:var(--good);height:8px;width:8px;border-radius:50%"></span>10-step coin sum · −0.2</span></div>
+    </div>
+    <figcaption>What excess kurtosis measures, all four at mean 0 and variance 1 so only shape differs. Positive: a sharper peak <em>and</em> fatter tails than the Gaussian — more mass far out, paid for from the shoulders (Laplace, +3; a Student-t would be higher still). Negative: flatter top, tails that stop (uniform, −1.2; a single coin step, −2, is the floor). The dots are the 10-step coin sum — a lattice already close to the curve at −0.2, and at −2/k it walks onto the Gaussian as k grows. In markets, daily returns are leptokurtic: that is page 2.11's subject, not this one's.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 3 · P1 ============ -->
+<section class="wide">
+  <div class="eyebrow">Step 3 · prediction 1 resolved</div>
+  <h2><span class="stepno">3</span>The increment's sd is √(t − s), and sd never subtracts</h2>
+  <p>W(0.5) − W(0.25) is N(0, 0.25): variance 0.25, sd 0.5. You wrote √0.5 − √0.25 = 0.207. That is S1's trap in a mirror: there, sd was made to <em>add</em> (£70k); here it was made to <em>subtract</em>. The rule is the same in both directions — variances of independent stretches add, so the variance of a stretch is the difference of variances, 0.5 − 0.25 = 0.25, and only then take the root.</p>
+  <div class="tablewrap"><table>
+    <tr><th>lag (time)</th><th>increments measured</th><th>variance</th><th>= lag?</th><th>skew</th><th>beyond 1 sd</th><th>beyond 2 sd</th><th>beyond 3 sd</th><th>corr. with next</th></tr>
+    <tr><td>0.001</td><td>80,000,000</td><td>0.00100</td><td>✓</td><td>0.000</td><td>0.3173</td><td>0.0455</td><td>0.00270</td><td>0.00003</td></tr>
+    <tr><td>0.01</td><td>8,000,000</td><td>0.01001</td><td>✓</td><td>0.001</td><td>0.3175</td><td>0.0455</td><td>0.00270</td><td>−0.0007</td></tr>
+    <tr><td>0.1</td><td>800,000</td><td>0.09997</td><td>✓</td><td>0.000</td><td>0.3171</td><td>0.0455</td><td>0.00269</td><td>0.0001</td></tr>
+    <tr><td>0.25</td><td>320,000</td><td class="hi">0.2501</td><td>✓</td><td>0.010</td><td>0.3166</td><td>0.0456</td><td>0.00266</td><td>0.0036</td></tr>
+    <tr><td colspan="5" style="text-align:left;color:var(--muted)">a Gaussian puts beyond 1, 2, 3 sd:</td><td>0.3173</td><td>0.0455</td><td>0.00270</td><td>0 if independent</td></tr>
+  </table></div>
+  <p>Four decades of lag, one rule. The last column is D2 measured: consecutive non-overlapping increments have correlation zero to three decimals. Read the row for 0.25 against P1: sd 0.500, not 0.207.</p>
+</section>
+
+<!-- ============ 4 · P2 ============ -->
+<section class="wide">
+  <div class="eyebrow">Step 4 · prediction 2 resolved</div>
+  <h2><span class="stepno">4</span>Continuous everywhere, differentiable nowhere</h2>
+  <p>You predicted the secant slope (W(t+h) − W(t))/h flattens toward 0 as h shrinks. Every smooth function does that — the zigzags average out and a tangent appears. W does the opposite, and by exactly the amount 2.1 predicts: the increment over h has sd √h, so the slope has sd √h / h = 1/√h. Halve h and the slope's typical size grows by √2. It never settles.</p>
+  <div class="tablewrap"><table>
+    <tr><th>window h</th><th>mean |ΔW|</th><th>mean |ΔW| / √h</th><th>largest |ΔW| seen</th><th>mean |ΔW / h|</th><th>secant slope, path 1, at t = 0.5</th></tr>
+    <tr><td>0.1</td><td>0.2478</td><td>0.784</td><td>1.05</td><td>2.5</td><td>−7.1</td></tr>
+    <tr><td>0.01</td><td>0.0792</td><td>0.792</td><td>0.35</td><td>7.9</td><td>−18.2</td></tr>
+    <tr><td>0.001</td><td>0.0252</td><td>0.796</td><td>0.14</td><td>25.2</td><td>+9.4</td></tr>
+    <tr><td>0.0001</td><td>0.00798</td><td>0.798</td><td>0.048</td><td>79.8</td><td>−66.3</td></tr>
+    <tr><td>0.00001</td><td>0.00252</td><td>0.798</td><td>0.016</td><td>252</td><td>−171</td></tr>
+    <tr><td>0.000001</td><td class="hi">0.000798</td><td>0.798</td><td class="hi">0.0056</td><td class="hi">798</td><td class="hi">−569</td></tr>
+    <tr><td colspan="2" style="text-align:left;color:var(--muted)">log-log slope against h</td><td colspan="2" style="text-align:left">+0.499 (continuity)</td><td colspan="2" style="text-align:left">−0.501 (no derivative)</td></tr>
+  </table></div>
+  <figure>
+    <div class="figbox"><canvas id="figRough" width="1200" height="520"></canvas>
+      <div class="figbar"><span class="chip"><span class="swatch" style="background:var(--walk)"></span>mean |ΔW| — falls like √h</span><span class="chip"><span class="swatch" style="background:var(--theory)"></span>mean |ΔW/h| — grows like 1/√h</span></div>
+    </div>
+    <figcaption>Six windows, 100 paths on a grid of 10⁻⁶, every non-overlapping window counted. Both lines are straight on log–log paper with slopes ±½. The increment vanishes — that is continuity — while the slope diverges — that is nowhere-differentiability. Same data, two columns.</figcaption>
+  </figure>
+  <p>Two columns to hold onto. <em>Largest |ΔW| seen</em>: at h = 10⁻⁶ the biggest single move across 10⁸ windows is 0.0056 — there are no jumps; the path is continuous (D4). <em>mean |ΔW| / √h</em> sits at 0.798 in every row: √(2/π) again, S1's constant, because an N(0, h) increment has mean size √(2h/π). And the last column is what the D1 demo would show if it drew a tangent: −7, −18, +9, −66, −171, −569. Not converging; not even keeping its sign.</p>
+  <div class="aside">
+    <div class="eyebrow">Consequence you will meet on every later page</div>
+    <p>dW/dt does not exist, so <em>dW</em> is never a derivative. It is the increment W_(t+dt) − W_t, a √dt-sized kick (ledger, S1 batch). Ordinary calculus is built on tangents; W has none. That is why 2.3 has to invent a replacement rule — (dW)² = dt — and why 2.4 has to redefine the integral. Nothing on this page claims either yet.</p>
+  </div>
+</section>
+
+<!-- ============ 5 · P4 ============ -->
+<section class="wide">
+  <div class="eyebrow">Step 5 · prediction 4 resolved</div>
+  <h2><span class="stepno">5</span>Self-similar: zoom time by c, space by √c, and nothing changes</h2>
+  <p>You said ×10 for a 1 % zoom, and that is the number. Take the first 1/c of a path, stretch time by c so it fills the screen, and stretch space by √c: the result is statistically a fresh Brownian motion. Formally, {√c · W(t/c)} has the same four properties as {W(t)} — D3 is the reason: W(t/c) has variance t/c, and √c fixes it.</p>
+  <figure>
+    <div class="figbox"><canvas id="figZoom" width="1200" height="440"></canvas>
+      <div class="figbar"><span class="chip"><span class="swatch" style="background:var(--walk)"></span>a full path, 100,000 steps on [0, 1]</span><span class="chip"><span class="swatch" style="background:var(--theory)"></span>its first 1 %, time × 100, space × 10</span></div>
+    </div>
+    <figcaption>Left: one seeded path. Right: the first 1 % of the same path, stretched ×100 in time and ×10 in space (the shaded sliver on the left is the region shown). Same vertical scale. Nothing distinguishes them but the colour — which is the point of demo D1's √zoom vertical axis.</figcaption>
+  </figure>
+  <div class="tablewrap"><table>
+    <tr><th>zoom c</th><th>Var W(1/c)</th><th>Var √c·W(1/c)</th><th>if stretched ×c</th><th>if not stretched</th><th>excess kurtosis after √c</th></tr>
+    <tr><td>4</td><td>0.249</td><td class="hi">0.996</td><td class="warn">3.98</td><td class="warn">0.249</td><td>−0.022</td></tr>
+    <tr><td>10</td><td>0.100</td><td class="hi">1.004</td><td class="warn">10.04</td><td class="warn">0.100</td><td>−0.016</td></tr>
+    <tr><td>100</td><td>0.010</td><td class="hi">1.004</td><td class="warn">100.4</td><td class="warn">0.010</td><td>−0.009</td></tr>
+    <tr><td colspan="2" style="text-align:left;color:var(--muted)">Var W(1) itself, 40,000 paths</td><td>1.010</td><td></td><td></td><td>−0.011</td></tr>
+  </table></div>
+  <p class="note">The two "wrong stretch" columns are the distractors: ×c makes the zoomed path c times too wild, ×1 makes it 1/c times too tame. There is no scale at which W becomes smooth — which is §4 said from the other side.</p>
+</section>
+
+<!-- ============ 6 · P3 ============ -->
+<section class="wide">
+  <div class="eyebrow">Step 6 · prediction 3 resolved</div>
+  <h2><span class="stepno">6</span>Martingale and Markov: the best forecast is where you are, and the spread is the time still to come</h2>
+  <p>W(1) = 1.5. You said E[W(2)] = 1.5 — right, and it has a name: W is a <strong>martingale</strong>. E[W_t | everything up to s] = W_s. No drift toward zero, no momentum; the past has already happened and the future increment has mean zero (D2, D3).</p>
+  <p>You said the spread is √2. That is the spread of W(2) seen from time 0 — Var W(2) = 2 — and the experiment measures it: 1.419. But you are standing at time 1 knowing W(1). The only randomness left is the increment over [1, 2], and its variance is 2 − 1 = 1. Conditioning removes the variance already realised. sd 1, not √2.</p>
+
+  <h3>Two ways to measure "given W(1)" — filter, or fit a line</h3>
+  <p>Your question was about paths that <em>happen</em> to be at 1.5 at time 1. The direct measurement is a filter: of 40,000 paths, keep the 969 whose W(1) lands in [1.4, 1.6], and look at where they are at time 2. Their mean W(2) is 1.487 against their mean W(1) of 1.497, and their sd is 0.971. Standard error on that mean is 1/√969 ≈ 0.03, so 1.487 and 1.497 are the same number. That is P3 answered literally — but it uses 969 paths out of 40,000 and only answers for 1.5.</p>
+  <p><strong>Regression</strong> is the same question asked at every level at once. Plot 40,000 points, W(1) on the x-axis and W(2) on the y-axis, and fit the straight line W(2) ≈ slope · W(1) + intercept by least squares. The line is the forecast of W(2) from W(1). Its three numbers each say something specific. <em>Slope 1</em>: a path at W(1) = x is forecast to be at x — the whole of where you are carries forward, no more (momentum would give &gt; 1), no less (mean reversion would give &lt; 1). <em>Intercept 0</em>: the forecast has no fixed offset, so there is no level the path is pulled toward. <em>Residual variance</em>: the spread of the points around the line — the part of W(2) that W(1) cannot forecast. It comes out at 1.006, which is Var(W(2)) − Var(W(1)) = 2 − 1: exactly the variance of the increment over [1, 2], and nothing else.</p>
+  <p>The Markov test is the same fit with a second input. Fit W(2) ≈ a · W(1) + c · W(0.5) + b. If knowing where the path was at 0.5 <em>in addition to</em> where it is at 1 improved the forecast, c would be nonzero. It is −0.008. Given the present, the past adds nothing.</p>
+  <div class="tablewrap"><table>
+    <tr><th>measurement (40,000 paths)</th><th>measured</th><th>expected</th><th>what the number means</th></tr>
+    <tr><td>filter: paths with W(1) in [1.4, 1.6]</td><td>969</td><td></td><td>the sample your question is about</td></tr>
+    <tr><td>… their mean W(2)</td><td class="hi">1.487</td><td>1.497 (their mean W(1))</td><td>where they are now is where they end up on average, ±0.03 — P3's mean</td></tr>
+    <tr><td>… their sd of W(2)</td><td class="hi">0.971</td><td>1</td><td>spread of the one remaining increment; not 1.419 — P3's spread</td></tr>
+    <tr><td>fit W(2) ≈ slope·W(1) + intercept: slope</td><td class="hi">0.9985</td><td>1</td><td>all of W(1) carries into the forecast — martingale, E[W_t | W_s] = W_s</td></tr>
+    <tr><td>… intercept</td><td>−0.0013</td><td>0</td><td>no level the path is pulled toward</td></tr>
+    <tr><td>… residual variance (spread around the line)</td><td class="hi">1.006</td><td>1 = 2 − 1</td><td>what W(1) cannot forecast is the increment over [1, 2] — Var(W_t | W_s) = t − s</td></tr>
+    <tr><td>fit W(2) ≈ a·W(1) + c·W(0.5) + b: c</td><td class="hi">−0.008</td><td>0</td><td>the earlier point adds nothing once the present is known — Markov</td></tr>
+    <tr><td>filter: paths that rose over [0, 1] (19,926): mean move over [1, 2]</td><td>−0.003</td><td>0</td><td>a rise does not make a further rise likelier — no momentum</td></tr>
+  </table></div>
+  <p><strong>Martingale</strong> is the slope-1, intercept-0 line: the best forecast of the future is the present. <strong>Markov</strong> is the zero on W(0.5): the present is all you need to make it. Both are D2 restated — independent increments make the future depend on the present only, and make its conditional mean zero.</p>
+  <div class="aside">
+    <div class="eyebrow">Why this matters in three pages' time</div>
+    <p>"Martingale" is the property a fairly priced bet has: its expected future value is its current value. 2.8 will show that under the right probability measure a discounted option price is a martingale, and pricing becomes taking an expectation. The regression slope of 0.9985 above is the first time that word has a number attached.</p>
+  </div>
+</section>
+
+<!-- ============ 7 · CLAIM MAP ============ -->
+<section class="wide">
+  <div class="eyebrow">Step 7 · what the page may claim (I1)</div>
+  <h2><span class="stepno">7</span>Claim → evidence map for your draft</h2>
+  <div class="tablewrap"><table style="min-width:640px">
+    <tr><th>claim on the page</th><th>JSON key in 2_2_brownian_motion.json</th><th>number</th></tr>
+    <tr><td>W_t − W_s ~ N(0, t − s); sd = √(t−s), not √t − √s</td><td class="mono">results.increments.gaussian["250"].var; sd_if_it_subtracted…</td><td>0.2501 vs 0.25; 0.207 is the trap</td></tr>
+    <tr><td>increments are independent</td><td class="mono">…increments.*.consecutive_correlation</td><td>|ρ| &lt; 0.004 at every lag</td></tr>
+    <tr><td>Gaussian tails</td><td class="mono">…increments.gaussian.*.tail_fraction_beyond_k_sd</td><td>0.317 / 0.0455 / 0.0027</td></tr>
+    <tr><td>the shape comes from the limit, not the coin</td><td class="mono">…increments.coin.*.excess_kurtosis</td><td>−2/k: −2, −0.198, −0.023, −0.001</td></tr>
+    <tr><td>continuous — no jumps</td><td class="mono">…roughness.rows[*].max_abs_increment; loglog_slope_mean_abs_increment</td><td>0.0056 at h = 10⁻⁶; slope +0.499</td></tr>
+    <tr><td>nowhere differentiable — slope ~ 1/√h</td><td class="mono">…roughness.loglog_slope_mean_abs_slope; rows[*].secant_slope_first_path_at_t</td><td>−0.501; −7 … −569</td></tr>
+    <tr><td>self-similar with √c</td><td class="mono">…self_similarity.zooms[*].var_rescaled_sqrt_c</td><td>0.996, 1.004, 1.004</td></tr>
+    <tr><td>martingale: E[W_t | W_s] = W_s</td><td class="mono">…martingale_markov.regress_W2_on_W1; conditional_on_W1.mean_W2</td><td>slope 0.9985; 1.487 ± 0.03</td></tr>
+    <tr><td>Var(W_t | W_s) = t − s</td><td class="mono">…regress_W2_on_W1.residual_var; conditional_on_W1.sd_W2</td><td>1.006; 0.971</td></tr>
+    <tr><td>Markov</td><td class="mono">…regress_W2_on_W1_and_W05.coef_W05</td><td>−0.008</td></tr>
+    <tr><td>simulation = cumsum of √dt·Z</td><td class="mono">the script itself (snippet, I3)</td><td>—</td></tr>
+  </table></div>
+  <p class="note">Not backed here, so not claimable on 2.2: (dW)² = dt and Σ(ΔW)² → T (2.3); anything about ∫ W dW (2.4); the reflection principle, hitting times, the law of the iterated logarithm. "Nowhere differentiable" is stated as demonstrated at six scales, not proved — the draft should say "at every scale we looked", not "for all h".</p>
+</section>
+
+<!-- ============ 8 · CHECKS ============ -->
+<section>
+  <div class="eyebrow">For your approval · I5</div>
+  <h2>Draft check questions</h2>
+  <p class="note">Every wrong option names its misconception in italics; the feedback says why it is wrong. Q1, Q2 and Q3's spread distractor are your own predictions from today. Approve, strike, or edit each.</p>
+
+  <div class="q"><div class="qno">Q1</div>
+    <p class="stem">W is a Brownian motion. What is the distribution of W(0.5) − W(0.25)?</p>
+    <ul>
+      <li class="ok"><strong>Normal, mean 0, sd 0.5</strong> — variance equals elapsed time: 0.5 − 0.25 = 0.25, sd = √0.25 = 0.5.</li>
+      <li class="no">Normal, mean 0, sd √0.5 − √0.25 ≈ 0.21 — <em class="mis">sd subtracts.</em> Standard deviations of independent stretches never add or subtract; variances do. Var over [0.25, 0.5] is 0.5 − 0.25 = 0.25, and the root is taken last.</li>
+      <li class="no">Normal, mean 0, sd 0.25 — <em class="mis">sd proportional to time.</em> It is the variance that is proportional to time. sd 0.25 would make the variance 0.0625 and the walk four times too tame.</li>
+      <li class="no">Normal, mean 0, sd √0.5 ≈ 0.71 — <em class="mis">forgot to subtract.</em> That is the spread of W(0.5) from the origin. The increment starts at W(0.25), not at 0; only the stretch [0.25, 0.5] contributes.</li>
+    </ul></div>
+
+  <div class="q"><div class="qno">Q2</div>
+    <p class="stem">At a fixed time t, you measure the secant slope (W(t+h) − W(t))/h for smaller and smaller h. As h → 0 the typical size of the slope:</p>
+    <ul>
+      <li class="ok"><strong>Grows without bound, like 1/√h</strong> — the increment has sd √h, so the slope has sd √h/h = 1/√h. W is continuous but has no derivative anywhere.</li>
+      <li class="no">Flattens toward zero — <em class="mis">zigzags average out.</em> That is what a smooth function's wobble does. W's wobble is √h-sized at every scale, which is far larger than h; dividing by h makes it blow up, not vanish.</li>
+      <li class="no">Settles to a finite value, the derivative — <em class="mis">continuous implies differentiable.</em> Continuity says |ΔW| → 0 (it does: like √h). Differentiability needs |ΔW| ∝ h. √h shrinks far too slowly for a tangent to exist.</li>
+      <li class="no">Stays roughly constant in size, but random — <em class="mis">self-similarity means scale-free slope.</em> Self-similarity holds for W(t) scaled by √c, not for the slope. The slope picks up a factor √c on every zoom, so it is the one thing that is not scale-free.</li>
+    </ul></div>
+
+  <div class="q"><div class="qno">Q3</div>
+    <p class="stem">A Brownian path has reached W(1) = 1.5. Seen from now, W(2) has expected value and standard deviation:</p>
+    <ul>
+      <li class="ok"><strong>1.5 and 1</strong> — martingale: the expected future value is the current value. Only the increment over [1, 2] is still random, and its variance is 2 − 1 = 1.</li>
+      <li class="no">1.5 and √2 — <em class="mis">unconditional spread.</em> √2 is the sd of W(2) seen from time 0. Standing at time 1 you already know the first unit of variance; conditioning removes it, leaving 2 − 1 = 1.</li>
+      <li class="no">Something below 1.5, and 1 — <em class="mis">mean reversion.</em> W has no anchor and no memory of zero. Its expected next increment is zero wherever it is: paths near +1.5 end on average at +1.5.</li>
+      <li class="no">Something above 1.5, and 1 — <em class="mis">momentum.</em> A path that rose is not more likely to keep rising. Independent increments: the move over [1, 2] is drawn fresh, mean zero, whatever happened over [0, 1].</li>
+    </ul></div>
+
+  <div class="q"><div class="qno">Q4</div>
+    <p class="stem">You zoom into the first 1 % of a Brownian path and stretch time by 100 to fill the screen. For the picture to look statistically like the whole path, the vertical axis must be stretched by:</p>
+    <ul>
+      <li class="ok"><strong>×10</strong> — W(t/100) has variance t/100; multiplying by √100 = 10 restores variance t. {√c·W(t/c)} is again a Brownian motion.</li>
+      <li class="no">×100 — <em class="mis">stretch both axes alike.</em> That stretches space by c where the path only needs √c: the zoomed path would have variance 100 times too large. sd, not variance, is what the vertical axis measures.</li>
+      <li class="no">×1, no vertical change — <em class="mis">zoom only stretches time.</em> The first 1 % of the path only ranges about a tenth as far as the whole. Left at ×1 it looks like a nearly flat line — the "smooth up close" illusion, and it is false.</li>
+      <li class="no">No stretch will work — the zoomed path is visibly smoother — <em class="mis">smoothness at small scale.</em> There is no scale at which W is smooth; the √h-sized wobble is there at every h. Rescaled by √c the zoom is indistinguishable from the original.</li>
+    </ul></div>
+
+  <div class="q"><div class="qno">Q5</div>
+    <p class="stem">Build a walk from ±1 coin flips with √dt scaling, and look at its increments over 250 steps. Their distribution is:</p>
+    <ul>
+      <li class="ok"><strong>Gaussian to within measurement</strong> — excess kurtosis −2/250 = −0.008, measured −0.001. Any finite-variance step gives Gaussian increments in the limit; the coin is forgotten. That is why the definition can say "Gaussian" without choosing a coin.</li>
+      <li class="no">Two-valued, ±√(250·dt) — <em class="mis">the coin survives.</em> One step is two-valued. A sum of 250 independent steps takes 251 values and is already bell-shaped; the central limit theorem is doing what it does.</li>
+      <li class="no">Uniform between −√(250·dt) and +√(250·dt) — <em class="mis">sums spread out flat.</em> Sums pile up in the middle: there are vastly more ways to get 125 heads than 250. Uniform is what you get by ignoring the counting.</li>
+      <li class="no">It depends on the coin — a biased or three-sided coin would give a different shape — <em class="mis">distribution sets the shape.</em> With the mean removed and the variance matched, every finite-variance step converges to the same Gaussian. Only the mean and variance of the step survive the limit.</li>
+    </ul></div>
+</section>
+
+<!-- ============ 9 · AFTER ============ -->
+<section>
+  <div class="eyebrow">Then</div>
+  <h2>After the read</h2>
+  <ol class="runsteps">
+    <li>Reply with a verdict on each of Q1–Q5: approve, strike, or the edit you want.</li>
+    <li>Answer the interview questions I send next, in your own words, one at a time — they become <code>drafts/2.2.md</code> (I2: I assemble, you author).</li>
+    <li>Approve the S2 notation batch I append to <code>drafts/notation.md</code>.</li>
+    <li>Commit the two experiment files, the draft, the checks, the ledger and <code>docs/evidence/S2/</code> to <code>main</code>, then tick S2 in <code>ROADMAP.md</code>.</li>
+  </ol>
+</section>
+</div>
+
+<script>
+(function () {
+  const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+  // mulberry32 + Box–Muller: a seeded normal stream for the figures only.
+  function normals(seed, n) {
+    let a = seed >>> 0;
+    const u = () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+    const out = new Float64Array(n);
+    for (let i = 0; i < n; i += 2) {
+      const r = Math.sqrt(-2 * Math.log(1 - u())), th = 2 * Math.PI * u();
+      out[i] = r * Math.cos(th); if (i + 1 < n) out[i + 1] = r * Math.sin(th);
+    }
+    return out;
+  }
+
+  function drawZoom() {
+    const c = document.getElementById('figZoom'); const ctx = c.getContext('2d');
+    const W = c.width, H = c.height, ink = css('--ink'), muted = css('--muted'), line = css('--line');
+    ctx.clearRect(0, 0, W, H);
+    const N = 100000, z = normals(20260903, N), sd = Math.sqrt(1 / N);
+    const w = new Float64Array(N + 1); for (let i = 0; i < N; i++) w[i + 1] = w[i] + sd * z[i];
+    const pad = 36, gap = 40, pw = (W - 2 * pad - gap) / 2, ph = H - 2 * pad;
+    const panels = [
+      { x0: pad, data: w, n: N, scale: 1, color: css('--walk'), label: 'W on [0, 1]' },
+      { x0: pad + pw + gap, data: w, n: N / 100, scale: 10, color: css('--theory'), label: 'first 1 %, time ×100, space ×10' },
+    ];
+    // common vertical range: ±2.6 covers the whole path comfortably
+    const yr = 2.6, y = (v) => pad + ph / 2 - (v / yr) * (ph / 2);
+    ctx.font = '600 15px "IBM Plex Sans", system-ui, sans-serif';
+    panels.forEach((p) => {
+      ctx.strokeStyle = line; ctx.lineWidth = 1;
+      ctx.strokeRect(p.x0, pad, pw, ph);
+      ctx.beginPath(); ctx.moveTo(p.x0, y(0)); ctx.lineTo(p.x0 + pw, y(0)); ctx.stroke();
+      ctx.fillStyle = muted; ctx.textAlign = 'left'; ctx.fillText(p.label, p.x0, pad - 12);
+      ctx.strokeStyle = p.color; ctx.lineWidth = 1.2; ctx.beginPath();
+      const step = Math.max(1, Math.floor(p.n / pw / 2));
+      for (let i = 0; i <= p.n; i += step) {
+        const px = p.x0 + (i / p.n) * pw, py = y(p.data[i] * p.scale);
+        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+    });
+    // shade the sliver on the left panel that the right panel shows
+    ctx.fillStyle = css('--theory-soft'); ctx.fillRect(pad, pad, Math.max(3, pw / 100), ph);
+    ctx.fillStyle = muted; ctx.font = '13px "IBM Plex Sans", system-ui, sans-serif';
+    ctx.textAlign = 'right'; ctx.fillText('+' + yr, pad - 6, pad + 6); ctx.fillText('0', pad - 6, y(0) + 4); ctx.fillText('−' + yr, pad - 6, pad + ph);
+  }
+
+  function drawRough() {
+    const c = document.getElementById('figRough'); const ctx = c.getContext('2d');
+    const W = c.width, H = c.height, ink = css('--ink'), muted = css('--muted'), line = css('--line'), faint = css('--line-faint');
+    ctx.clearRect(0, 0, W, H);
+    const hs = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6];
+    const inc = [0.24780614, 0.07923035, 0.02515871, 0.00797743, 0.00252326, 0.00079794];
+    const slope = [2.478061, 7.923035, 25.158715, 79.774345, 252.325808, 797.937182];
+    const padL = 70, padR = 30, padT = 24, padB = 46, pw = W - padL - padR, ph = H - padT - padB;
+    const lx = Math.log10, x = (h) => padL + ((lx(h) - (-6)) / 6) * pw;
+    const ymin = -3.5, ymax = 3.5, y = (v) => padT + ph - ((lx(v) - ymin) / (ymax - ymin)) * ph;
+    ctx.strokeStyle = faint; ctx.lineWidth = 1; ctx.fillStyle = muted;
+    ctx.font = '13px "IBM Plex Sans", system-ui, sans-serif';
+    for (let e = -3; e <= 3; e++) { const v = Math.pow(10, e); ctx.beginPath(); ctx.moveTo(padL, y(v)); ctx.lineTo(padL + pw, y(v)); ctx.stroke();
+      ctx.textAlign = 'right'; ctx.fillText(e === 0 ? '1' : '10' + sup(e), padL - 8, y(v) + 4); }
+    for (let e = -6; e <= -1; e++) { const h = Math.pow(10, e); ctx.beginPath(); ctx.moveTo(x(h), padT); ctx.lineTo(x(h), padT + ph); ctx.stroke();
+      ctx.textAlign = 'center'; ctx.fillText('10' + sup(e), x(h), padT + ph + 18); }
+    ctx.strokeStyle = line; ctx.strokeRect(padL, padT, pw, ph);
+    ctx.textAlign = 'center'; ctx.fillText('window h (log scale)', padL + pw / 2, H - 8);
+    function series(vals, color, label, dy) {
+      ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.beginPath();
+      hs.forEach((h, i) => i ? ctx.lineTo(x(h), y(vals[i])) : ctx.moveTo(x(h), y(vals[i]))); ctx.stroke();
+      ctx.fillStyle = color; hs.forEach((h, i) => { ctx.beginPath(); ctx.arc(x(h), y(vals[i]), 4, 0, Math.PI * 2); ctx.fill(); });
+      ctx.font = '600 14px "IBM Plex Sans", system-ui, sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText(label, x(hs[2]) + 10, y(vals[2]) + dy);
+    }
+    series(inc, css('--walk'), 'mean |ΔW|  · slope +0.499', 22);
+    series(slope, css('--theory'), 'mean |ΔW / h|  · slope −0.501', -12);
+    function sup(e) { const m = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶' }; return String(e).split('').map(ch => m[ch]).join(''); }
+  }
+
+  function drawKurt() {
+    const c = document.getElementById('figKurt'); const ctx = c.getContext('2d');
+    const W = c.width, H = c.height, muted = css('--muted'), line = css('--line'), faint = css('--line-faint');
+    ctx.clearRect(0, 0, W, H);
+    const padL = 50, padR = 20, padT = 20, padB = 44, pw = W - padL - padR, ph = H - padT - padB;
+    const xmin = -4, xmax = 4, ymax = 0.75;
+    const x = (v) => padL + ((v - xmin) / (xmax - xmin)) * pw, y = (d) => padT + ph - (d / ymax) * ph;
+    ctx.strokeStyle = faint; ctx.lineWidth = 1; ctx.fillStyle = muted; ctx.font = '13px "IBM Plex Sans", system-ui, sans-serif';
+    for (let v = -4; v <= 4; v++) { ctx.beginPath(); ctx.moveTo(x(v), padT); ctx.lineTo(x(v), padT + ph); ctx.stroke();
+      ctx.textAlign = 'center'; ctx.fillText(v === 0 ? '0' : (v > 0 ? '+' : '−') + Math.abs(v) + 'σ', x(v), padT + ph + 18); }
+    for (let d = 0.25; d <= 0.75; d += 0.25) { ctx.beginPath(); ctx.moveTo(padL, y(d)); ctx.lineTo(padL + pw, y(d)); ctx.stroke();
+      ctx.textAlign = 'right'; ctx.fillText(d.toFixed(2), padL - 8, y(d) + 4); }
+    ctx.strokeStyle = line; ctx.strokeRect(padL, padT, pw, ph);
+    ctx.textAlign = 'center'; ctx.fillText('value, in standard deviations · all curves have variance 1', padL + pw / 2, H - 8);
+    // densities at unit variance
+    const gauss = (v) => Math.exp(-v * v / 2) / Math.sqrt(2 * Math.PI);
+    const laplace = (v) => Math.exp(-Math.abs(v) * Math.SQRT2) / Math.SQRT2;       // b = 1/√2
+    const unif = (v) => Math.abs(v) <= Math.sqrt(3) ? 1 / (2 * Math.sqrt(3)) : 0;   // half-width √3
+    function curve(f, color) {
+      ctx.strokeStyle = color; ctx.lineWidth = 2.2; ctx.beginPath();
+      for (let i = 0; i <= 800; i++) { const v = xmin + (i / 800) * (xmax - xmin); const py = y(f(v)); i ? ctx.lineTo(x(v), py) : ctx.moveTo(x(v), py); }
+      ctx.stroke();
+    }
+    curve(unif, css('--theory')); curve(laplace, css('--bad')); curve(gauss, css('--walk'));
+    // 10-step coin sum: values -10..10 step 2, scaled to unit variance (÷√10); mass → density via spacing 2/√10
+    const k = 10, sp = 2 / Math.sqrt(k); ctx.fillStyle = css('--good');
+    let binom = 1; const pm = [];
+    for (let j = 0; j <= k; j++) { pm.push(binom / Math.pow(2, k)); binom = binom * (k - j) / (j + 1); }
+    for (let j = 0; j <= k; j++) { const v = (2 * j - k) / Math.sqrt(k); ctx.beginPath(); ctx.arc(x(v), y(pm[j] / sp), 4.5, 0, Math.PI * 2); ctx.fill(); }
+  }
+
+  function drawAll() { drawZoom(); drawRough(); drawKurt(); }
+  drawAll();
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  mq.addEventListener && mq.addEventListener('change', drawAll);
+  new MutationObserver(drawAll).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+})();
+</script>

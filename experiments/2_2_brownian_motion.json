@@ -1,0 +1,868 @@
+{
+  "page": "2.2",
+  "script": "2_2_brownian_motion.py",
+  "params": {
+    "seed": 20260903,
+    "ensemble": {
+      "T": 2.0,
+      "n_steps": 2000,
+      "dt": 0.001,
+      "n_paths": 40000,
+      "chunk_paths": 2000,
+      "lags_steps": [
+        1,
+        10,
+        100,
+        250
+      ],
+      "times": {
+        "0.5": 0.5,
+        "1": 1.0,
+        "2": 2.0,
+        "1/4": 0.25,
+        "1/10": 0.1,
+        "1/100": 0.01
+      },
+      "step_distributions": [
+        "gaussian",
+        "coin"
+      ]
+    },
+    "roughness": {
+      "n_paths": 100,
+      "fine_dt": 1e-06,
+      "T": 1.0,
+      "hs": [
+        0.1,
+        0.01,
+        0.001,
+        0.0001,
+        1e-05,
+        1e-06
+      ],
+      "t_probe": 0.5
+    },
+    "self_similarity": {
+      "zooms": [
+        4,
+        10,
+        100
+      ]
+    },
+    "conditional": {
+      "W1_centre": 1.5,
+      "half_width": 0.1
+    }
+  },
+  "environment": {
+    "numpy": "2.5.2"
+  },
+  "results": {
+    "increments": {
+      "gaussian": {
+        "1": {
+          "n": 80000000,
+          "mean": -4.289518604371692e-07,
+          "var": 0.0010000466184857686,
+          "skew": -7.009046029935298e-05,
+          "excess_kurtosis": -0.0004674945681020226,
+          "tail_fraction_beyond_k_sd": {
+            "1": 0.31732845,
+            "2": 0.0455105625,
+            "3": 0.0026955625
+          },
+          "lag_steps": 1,
+          "lag_time": 0.001,
+          "var_expected": 0.001,
+          "consecutive_correlation": 3.167319758911843e-05
+        },
+        "10": {
+          "n": 8000000,
+          "mean": -4.289518604371689e-06,
+          "var": 0.01000559384169414,
+          "skew": 0.0009746756198602961,
+          "excess_kurtosis": -0.0005479003871213806,
+          "tail_fraction_beyond_k_sd": {
+            "1": 0.317498875,
+            "2": 0.045504625,
+            "3": 0.00269875
+          },
+          "lag_steps": 10,
+          "lag_time": 0.01,
+          "var_expected": 0.01,
+          "consecutive_correlation": -0.0007215571374548095
+        },
+        "100": {
+          "n": 800000,
+          "mean": -4.289518604371698e-05,
+          "var": 0.0999736070321433,
+          "skew": -1.3519280406150124e-05,
+          "excess_kurtosis": -0.0045276148968085295,
+          "tail_fraction_beyond_k_sd": {
+            "1": 0.31707625,
+            "2": 0.04552375,
+            "3": 0.00269125
+          },
+          "lag_steps": 100,
+          "lag_time": 0.1,
+          "var_expected": 0.1,
+          "consecutive_correlation": 7.501150008963626e-05
+        },
+        "250": {
+          "n": 320000,
+          "mean": -0.00010723796510929187,
+          "var": 0.2500948875957937,
+          "skew": 0.009982554673246262,
+          "excess_kurtosis": -0.0017934162708574952,
+          "tail_fraction_beyond_k_sd": {
+            "1": 0.316634375,
+            "2": 0.045628125,
+            "3": 0.002659375
+          },
+          "lag_steps": 250,
+          "lag_time": 0.25,
+          "var_expected": 0.25,
+          "consecutive_correlation": 0.0035970304932390336
+        }
+      },
+      "coin": {
+        "1": {
+          "n": 80000000,
+          "mean": -1.9629838575495265e-06,
+          "var": 0.0009999999961466952,
+          "skew": 0.00012415000023919385,
+          "excess_kurtosis": -1.9999999845867769,
+          "tail_fraction_beyond_k_sd": {
+            "1": 0.2771144,
+            "2": 0.0,
+            "3": 0.0
+          },
+          "lag_steps": 1,
+          "lag_time": 0.001,
+          "var_expected": 0.001,
+          "consecutive_correlation": 0.0001626313156578288
+        },
+        "10": {
+          "n": 8000000,
+          "mean": -1.962983857549528e-05,
+          "var": 0.010007761114669446,
+          "skew": 0.000191851879670542,
+          "excess_kurtosis": -0.1981436139967423,
+          "tail_fraction_beyond_k_sd": {
+            "1": 0.3437485,
+            "2": 0.021609125,
+            "3": 0.001968875
+          },
+          "lag_steps": 10,
+          "lag_time": 0.01,
+          "var_expected": 0.01,
+          "consecutive_correlation": 0.00019075247180874272
+        },
+        "100": {
+          "n": 800000,
+          "mean": -0.00019629838575495277,
+          "var": 0.10018007646694385,
+          "skew": 0.0036855340635201113,
+          "excess_kurtosis": -0.022742022704014264,
+          "tail_fraction_beyond_k_sd": {
+            "1": 0.3026975,
+            "2": 0.04407375,
+            "3": 0.00261
+          },
+          "lag_steps": 100,
+          "lag_time": 0.1,
+          "var_expected": 0.1,
+          "consecutive_correlation": 0.0010705537342966603
+        },
+        "250": {
+          "n": 320000,
+          "mean": -0.0004907459643873819,
+          "var": 0.2508635216683988,
+          "skew": 0.0009826716790788373,
+          "excess_kurtosis": -0.0008874425716949297,
+          "tail_fraction_beyond_k_sd": {
+            "1": 0.343228125,
+            "2": 0.050284375,
+            "3": 0.00306875
+          },
+          "lag_steps": 250,
+          "lag_time": 0.25,
+          "var_expected": 0.25,
+          "consecutive_correlation": 0.002575170759734796
+        }
+      }
+    },
+    "sd_if_it_subtracted_sqrt_0_5_minus_sqrt_0_25": 0.20710678118654757,
+    "gaussian_tail_fractions": {
+      "1": 0.31731050786291415,
+      "2": 0.04550026389635844,
+      "3": 0.0026997960632601913
+    },
+    "roughness": {
+      "rows": [
+        {
+          "h": 0.1,
+          "mean_abs_increment": 0.24780614484945634,
+          "mean_abs_increment_over_sqrt_h": 0.7836318359098853,
+          "max_abs_increment": 1.0520983488319602,
+          "mean_abs_slope": 2.478061448494563,
+          "secant_slope_first_path_at_t": -7.142643742726802
+        },
+        {
+          "h": 0.01,
+          "mean_abs_increment": 0.0792303537651208,
+          "mean_abs_increment_over_sqrt_h": 0.792303537651208,
+          "max_abs_increment": 0.349206669211351,
+          "mean_abs_slope": 7.92303537651208,
+          "secant_slope_first_path_at_t": -18.234998345097154
+        },
+        {
+          "h": 0.001,
+          "mean_abs_increment": 0.02515871454584135,
+          "mean_abs_increment_over_sqrt_h": 0.7955884096686736,
+          "max_abs_increment": 0.1414279323367886,
+          "mean_abs_slope": 25.15871454584135,
+          "secant_slope_first_path_at_t": 9.4248560801804
+        },
+        {
+          "h": 0.0001,
+          "mean_abs_increment": 0.007977434513031631,
+          "mean_abs_increment_over_sqrt_h": 0.7977434513031632,
+          "max_abs_increment": 0.04842142299271757,
+          "mean_abs_slope": 79.7743451303163,
+          "secant_slope_first_path_at_t": -66.28591270809558
+        },
+        {
+          "h": 1e-05,
+          "mean_abs_increment": 0.0025232580762484247,
+          "mean_abs_increment_over_sqrt_h": 0.7979242645359834,
+          "max_abs_increment": 0.01588542488598721,
+          "mean_abs_slope": 252.32580762484244,
+          "secant_slope_first_path_at_t": -171.20528484150242
+        },
+        {
+          "h": 1e-06,
+          "mean_abs_increment": 0.000797937181851536,
+          "mean_abs_increment_over_sqrt_h": 0.797937181851536,
+          "max_abs_increment": 0.005550739912869362,
+          "mean_abs_slope": 797.937181851536,
+          "secant_slope_first_path_at_t": -568.9282709772648
+        }
+      ],
+      "loglog_slope_mean_abs_increment": 0.49858090894632756,
+      "loglog_slope_mean_abs_slope": -0.5014190910536723
+    },
+    "self_similarity": {
+      "W_at_1": {
+        "var": 1.0101389626176946,
+        "skew": 0.029326400839295587,
+        "excess_kurtosis": -0.011351010395674876
+      },
+      "zooms": [
+        {
+          "zoom": 4,
+          "var_W_at_1_over_c": 0.24904793356402258,
+          "var_rescaled_sqrt_c": 0.9961917342560903,
+          "var_if_stretched_by_c": 3.9847669370243612,
+          "var_if_not_stretched": 0.24904793356402258,
+          "skew_rescaled": -0.004718811080176407,
+          "excess_kurtosis_rescaled": -0.02190728029551048
+        },
+        {
+          "zoom": 10,
+          "var_W_at_1_over_c": 0.10041294815224315,
+          "var_rescaled_sqrt_c": 1.0041294815224318,
+          "var_if_stretched_by_c": 10.041294815224315,
+          "var_if_not_stretched": 0.10041294815224315,
+          "skew_rescaled": -0.01143728787787153,
+          "excess_kurtosis_rescaled": -0.01570722307839878
+        },
+        {
+          "zoom": 100,
+          "var_W_at_1_over_c": 0.010039409326987925,
+          "var_rescaled_sqrt_c": 1.0039409326987927,
+          "var_if_stretched_by_c": 100.39409326987925,
+          "var_if_not_stretched": 0.010039409326987925,
+          "skew_rescaled": 0.016028566478239106,
+          "excess_kurtosis_rescaled": -0.009268130890196513
+        }
+      ]
+    },
+    "martingale_markov": {
+      "regress_W2_on_W1": {
+        "slope": 0.9984911763505503,
+        "intercept": -0.0013460899103602013,
+        "residual_var": 1.0059865390932512,
+        "residual_var_expected": 1.0
+      },
+      "regress_W2_on_W1_and_W05": {
+        "coef_W1": 1.0025043111845826,
+        "coef_W05": -0.008065950113448303,
+        "intercept": -0.00132950799179247
+      },
+      "conditional_on_W1": {
+        "window": [
+          1.4,
+          1.6
+        ],
+        "n_paths": 969,
+        "mean_W1_in_window": 1.4965809878846388,
+        "mean_W2": 1.487460280014901,
+        "sd_W2": 0.9710171449406684,
+        "sd_W2_expected": 1.0,
+        "sd_W2_unconditional": 1.418821485577838
+      },
+      "momentum": {
+        "n_paths_up_over_0_1": 19926,
+        "mean_increment_1_to_2_given_up": -0.003134254594138664,
+        "mean_increment_1_to_2_given_down": 0.00042742117322451935
+      }
+    }
+  },
+  "checks": [
+    {
+      "claim": "C1 gaussian lag 0.001: variance = lag in time",
+      "measured": 0.0010000466184857686,
+      "expected": 0.001,
+      "tolerance": 0.02,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C1 gaussian lag 0.001: |mean| within 5 s.e. of 0",
+      "measured": 4.289518604371692e-07,
+      "expected": 0.0,
+      "tolerance": 1.767766952966369e-05,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 gaussian lag 0.001: skew 0",
+      "measured": -7.009046029935298e-05,
+      "expected": 0.0,
+      "tolerance": 0.03,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 gaussian lag 0.001: consecutive increments uncorrelated",
+      "measured": 3.167319758911843e-05,
+      "expected": 0.0,
+      "tolerance": 0.01,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 gaussian lag 0.001: excess kurtosis 0",
+      "measured": -0.0004674945681020226,
+      "expected": 0.0,
+      "tolerance": 0.05,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 gaussian lag 0.001: tail fraction beyond 1 sd is Gaussian",
+      "measured": 0.31732845,
+      "expected": 0.31731050786291415,
+      "tolerance": 0.05,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C1 gaussian lag 0.001: tail fraction beyond 2 sd is Gaussian",
+      "measured": 0.0455105625,
+      "expected": 0.04550026389635844,
+      "tolerance": 0.05,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C1 gaussian lag 0.001: tail fraction beyond 3 sd is Gaussian",
+      "measured": 0.0026955625,
+      "expected": 0.0026997960632601913,
+      "tolerance": 0.05,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C1 gaussian lag 0.01: variance = lag in time",
+      "measured": 0.01000559384169414,
+      "expected": 0.01,
+      "tolerance": 0.02,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C1 gaussian lag 0.01: |mean| within 5 s.e. of 0",
+      "measured": 4.289518604371689e-06,
+      "expected": 0.0,
+      "tolerance": 0.00017677669529663688,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 gaussian lag 0.01: skew 0",
+      "measured": 0.0009746756198602961,
+      "expected": 0.0,
+      "tolerance": 0.03,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 gaussian lag 0.01: consecutive increments uncorrelated",
+      "measured": -0.0007215571374548095,
+      "expected": 0.0,
+      "tolerance": 0.01,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 gaussian lag 0.01: excess kurtosis 0",
+      "measured": -0.0005479003871213806,
+      "expected": 0.0,
+      "tolerance": 0.05,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 gaussian lag 0.01: tail fraction beyond 1 sd is Gaussian",
+      "measured": 0.317498875,
+      "expected": 0.31731050786291415,
+      "tolerance": 0.05,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C1 gaussian lag 0.01: tail fraction beyond 2 sd is Gaussian",
+      "measured": 0.045504625,
+      "expected": 0.04550026389635844,
+      "tolerance": 0.05,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C1 gaussian lag 0.01: tail fraction beyond 3 sd is Gaussian",
+      "measured": 0.00269875,
+      "expected": 0.0026997960632601913,
+      "tolerance": 0.05,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C1 gaussian lag 0.1: variance = lag in time",
+      "measured": 0.0999736070321433,
+      "expected": 0.1,
+      "tolerance": 0.02,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C1 gaussian lag 0.1: |mean| within 5 s.e. of 0",
+      "measured": 4.289518604371698e-05,
+      "expected": 0.0,
+      "tolerance": 0.0017677669529663688,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 gaussian lag 0.1: skew 0",
+      "measured": -1.3519280406150124e-05,
+      "expected": 0.0,
+      "tolerance": 0.03,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 gaussian lag 0.1: consecutive increments uncorrelated",
+      "measured": 7.501150008963626e-05,
+      "expected": 0.0,
+      "tolerance": 0.01,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 gaussian lag 0.1: excess kurtosis 0",
+      "measured": -0.0045276148968085295,
+      "expected": 0.0,
+      "tolerance": 0.05,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 gaussian lag 0.1: tail fraction beyond 1 sd is Gaussian",
+      "measured": 0.31707625,
+      "expected": 0.31731050786291415,
+      "tolerance": 0.05,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C1 gaussian lag 0.1: tail fraction beyond 2 sd is Gaussian",
+      "measured": 0.04552375,
+      "expected": 0.04550026389635844,
+      "tolerance": 0.05,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C1 gaussian lag 0.1: tail fraction beyond 3 sd is Gaussian",
+      "measured": 0.00269125,
+      "expected": 0.0026997960632601913,
+      "tolerance": 0.05,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C1 gaussian lag 0.25: variance = lag in time",
+      "measured": 0.2500948875957937,
+      "expected": 0.25,
+      "tolerance": 0.02,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C1 gaussian lag 0.25: |mean| within 5 s.e. of 0",
+      "measured": 0.00010723796510929187,
+      "expected": 0.0,
+      "tolerance": 0.004419417382415922,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 gaussian lag 0.25: skew 0",
+      "measured": 0.009982554673246262,
+      "expected": 0.0,
+      "tolerance": 0.03,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 gaussian lag 0.25: consecutive increments uncorrelated",
+      "measured": 0.0035970304932390336,
+      "expected": 0.0,
+      "tolerance": 0.01,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 gaussian lag 0.25: excess kurtosis 0",
+      "measured": -0.0017934162708574952,
+      "expected": 0.0,
+      "tolerance": 0.05,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 gaussian lag 0.25: tail fraction beyond 1 sd is Gaussian",
+      "measured": 0.316634375,
+      "expected": 0.31731050786291415,
+      "tolerance": 0.05,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C1 gaussian lag 0.25: tail fraction beyond 2 sd is Gaussian",
+      "measured": 0.045628125,
+      "expected": 0.04550026389635844,
+      "tolerance": 0.05,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C1 gaussian lag 0.25: tail fraction beyond 3 sd is Gaussian",
+      "measured": 0.002659375,
+      "expected": 0.0026997960632601913,
+      "tolerance": 0.05,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C1 coin lag 0.001: variance = lag in time",
+      "measured": 0.0009999999961466952,
+      "expected": 0.001,
+      "tolerance": 0.02,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C1 coin lag 0.001: |mean| within 5 s.e. of 0",
+      "measured": 1.9629838575495265e-06,
+      "expected": 0.0,
+      "tolerance": 1.767766952966369e-05,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 coin lag 0.001: skew 0",
+      "measured": 0.00012415000023919385,
+      "expected": 0.0,
+      "tolerance": 0.03,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 coin lag 0.001: consecutive increments uncorrelated",
+      "measured": 0.0001626313156578288,
+      "expected": 0.0,
+      "tolerance": 0.01,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 coin lag 0.001: excess kurtosis is -2/k (CLT at rate 1/k)",
+      "measured": -1.9999999845867769,
+      "expected": -2.0,
+      "tolerance": 0.02,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 coin lag 0.01: variance = lag in time",
+      "measured": 0.010007761114669446,
+      "expected": 0.01,
+      "tolerance": 0.02,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C1 coin lag 0.01: |mean| within 5 s.e. of 0",
+      "measured": 1.962983857549528e-05,
+      "expected": 0.0,
+      "tolerance": 0.00017677669529663688,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 coin lag 0.01: skew 0",
+      "measured": 0.000191851879670542,
+      "expected": 0.0,
+      "tolerance": 0.03,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 coin lag 0.01: consecutive increments uncorrelated",
+      "measured": 0.00019075247180874272,
+      "expected": 0.0,
+      "tolerance": 0.01,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 coin lag 0.01: excess kurtosis is -2/k (CLT at rate 1/k)",
+      "measured": -0.1981436139967423,
+      "expected": -0.2,
+      "tolerance": 0.02,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 coin lag 0.1: variance = lag in time",
+      "measured": 0.10018007646694385,
+      "expected": 0.1,
+      "tolerance": 0.02,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C1 coin lag 0.1: |mean| within 5 s.e. of 0",
+      "measured": 0.00019629838575495277,
+      "expected": 0.0,
+      "tolerance": 0.0017677669529663688,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 coin lag 0.1: skew 0",
+      "measured": 0.0036855340635201113,
+      "expected": 0.0,
+      "tolerance": 0.03,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 coin lag 0.1: consecutive increments uncorrelated",
+      "measured": 0.0010705537342966603,
+      "expected": 0.0,
+      "tolerance": 0.01,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 coin lag 0.1: excess kurtosis is -2/k (CLT at rate 1/k)",
+      "measured": -0.022742022704014264,
+      "expected": -0.02,
+      "tolerance": 0.02,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 coin lag 0.25: variance = lag in time",
+      "measured": 0.2508635216683988,
+      "expected": 0.25,
+      "tolerance": 0.02,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C1 coin lag 0.25: |mean| within 5 s.e. of 0",
+      "measured": 0.0004907459643873819,
+      "expected": 0.0,
+      "tolerance": 0.004419417382415922,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 coin lag 0.25: skew 0",
+      "measured": 0.0009826716790788373,
+      "expected": 0.0,
+      "tolerance": 0.03,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 coin lag 0.25: consecutive increments uncorrelated",
+      "measured": 0.002575170759734796,
+      "expected": 0.0,
+      "tolerance": 0.01,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 coin lag 0.25: excess kurtosis is -2/k (CLT at rate 1/k)",
+      "measured": -0.0008874425716949297,
+      "expected": -0.008,
+      "tolerance": 0.02,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2: log-log slope of mean |dW| vs h is +0.5 (continuity)",
+      "measured": 0.49858090894632756,
+      "expected": 0.5,
+      "tolerance": 0.01,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2: log-log slope of mean |dW/h| vs h is -0.5 (no derivative)",
+      "measured": -0.5014190910536723,
+      "expected": -0.5,
+      "tolerance": 0.01,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2: largest single increment at h=1e-06 is small (continuity, no jumps)",
+      "measured": 0.005550739912869362,
+      "expected": 0.0,
+      "tolerance": 0.01,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 zoom 4: var of sqrt(c)*W(1/c) is 1",
+      "measured": 0.9961917342560903,
+      "expected": 1.0,
+      "tolerance": 0.03,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 zoom 4: excess kurtosis of rescaled is 0",
+      "measured": -0.02190728029551048,
+      "expected": 0.0,
+      "tolerance": 0.1,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 zoom 10: var of sqrt(c)*W(1/c) is 1",
+      "measured": 1.0041294815224318,
+      "expected": 1.0,
+      "tolerance": 0.03,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 zoom 10: excess kurtosis of rescaled is 0",
+      "measured": -0.01570722307839878,
+      "expected": 0.0,
+      "tolerance": 0.1,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 zoom 100: var of sqrt(c)*W(1/c) is 1",
+      "measured": 1.0039409326987927,
+      "expected": 1.0,
+      "tolerance": 0.03,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 zoom 100: excess kurtosis of rescaled is 0",
+      "measured": -0.009268130890196513,
+      "expected": 0.0,
+      "tolerance": 0.1,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4: slope of W2 on W1 is 1",
+      "measured": 0.9984911763505503,
+      "expected": 1.0,
+      "tolerance": 0.02,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4: intercept of W2 on W1 is 0",
+      "measured": -0.0013460899103602013,
+      "expected": 0.0,
+      "tolerance": 0.02,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4: residual variance of W2 given W1 is 1 (= 2 - 1)",
+      "measured": 1.0059865390932512,
+      "expected": 1.0,
+      "tolerance": 0.03,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 Markov: coefficient on W0.5 given W1 is 0",
+      "measured": -0.008065950113448303,
+      "expected": 0.0,
+      "tolerance": 0.02,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4: mean W2 given W1 ~ 1.5 is 1.5 (within 4 s.e.)",
+      "measured": 1.487460280014901,
+      "expected": 1.4965809878846388,
+      "tolerance": 0.12849851324064712,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4: sd of W2 given W1 ~ 1.5 is 1, not sqrt 2",
+      "measured": 0.9710171449406684,
+      "expected": 1.0,
+      "tolerance": 0.09086217008485092,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4: no momentum -- mean increment over [1,2] given a rise over [0,1] is 0",
+      "measured": -0.003134254594138664,
+      "expected": 0.0,
+      "tolerance": 0.03542092850351879,
+      "mode": "abs",
+      "pass": true
+    }
+  ]
+}
