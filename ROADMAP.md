@@ -202,8 +202,8 @@ One fresh session per topic. Exit for each: experiment script and JSON committed
 approved by the owner; the draft reviewed against I1. No tollgate — the session is the
 review.
 
-- ☑ S1 · 2.1 Random walks and scaling
-- ☐ S2 · 2.2 Brownian motion
+- ☑ S1 · 2.1 Random walks and scaling — evidence: `docs/evidence/S1/`
+- ☑ S2 · 2.2 Brownian motionn — evidence: `docs/evidence/S2/`
 - ☐ S3 · 2.3 Quadratic variation
 - ☐ S4 · 2.4 The Itô integral
 - ☐ S5 · 2.5 Itô's lemma
