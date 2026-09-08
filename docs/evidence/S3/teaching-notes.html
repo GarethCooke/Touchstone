@@ -1,0 +1,602 @@
+<title>S3 · Quadratic Variation</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #F4F6F9; --card: #FCFCFD; --ink: #1B2330; --muted: #59657A;
+    --line: #DEE3EC; --line-faint: #E9EDF3;
+    --walk: #2E59C7; --walk-soft: rgba(46, 89, 199, 0.13);
+    --theory: #B07818; --theory-soft: rgba(176, 120, 24, 0.12);
+    --smooth: #1E7A46; --smooth-soft: rgba(30, 122, 70, 0.12);
+    --code-bg: #EEF1F6; --good: #1E7A46; --bad: #B4413A;
+    --shadow: 0 1px 2px rgba(27, 35, 48, 0.05), 0 4px 16px rgba(27, 35, 48, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0F141D; --card: #161C27; --ink: #E6EAF2; --muted: #97A2B5;
+      --line: #29323F; --line-faint: #1F2733;
+      --walk: #5B7FE3; --walk-soft: rgba(91, 127, 227, 0.16);
+      --theory: #B08422; --theory-soft: rgba(176, 132, 34, 0.16);
+      --smooth: #4CAF79; --smooth-soft: rgba(76, 175, 121, 0.16);
+      --code-bg: #1B2230; --good: #4CAF79; --bad: #D9736B;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0F141D; --card: #161C27; --ink: #E6EAF2; --muted: #97A2B5;
+    --line: #29323F; --line-faint: #1F2733;
+    --walk: #5B7FE3; --walk-soft: rgba(91, 127, 227, 0.16);
+    --theory: #B08422; --theory-soft: rgba(176, 132, 34, 0.16);
+    --smooth: #4CAF79; --smooth-soft: rgba(76, 175, 121, 0.16);
+    --code-bg: #1B2230; --good: #4CAF79; --bad: #D9736B;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ground); color: var(--ink);
+    font-family: "Source Serif 4", Georgia, "Times New Roman", serif; font-size: 17px; line-height: 1.68;
+    -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 40px 20px 80px; }
+  .wide { max-width: 880px; margin-left: auto; margin-right: auto; }
+  .eyebrow { font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 11.5px; font-weight: 600;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  header.top { padding: 28px 0 8px; border-bottom: 1px solid var(--line); margin-bottom: 36px; }
+  header.top .eyebrow .sess { color: var(--walk); }
+  h1 { font-family: "Source Serif 4", Georgia, serif; font-size: clamp(30px, 6vw, 42px); font-weight: 700;
+    line-height: 1.12; letter-spacing: -0.01em; margin: 10px 0 12px; text-wrap: balance; }
+  .standfirst { color: var(--muted); font-size: 16px; margin: 0 0 18px; max-width: 62ch; }
+  .standfirst strong { color: var(--ink); font-weight: 600; }
+  section { margin: 44px 0; }
+  h2 { font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 21px; font-weight: 600;
+    letter-spacing: -0.005em; margin: 6px 0 14px; text-wrap: balance; }
+  h2 .stepno { color: var(--walk); font-variant-numeric: tabular-nums; margin-right: 6px; }
+  h3 { font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 15.5px; font-weight: 600; margin: 22px 0 8px; }
+  p { margin: 0 0 14px; max-width: 66ch; }
+  .note { color: var(--muted); font-size: 15px; max-width: 66ch; }
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, Consolas, monospace; font-size: 0.86em; }
+  code { background: var(--code-bg); border-radius: 4px; padding: 0.1em 0.35em; }
+  pre { background: var(--code-bg); border: 1px solid var(--line-faint); border-radius: 8px; padding: 14px 16px;
+    overflow-x: auto; font-size: 14px; line-height: 1.55; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+  .predictions { display: flex; flex-direction: column; gap: 12px; }
+  .prediction { display: flex; gap: 14px; align-items: baseline; }
+  .prediction .tag { flex: none; font-family: "IBM Plex Sans", sans-serif; font-size: 11px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--walk); border: 1px solid var(--walk);
+    border-radius: 99px; padding: 2px 10px; white-space: nowrap; }
+  .prediction q { font-style: italic; }
+  .verdict { font-family: "IBM Plex Sans", sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+  .verdict.ok { color: var(--good); } .verdict.no { color: var(--bad); } .verdict.half { color: var(--theory); }
+  .runsteps { counter-reset: rs; margin: 14px 0; padding: 0; list-style: none; }
+  .runsteps li { counter-increment: rs; position: relative; padding: 0 0 0 40px; margin: 0 0 12px; max-width: 66ch; }
+  .runsteps li::before { content: counter(rs); position: absolute; left: 0; top: 2px; width: 24px; height: 24px;
+    border-radius: 50%; background: var(--walk); color: var(--card); font-family: "IBM Plex Sans", sans-serif;
+    font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+  ul.steps { margin: 6px 0 16px; padding-left: 22px; max-width: 66ch; }
+  ul.steps li { margin: 0 0 6px; }
+  figure { margin: 26px 0; }
+  .figbox { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; box-shadow: var(--shadow); }
+  canvas { display: block; width: 100%; height: auto; }
+  figcaption { font-size: 14px; color: var(--muted); margin-top: 10px; max-width: 76ch; }
+  .figbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; font-family: "IBM Plex Sans", sans-serif; font-size: 12.5px; color: var(--muted); }
+  .swatch { width: 14px; height: 3px; border-radius: 2px; }
+  .tablewrap { overflow-x: auto; margin: 14px 0; }
+  table[style] td, table[style] th { white-space: normal; vertical-align: top; }
+  table { border-collapse: collapse; width: 100%; font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 14px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--line-faint); text-align: right; white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; }
+  td.hi { color: var(--walk); font-weight: 600; }
+  td.warn { color: var(--theory); }
+  td.sm { color: var(--smooth); font-weight: 600; }
+  .aside { border-left: 3px solid var(--theory); background: var(--theory-soft); padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 18px 0; }
+  .aside .eyebrow { color: var(--theory); margin-bottom: 4px; }
+  .aside p { font-size: 15.5px; }
+  .rulebook { display: grid; grid-template-columns: auto 1fr; gap: 6px 18px; align-items: baseline; margin: 16px 0;
+    padding: 16px 20px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); }
+  .rulebook .rule { font-family: "Source Serif 4", Georgia, serif; font-size: 20px; font-weight: 600; white-space: nowrap; }
+  .rulebook .why { font-size: 15px; color: var(--muted); }
+  .grid2 { display: grid; grid-template-columns: auto 1fr 1fr; gap: 0; margin: 16px 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--card); box-shadow: var(--shadow);
+    font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 14.5px; }
+  .grid2 > div { padding: 12px 14px; border-bottom: 1px solid var(--line-faint); }
+  .grid2 > div:nth-child(3n+1) { color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+  .grid2 > div.head { color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 1px solid var(--line); }
+  .grid2 > div:nth-last-child(-n+3) { border-bottom: none; }
+  .grid2 .w { color: var(--walk); font-weight: 600; } .grid2 .s { color: var(--smooth); font-weight: 600; }
+  .q { margin: 18px 0; padding: 16px 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+  .q .qno { font-family: "IBM Plex Sans", sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: var(--walk); text-transform: uppercase; }
+  .q p.stem { font-weight: 600; margin: 6px 0 10px; }
+  .q ul { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .q li { padding-left: 26px; position: relative; font-size: 15.5px; }
+  .q li::before { position: absolute; left: 0; top: 0; font-family: "IBM Plex Sans", sans-serif; font-weight: 600; }
+  .q li.ok::before { content: "✓"; color: var(--good); }
+  .q li.no::before { content: "✗"; color: var(--bad); }
+  .q li em.mis { color: var(--muted); font-style: italic; }
+  .kbd { font-family: "IBM Plex Mono", monospace; font-size: 0.85em; background: var(--code-bg); border: 1px solid var(--line); border-radius: 4px; padding: 0.05em 0.4em; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+  @media (max-width: 560px) { .grid2 { font-size: 13px; } .rulebook { grid-template-columns: 1fr; } }
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Touchstone · study track · <span class="sess">Session S3</span> — teaching notes</div>
+  <h1>Quadratic variation</h1>
+  <p class="standfirst">Working material for <strong>page 2.3</strong>, which you write in your own words (I2 — none of this is page prose). Pitch: <strong>solid</strong>, as at S1 and S2. The experiment has already run on your machine; every number below is in <code>2_3_quadratic_variation.json</code>. The page has one job: show that Σ(ΔW)² settles on T while Σ|ΔW| runs off to infinity, and that for a smooth curve it is exactly the other way round.</p>
+</header>
+
+<!-- ============ 0 · PREDICTIONS ============ -->
+<section>
+  <div class="eyebrow">On the record</div>
+  <h2>Your predictions, before any code ran</h2>
+  <div class="card predictions">
+    <div class="prediction"><span class="tag">P1</span><div><q>Settles on 1</q> &nbsp;<span class="verdict ok">right</span> — §3 shows how fast</div></div>
+    <div class="prediction"><span class="tag">P2</span><div><q>A number, 1</q> &nbsp;<span class="verdict no">infinite, like √n</span> — §4</div></div>
+    <div class="prediction"><span class="tag">P3</span><div><q>They are the same</q> &nbsp;<span class="verdict ok">right, to 0.0014</span> — §3</div></div>
+    <div class="prediction"><span class="tag">P4</span><div><q>Σ(Δf)² looks more like sin²(2πt), Σ|Δf| like |sin(2πt)|</q> &nbsp;<span class="verdict no">both are numbers, not curves: 0 and 4</span> — §5</div></div>
+    <div class="prediction"><span class="tag">P5</span><div><q>Σ ΔW·Δt → 1 and Σ(Δt)² → 1</q> &nbsp;<span class="verdict no">both → 0, like 1/n</span> — §6</div></div>
+  </div>
+  <p class="note" style="margin-top:14px">P2, P4 and P5 are the page's target misconceptions and are draft check distractors in §9. P1 and P3 together are the page's claim, and you had both — the work is in saying <em>why</em> a sum of wildly random terms is not random.</p>
+</section>
+
+<!-- ============ 1 · WHAT RAN ============ -->
+<section>
+  <div class="eyebrow">Step 1 · already done — confirm it</div>
+  <h2><span class="stepno">1</span>The experiment on your disk</h2>
+  <ol class="runsteps">
+    <li>Run <span class="kbd">git status</span> in <code>Touchstone</code> — two untracked files under <code>experiments/</code>: <code>2_3_quadratic_variation.py</code> and its <code>.json</code>.</li>
+    <li>Do not commit yet. Commit at §10, after the checks and the draft are approved, in one go as at S2.</li>
+  </ol>
+  <p class="note">The JSON was written by <code>uv run experiments/2_3_quadratic_variation.py</code> on your machine (numpy 2.5.2, seed 20260906, 59/59 checks pass, 40 s). My run on numpy 2.4.4 gives the same sums, means and sds to every digit; only <code>polyfit</code> and <code>corrcoef</code> outputs differ in the 16th significant figure (a BLAS difference between the two wheels). The seed is doing its job (I6).</p>
+</section>
+
+<!-- ============ 2 · ONE PATH, FIVE GRIDS ============ -->
+<section class="wide">
+  <div class="eyebrow">Step 2 · the object</div>
+  <h2><span class="stepno">2</span>One path, five grids</h2>
+  <p>The script draws each path once, on a grid of a million steps, then keeps every 10th, 100th, 1,000th and 10,000th point. So the five rows below are <em>the same path</em> W, chopped five ways — not five paths. The one thing that changes is dt. Read the two columns down: one settles, the other runs.</p>
+  <div class="tablewrap"><table>
+    <tr><th>n</th><th>dt</th><th>Σ(ΔW)²</th><th>Σ|ΔW|</th><th>Σ ΔW·Δt</th><th>Σ(Δt)²</th></tr>
+    <tr><td>100</td><td>10⁻²</td><td>0.8828</td><td>7.40</td><td>−6.73 × 10⁻³</td><td>10⁻²</td></tr>
+    <tr><td>1,000</td><td>10⁻³</td><td>0.9677</td><td>24.82</td><td>−6.73 × 10⁻⁴</td><td>10⁻³</td></tr>
+    <tr><td>10,000</td><td>10⁻⁴</td><td>0.9987</td><td>79.63</td><td>−6.73 × 10⁻⁵</td><td>10⁻⁴</td></tr>
+    <tr><td>100,000</td><td>10⁻⁵</td><td>0.9992</td><td>252.09</td><td>−6.73 × 10⁻⁶</td><td>10⁻⁵</td></tr>
+    <tr><td>1,000,000</td><td>10⁻⁶</td><td class="hi">0.9997</td><td class="warn">798.12</td><td>−6.73 × 10⁻⁷</td><td>10⁻⁶</td></tr>
+  </table></div>
+  <p>Path 1 of 400. Σ(ΔW)² is the page's headline: 0.88, 0.97, 0.999, 0.9992, 0.9997 — closing on T = 1. Σ|ΔW| is its foil: ×3.2 per decade of n, which is √10 — it will never stop. The cross term is worth a second look: −6.73 with the exponent dropping by one per row. That is because Σ ΔW·Δt = dt · Σ ΔW = dt · W_T, and W_T = −0.673 is the same for this path on every grid; the sum is just the endpoint scaled by dt.</p>
+  <figure>
+    <div class="figbox"><canvas id="figPaths" width="1200" height="480"></canvas></div>
+    <div class="figbar">
+      <span class="chip"><span class="swatch" style="background:var(--walk)"></span>Σ(ΔW)², five paths</span>
+      <span class="chip"><span class="swatch" style="background:var(--walk-soft);height:10px;border:1px solid var(--walk)"></span>±1 sd band, T·√(2/n)</span>
+      <span class="chip"><span class="swatch" style="background:var(--muted)"></span>T = 1</span>
+    </div>
+    <figcaption>Σ(ΔW)² for the first five of the 400 paths, each chopped five ways. At n = 100 they are scattered between 0.80 and 1.29; at n = 10⁶ they sit between 0.9976 and 1.0008. The band is the predicted spread, T·√(2/n), and it shrinks by √10 per decade. This is P3: two paths at n = 10⁶ differ by about 0.0014, and by nothing in the limit.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 3 · P1 / P3 ============ -->
+<section class="wide">
+  <div class="eyebrow">Step 3 · predictions 1 and 3 resolved</div>
+  <h2><span class="stepno">3</span>Wild terms, tame sum</h2>
+  <p>You said Σ(ΔW)² settles on 1 and that two paths give the same value. Both right. The interesting part is that neither is obvious from the terms. Work in units of dt throughout: ΔW = √dt·Z with Z ~ N(0, 1), so one term is (ΔW)² = dt·Z². Z² has mean 1 and variance E[Z⁴] − (E[Z²])² = 3 − 1 = 2 — the 3 is the Gaussian fourth moment, and it is where the 2 comes from. So one term has mean dt and sd √2·dt — an sd bigger than the mean, on a quantity that lives on [0, ∞). That already says the term is lopsided (a square cannot go negative, so the spread has to be mostly on the right), and it is: half of all terms are below 0.45·dt (the median of Z²), a quarter below 0.10·dt, one in twenty above 3.84·dt, one in 370 above 9·dt (|Z| > 3). The mean of dt sits well to the right of the typical term, and "mean ± sd" is not a range here: the sd is the root-mean-square distance from the mean, and for Z² it is made of many small shortfalls on the left and a few big overshoots on the right.</p>
+  <div class="aside">
+    <div class="eyebrow">What squaring does to a Gaussian</div>
+    <p>If X ~ N(0, σ²), then X² has mean σ² and variance 2σ⁴ — the variance of the square is twice the square of the variance. The 2 comes from the fourth moment: E[X⁴] = 3σ⁴ for any Gaussian (the kurtosis 3 from 2.2's C1), so Var(X²) = E[X⁴] − (E[X²])² = 3σ⁴ − σ⁴ = 2σ⁴. Here σ² = dt, giving mean dt and variance 2dt². The shape changes too: X was symmetric about 0; X² lives on [0, ∞), piles up against 0 (its density blows up like 1/√x there) and trails off to the right — the χ² distribution with one degree of freedom. That is why the median 0.45·dt sits well below the mean dt, and why "mean ± sd" is the wrong picture for one term.</p>
+  </div>
+  <figure>
+    <div class="figbox"><canvas id="figChi" width="1200" height="380"></canvas></div>
+    <figcaption>The density of one term, (ΔW)²/dt = Z². Mean 1 (solid), median 0.45 (dashed), sd √2. Half of all terms are in the shaded strip below 0.45; one in twenty is beyond 3.84, off to the right. The sum of n of these has relative spread √(2/n), not √2.</figcaption>
+  </figure>
+  <p>Now sum n of them, still in units of dt:</p>
+  <ul class="steps">
+    <li>Σ(ΔW)²/dt = Σ Zᵢ² — n independent Z² terms.</li>
+    <li>Mean of the sum: n × 1 = n.</li>
+    <li>Variance of the sum: n × 2 = 2n, so sd √(2n).</li>
+    <li>Multiply back by dt = T/n. Scaling a variable by dt scales its mean and sd by dt and its variance by dt²: mean n·dt = T; variance 2n·dt² = 2T²/n; sd √(2n)·dt = T·√(2/n).</li>
+    <li>Relative spread, sd ÷ mean: √2 for one term → √(2/n) for the sum.</li>
+  </ul>
+  <p>In numbers, T = 1:</p>
+  <ul class="steps">
+    <li>Mean of the sum: 1, at every n.</li>
+    <li>Spread of the sum: 0.14 at n = 100 · 0.014 at n = 10,000 · 0.0014 at n = 1,000,000. Ten times more steps, √10 times less spread.</li>
+    <li>Fine enough grid, and every path gives 1. That is all "path by path" means.</li>
+  </ul>
+  <div class="tablewrap"><table>
+    <tr><th>n</th><th>paths</th><th>mean Σ(ΔW)²</th><th>sd across paths</th><th>T·√(2/n)</th><th>furthest path, in sd</th><th>rel. sd of one term</th><th>corr. with W_T</th><th>corr. with max|W|</th></tr>
+    <tr><td>100</td><td>400</td><td>1.0032</td><td>0.1503</td><td>0.1414</td><td>3.1</td><td>1.394</td><td>−0.105</td><td>0.085</td></tr>
+    <tr><td>1,000</td><td>400</td><td>0.9976</td><td>0.0441</td><td>0.0447</td><td>2.8</td><td>1.413</td><td>−0.000</td><td>0.074</td></tr>
+    <tr><td>10,000</td><td>400</td><td>1.0005</td><td>0.01434</td><td>0.01414</td><td>3.3</td><td>1.414</td><td>0.027</td><td>0.070</td></tr>
+    <tr><td>100,000</td><td>400</td><td>0.9999</td><td>0.00436</td><td>0.00447</td><td>3.1</td><td>1.414</td><td>0.018</td><td>−0.009</td></tr>
+    <tr><td>1,000,000</td><td>400</td><td class="hi">0.99997</td><td class="hi">0.00139</td><td>0.00141</td><td>3.5</td><td>1.414</td><td>0.023</td><td>0.023</td></tr>
+    <tr><td>10,000 — separate run, 20,000 paths</td><td>20,000</td><td>0.99985</td><td>0.01417</td><td>0.01414</td><td>—</td><td>—</td><td class="hi">−0.007</td><td class="warn">0.023</td></tr>
+  </table></div>
+  <p>How to read the table, column by column:</p>
+  <ul class="steps">
+    <li><strong>mean Σ(ΔW)²</strong> — average over the 400 paths. Sits on 1 at every n.</li>
+    <li><strong>sd across paths</strong> — how much the 400 values scatter around that mean. This is the measurement.</li>
+    <li><strong>T·√(2/n)</strong> — what the maths above says the scatter should be. The two columns agree at every n. As one number for all five rows: T·√(2/n) = T√2 · n^(−½), so on log-log axes log(sd) = log(T√2) − ½·log(n), a straight line of slope −½. Fit a line through the five measured sds and the slope comes out −0.507.</li>
+    <li><strong>furthest path, in sd</strong> — take the path whose Σ(ΔW)² is furthest from 1, and express that distance as a multiple of the predicted sd. The worst of 400 is 3.5 sd out. Is that a lot? A Gaussian puts 1 draw in 370 beyond 3 sd, so among 400 draws you expect about one out past 3 — the worst of 400 is typically around 3. Beyond 3.5 is 1 in 2,150, so a worst case of 3.5 happens in about 17 % of runs of 400; beyond 5 is 1 in 1.7 million, which is why the check's tolerance is 5 sd. So no path is misbehaving; the scatter is exactly the Gaussian scatter and nothing more.</li>
+    <li><strong>rel. sd of one term</strong> — the √2 from the aside, measured: each (ΔW)²/dt really does scatter with sd 1.41 around its mean of 1. Wild terms, tame sum.</li>
+    <li><strong>corr. with W_T</strong> — does a path that ended high or low have a higher or lower Σ(ΔW)²? Zero means no. With 400 paths this column is noise (±0.05), so a separate run of 20,000 paths at n = 10⁴ was made to measure it properly: −0.007 ± 0.007. Zero.</li>
+  </ul>
+  <p>The same 20,000 paths, split by where they ended: those that finished above +1 have mean Σ(ΔW)² of 0.99987; those that finished below −1, 1.00032; those that stayed within ±0.5, 0.99987. Same answer whatever the path did — that is what "the sum does not know which path it is on" means in numbers.</p>
+  <div class="aside">
+    <div class="eyebrow">Honest footnote</div>
+    <p>The last column is a different question from the one before it: not "where did the path end" but "how far did it wander". Correlation of Σ(ΔW)² with max|W| is not zero: 0.023 in the 20,000-path run (the 400-path values above it are noise around something small and positive). Bigger kicks make bigger excursions, so a path whose Σ(ΔW)² came out high tends to have wandered further. The effect is of order 1/√n and the check bounds it at 0.05 rather than asserting 0. W_T is different — its correlation with Σ(ΔW)² is exactly zero. Why: W_T = Σ ΔW, so the covariance of Σ(ΔW)² with W_T is a double sum of Cov((ΔWᵢ)², ΔWⱼ). Different steps are independent, so every i ≠ j term is 0. The i = j terms are Cov((ΔW)², ΔW) = E[(ΔW)³] − E[(ΔW)²]·E[ΔW] = E[(ΔW)³] − 0. And E[(ΔW)³] = 0 because ΔW is symmetric about 0: every positive value of (ΔW)³ has an equally likely negative twin, and they cancel. ("Odd moment" means E[X^k] with k odd — 1, 3, 5 — and for any distribution symmetric about 0 they are all zero.) Zero covariance, so zero correlation, exactly and at every n; the −0.007 is sampling noise around it.</p>
+  </div>
+</section>
+
+<!-- ============ 4 · P2 ============ -->
+<section class="wide">
+  <div class="eyebrow">Step 4 · prediction 2 resolved</div>
+  <h2><span class="stepno">4</span>The path has no length</h2>
+  <p>You said Σ|ΔW| settles on 1. It does not settle at all. The same one-step calculation: |ΔW| is √dt · |Z|, and E|Z| = √(2/π) = 0.798, so E|ΔW| = 0.798·√dt. Sum n of them: 0.798 · n · √dt = 0.798 · n · √(T/n) = 0.798 · √(nT) — √n when T = 1, as here. Ten times more steps, √10 = 3.16 times more distance. The path's length grows without limit as you measure it more finely — a path drawn on paper has a length; W does not.</p>
+  <div class="tablewrap"><table>
+    <tr><th>n</th><th>mean Σ|ΔW|</th><th>0.798·√(nT)</th><th>Σ|ΔW| / √(nT)</th><th>coin walk Σ|ΔW| / √(nT)</th></tr>
+    <tr><td>100</td><td>7.99</td><td>7.98</td><td>0.7992</td><td>1.0000</td></tr>
+    <tr><td>1,000</td><td>25.19</td><td>25.23</td><td>0.7964</td><td>1.0000</td></tr>
+    <tr><td>10,000</td><td>79.82</td><td>79.79</td><td>0.7982</td><td>1.0000</td></tr>
+    <tr><td>100,000</td><td>252.30</td><td>252.31</td><td>0.7978</td><td>1.0000</td></tr>
+    <tr><td>1,000,000</td><td class="warn">797.89</td><td>797.89</td><td class="hi">0.7979</td><td>1.0000</td></tr>
+  </table></div>
+  <div class="aside">
+    <div class="eyebrow">Where √(2/π) comes from</div>
+    <p>Two pieces. The bell curve itself is φ(z) = e^(−z²/2)/√(2π) — the density of a standard normal, the height of the bell at z; the √(2π) is just the constant that makes the total area 1. An expectation is the probability-weighted average from the S1 ledger: for any function g, E[g(Z)] = ∫ g(z)·φ(z) dz — value times how likely, summed over all z. So E|Z| is g(z) = |z| under that formula: ∫ |z| · e^(−z²/2)/√(2π) dz. (Same recipe gives E[Z²] = ∫ z²·φ(z) dz = 1 and E[Z⁴] = ∫ z⁴·φ(z) dz = 3, the two numbers §3 leaned on.) The bell is symmetric, so fold the negative half onto the positive half and double: 2/√(2π) · ∫₀^∞ z·e^(−z²/2) dz. That last integral is the one Gaussian integral that is easy — the z in front is the derivative of −z²/2, so the antiderivative is −e^(−z²/2), which runs from −1 at z = 0 to 0 at z = ∞: the integral is 1. Hence E|Z| = 2/√(2π) = √(2/π) = 0.7979. Compare E[Z²] = 1: the average <em>size</em> of a standard normal draw is 0.80, less than its sd of 1, because the sd is a root-mean-square and squaring favours the big draws. Checked in the table: Σ|ΔW|/√(nT) lands on 0.798 at every n.</p>
+  </div>
+  <p>Log-log slope of Σ|ΔW| against n: +0.4999. The constant √(2/π) = 0.7979 is recovered to three decimals at every n. The coin walk from 2.1 — steps of exactly ±√dt — has Σ|ΔW| = n·√dt = n·√(T/n) = √(nT) with constant 1 and no randomness at all; the Gaussian's 0.798 is just E|Z|. Same story as 2.2's slope: the increments shrink like √dt, but there are 1/dt of them, and √dt · (1/dt) = 1/√dt → ∞.</p>
+  <p class="note">Why P2 is the natural mistake: every curve you have ever drawn has finite length, and Σ|Δf| for a curve is its length. Your intuition was "a path is a curve, so it has a length". 2.2 already said W is not that kind of curve — no tangent anywhere — and this is the same fact seen from the other side.</p>
+</section>
+
+<!-- ============ 5 · P4 ============ -->
+<section class="wide">
+  <div class="eyebrow">Step 5 · prediction 4 resolved</div>
+  <h2><span class="stepno">5</span>The smooth curve is the mirror image</h2>
+  <p>P4 read Σ(Δf)² as a curve — "looks more like sin²(2πt)". It is a number: one sum over the whole grid, and the question is what number it tends to as n grows. For a smooth f, Δf ≈ f′(t)·dt, so (Δf)² ≈ f′(t)²·dt², and the sum of n of those is dt · Σ f′² dt ≈ dt · ∫f′². For f = sin(2πt), ∫₀¹ f′² = (2π)² · ½ = 2π² = 19.74, so Σ(Δf)² ≈ 19.74 / n → 0. And Σ|Δf| ≈ Σ|f′|·dt → ∫|f′| = 4, the total rise and fall of a sine wave over one period (up 1, down 2, up 1). Both measured exactly:</p>
+  <div class="aside">
+    <div class="eyebrow">The calculus used here, spelled out</div>
+    <p>f(t) = sin(2πt) on [0, 1] is one full period of a sine wave. Four facts, then the two sums.</p>
+    <ul class="steps">
+      <li><strong>Chain rule.</strong> For f(t) = g(h(t)), f′(t) = g′(h(t)) · h′(t): differentiate the outside with the inside left alone, then multiply by the derivative of the inside.</li>
+      <li><strong>Derivative of f.</strong> Outside sin → cos; inside 2πt → 2π. So f′(t) = 2π·cos(2πt). The 2π is the factor the chain rule brings down.</li>
+      <li><strong>∫₀¹ f′(t)² dt = 2π².</strong> The sum Σ(Δf)² needs f′ <em>squared</em>. Square the derivative: f′² = (2π)²·cos²(2πt) = 4π²·cos²(2πt). A definite integral over [0, 1] is just the average value of the integrand, since the interval has length 1. So we need the average of cos² over one full period: the identity cos²θ = ½ + ½·cos(2θ), and cos(2θ) averages 0 over a period (as much above the axis as below), leaves ½. Integral: 4π² × ½ = 2π² = 19.74.</li>
+      <li><strong>∫₀¹ |f′(t)| dt = 4.</strong> The integral of |f′| is the total distance f travels up and down: 0 → 1 → −1 → 0 is 1 + 2 + 1 = 4. No integration needed.</li>
+    </ul>
+    <ul class="steps">
+      <li><strong>Σ(Δf)²:</strong> each Δf ≈ f′·dt, so (Δf)² ≈ f′²·dt². Sum: Σ f′²·dt² = dt · Σ f′²·dt ≈ dt · ∫f′² = 2π²·dt = 19.74/n → 0.</li>
+      <li><strong>Σ|Δf|:</strong> each |Δf| ≈ |f′|·dt. Sum: Σ |f′|·dt ≈ ∫|f′| = 4. Finite.</li>
+    </ul>
+  </div>
+  <div class="tablewrap"><table>
+    <tr><th>n</th><th>Σ(Δf)²</th><th>n · Σ(Δf)²</th><th>Σ|Δf|</th><th>largest |Δf|</th></tr>
+    <tr><td>100</td><td>0.1973</td><td>19.733</td><td>4.000</td><td>0.0628</td></tr>
+    <tr><td>1,000</td><td>0.01974</td><td>19.739</td><td>4.000</td><td>0.00628</td></tr>
+    <tr><td>10,000</td><td>0.001974</td><td>19.739</td><td>4.000</td><td>0.000628</td></tr>
+    <tr><td>100,000</td><td>0.0001974</td><td>19.739</td><td>4.000</td><td>0.0000628</td></tr>
+    <tr><td>1,000,000</td><td class="sm">0.00001974</td><td>19.739</td><td class="sm">4.000</td><td>0.00000628</td></tr>
+  </table></div>
+  <p>Log-log slope of Σ(Δf)² against n: −1.0000. Now put the two objects side by side. This grid is the page.</p>
+  <div class="aside">
+    <div class="eyebrow">The two words in the title</div>
+    <p>"Variation" is how much a path moves, measured by adding up its steps. Add up |Δ·| and you have the <strong>total variation</strong> — for a curve, its length. Add up (Δ·)² and you have the <strong>quadratic variation</strong> ("quadratic" = squared), written [W]_T or ⟨W⟩_T and defined as the limit of Σ(ΔW)² as the grid is refined. A smooth curve has total variation and no quadratic variation (the squares vanish). W has quadratic variation T and no total variation (the absolute values blow up). The page's title is the name of the number Σ(ΔW)² settles on.</p>
+  </div>
+  <div class="grid2">
+    <div class="head"></div><div class="head">smooth f(t) = sin(2πt)</div><div class="head">Brownian W(t)</div>
+    <div>one step</div><div>Δf ≈ f′·dt — size dt</div><div>ΔW ~ N(0, dt) — size √dt</div>
+    <div>Σ|Δ·| — total variation</div><div class="s">→ 4, finite: the length</div><div class="w">→ ∞ like √n: no length</div>
+    <div>Σ(Δ·)² — quadratic variation</div><div class="s">→ 0 like 1/n</div><div class="w">→ T</div>
+  </div>
+  <p>A smooth curve has a length and no quadratic variation. W has quadratic variation and no length. Everything in ordinary calculus rests on the left column: (Δf)² is negligible next to Δf, so a first-order Taylor expansion is enough. Everything in stochastic calculus rests on the right.</p>
+</section>
+
+<!-- ============ 6 · P5 ============ -->
+<section class="wide">
+  <div class="eyebrow">Step 6 · prediction 5 resolved</div>
+  <h2><span class="stepno">6</span>Everything beyond order dt vanishes</h2>
+  <p>P5 sent both cross terms to 1. The instinct is "Σ Δt = T, so a sum with a Δt in it lands on T". Count powers of dt instead. Every sum has n = T/dt terms; what matters is the size of one term.</p>
+  <ul class="steps">
+    <li><strong>Σ Δt</strong> — one term is dt. n × dt = T. Survives.</li>
+    <li><strong>Σ(ΔW)²</strong> — one term is dt-sized (a √dt kick, squared). n × dt = T. Survives.</li>
+    <li><strong>Σ ΔW·Δt</strong> — every Δt is the same number, dt, so it comes out of the sum: Σ ΔW·dt = dt · Σ ΔW. And Σ ΔW is just the path's total change, W_T (all the steps added up). So the sum is exactly dt · W_T — the endpoint, scaled down by dt. W_T is a fixed-size random number (sd √T, about ±1), and dt = T/n → 0, so dt · W_T → 0 like 1/n. Dies. (Path 1 in §2 shows it: −6.73 × 10⁻³, −6.73 × 10⁻⁴, … — the same W_T = −0.673 every time, divided by n.)</li>
+    <li><strong>Σ(Δt)²</strong> — one term is dt². n × dt² = T·dt → 0 like 1/n. Dies.</li>
+    <li><strong>Σ|ΔW|³</strong> — one term is dt^{3/2}-sized. n × dt^{3/2} = T·√dt → 0 like 1/√n. Dies.</li>
+  </ul>
+  <p>Rule: a term of size dt survives summation (n of them make T); anything smaller than dt does not.</p>
+  <div class="tablewrap"><table>
+    <tr><th>n</th><th>rms Σ ΔW·Δt</th><th>dt·√T</th><th>Σ(Δt)²</th><th>T·dt</th><th>mean Σ|ΔW|³</th><th>1.596/√n</th></tr>
+    <tr><td>100</td><td>9.67 × 10⁻³</td><td>10⁻²</td><td>10⁻²</td><td>10⁻²</td><td>0.1604</td><td>0.1596</td></tr>
+    <tr><td>1,000</td><td>9.67 × 10⁻⁴</td><td>10⁻³</td><td>10⁻³</td><td>10⁻³</td><td>0.0504</td><td>0.0505</td></tr>
+    <tr><td>10,000</td><td>9.67 × 10⁻⁵</td><td>10⁻⁴</td><td>10⁻⁴</td><td>10⁻⁴</td><td>0.01596</td><td>0.01596</td></tr>
+    <tr><td>100,000</td><td>9.67 × 10⁻⁶</td><td>10⁻⁵</td><td>10⁻⁵</td><td>10⁻⁵</td><td>0.00505</td><td>0.00505</td></tr>
+    <tr><td>1,000,000</td><td>9.67 × 10⁻⁷</td><td>10⁻⁶</td><td>10⁻⁶</td><td>10⁻⁶</td><td>0.00160</td><td>0.00160</td></tr>
+  </table></div>
+  <p>Log-log slopes against n: −1.000 for the cross term, −1.000 for Σ(Δt)², −0.500 for Σ|ΔW|³ (E|Z|³ = 2√(2/π) = 1.596, times n·dt^{3/2} = √dt). The rms of Σ ΔW·Δt is 0.967/n rather than 1/n only because these 400 paths' W_T² average 0.935, not 1 — sampling. The cubic term is the one the index does not mention and you will need one page later: it is why the Taylor expansion in §7 stops at second order.</p>
+  <div class="rulebook">
+    <div class="rule">(dW)² = dt</div><div class="why">Σ(ΔW)² → T, path by path — §3</div>
+    <div class="rule">dW · dt = 0</div><div class="why">Σ ΔW·Δt = dt·W_T → 0 like 1/n</div>
+    <div class="rule">(dt)² = 0</div><div class="why">Σ(Δt)² = T·dt → 0 like 1/n</div>
+    <div class="rule">(dW)³ = 0</div><div class="why">Σ|ΔW|³ → 0 like 1/√n — not in the index, needed for 2.4</div>
+  </div>
+  <p class="note">"= 0" in the rulebook means "vanishes when summed over the grid as dt → 0", and "(dW)² = dt" means "sums to the same thing dt sums to". Neither is a statement about one step; one (ΔW)² is nothing like dt. That is the misreading to gloss in the draft: the rulebook is about sums, and the sums are what the experiment measured.</p>
+</section>
+
+<!-- ============ 7 · WHY CALCULUS FAILS ============ -->
+<section class="wide">
+  <div class="eyebrow">Step 7 · the reason</div>
+  <h2><span class="stepno">7</span>Why ordinary calculus fails here — and only here</h2>
+  <p>Start with the simplest smooth function there is, g(x) = x², where the algebra is exact and there is nothing to approximate.</p>
+  <ul class="steps">
+    <li><strong>One step.</strong> (W + ΔW)² − W² = 2W·ΔW + (ΔW)². Two terms: one with ΔW, one with (ΔW)².</li>
+    <li><strong>Sum over the grid.</strong> The left side telescopes to W_T² − 0. The right side is 2·Σ W·ΔW + Σ(ΔW)². So W_T² = 2·Σ W·ΔW + Σ(ΔW)².</li>
+    <li><strong>Smooth path x(t) in place of W.</strong> Same identity: x_T² = 2·Σ x·Δx + Σ(Δx)². But Σ(Δx)² → 0 (§5), so x_T² = 2·∫x dx. That is the chain rule, d(x²) = 2x·dx, with nothing left over.</li>
+    <li><strong>Brownian W.</strong> Σ(ΔW)² → T, not 0. So W_T² = 2·Σ W·ΔW + T. The chain rule's answer, 2·Σ W·ΔW, is short by exactly T. (Rearranged, Σ W·ΔW = ½W_T² − ½T — that is page 2.4's result, ∫W dW; not for 2.3 to claim, but this is where it comes from.)</li>
+  </ul>
+  <p>Now the general case. For any smooth g, Taylor's theorem says the change over one small step is a series in powers of the step:</p>
+  <ul class="steps">
+    <li><strong>One step.</strong> g(W + ΔW) − g(W) = g′(W)·ΔW + ½g″(W)·(ΔW)² + ⅙g‴(W)·(ΔW)³ + … (g′, g″, g‴: first, second, third derivatives of g, all evaluated at the current W).</li>
+    <li><strong>Term sizes.</strong> ΔW is √dt-sized, so the terms are √dt, dt, dt^{3/2}, … in size. Same power-counting as §6: after summing n of them, size dt survives and anything smaller dies.</li>
+    <li><strong>Smooth path:</strong> Δx is dt-sized, so the terms are dt, dt², dt³, …. Only the first survives the sum: Σ g′(x)·Δx → ∫g′(x) dx. Chain rule.</li>
+    <li><strong>Brownian W:</strong> first term survives as before. Second term: Σ ½g″(W)·(ΔW)² — n terms of size dt — survives, and since (dW)² = dt it sums to ½∫g″(W) dt. Third term: n terms of size dt^{3/2}, Σ|ΔW|³ → 0 like 1/√n. Dies, as does everything after it.</li>
+  </ul>
+  <p>So for W the change in g(W) has one extra term the chain rule does not have, ½∫g″(W) dt, and nothing beyond it. For g = x², g″ = 2 and the extra term is ½·2·T = T, matching the exact calculation above.</p>
+  <p>That is the sentence the index promises: the whole reason ordinary calculus fails on W is that (dW)² = dt, not 0. Not that W is random (a random smooth path would be fine), not that it has no derivative as such (the increments are all we ever use) — but that its squared increments add up to something. Page 2.4 does the sum for g(W) = W² and gets ∫W dW = ½W_T² − ½T; the −½T is this term. Not for 2.3 to claim.</p>
+  <figure>
+    <div class="figbox"><canvas id="figSlopes" width="1200" height="560"></canvas></div>
+    <div class="figbar">
+      <span class="chip"><span class="swatch" style="background:var(--walk)"></span>Brownian W</span>
+      <span class="chip"><span class="swatch" style="background:var(--smooth)"></span>smooth sin(2πt)</span>
+      <span class="chip"><span class="swatch" style="background:var(--theory)"></span>cross terms</span>
+    </div>
+    <figcaption>Every sum in the JSON against n, log-log, 100 to 1,000,000 steps. Two lines are flat: Σ(ΔW)² at T = 1 and Σ|Δf| at 4. One rises at slope +½: Σ|ΔW|. Everything else falls — Σ(Δf)², Σ(Δt)² and the cross term at slope −1, Σ|ΔW|³ at −½. The page is the two flat lines and which object owns which.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 8 · THE COIN ============ -->
+<section>
+  <div class="eyebrow">Step 8 · the coin, again</div>
+  <h2><span class="stepno">8</span>The coin walk has it exactly</h2>
+  <p>Build the walk from 2.1 with steps of exactly ±√dt. Then (ΔW)² = dt for every step, and Σ(ΔW)² = n·dt = T with no randomness and no limit needed. The JSON checks this at every n, every path: the largest deviation from T is 4 × 10⁻¹⁶, floating-point rounding. The Gaussian walk earns by convergence what the coin has by construction; the T·√(2/n) spread in §3 is the price of Gaussian steps, and it goes to zero. Same limit, both coins — 2.1's C4 and 2.2's kurtosis story again, now for the quadratic variation.</p>
+  <p class="note">D2 (the counter demo from L1) already shows Σ(ΔW)² live. When 2.3 is ingested at L2 it should assert itself against this JSON's <code>grids[*].sum_dW_sq.mean</code> and <code>sd_expected</code> rather than against numbers typed into a test (experiments/README, "demo fixtures").</p>
+</section>
+
+<!-- ============ 9 · CHECKS ============ -->
+<section>
+  <div class="eyebrow">Step 9 · for your approval</div>
+  <h2><span class="stepno">9</span>Draft check questions</h2>
+  <p class="note">Per I5: every wrong option names the misconception it encodes, and feedback says why it is wrong. Q2, Q3's second option and Q4 are your own pre-run predictions. Say which to keep, cut or reword.</p>
+
+  <div class="q"><div class="qno">Q1</div>
+    <p class="stem">A Brownian path on [0, 1] is chopped into n equal steps and you compute Σ(ΔW)². As n → ∞ it:</p>
+    <ul>
+      <li class="ok">Settles on 1, with spread √(2/n) — each (ΔW)² averages dt, and there are n = 1/dt of them.</li>
+      <li class="no">Grows without limit <em class="mis">— confused with total distance.</em> That is Σ|ΔW|. Squaring a √dt-sized kick gives a dt-sized term, and n of those sum to T, not to ∞.</li>
+      <li class="no">Shrinks to 0 <em class="mis">— smooth-function intuition.</em> For a smooth curve (Δf)² is dt²-sized and the sum dies like 1/n. W's increments are √dt-sized, not dt-sized; that one power is the whole difference.</li>
+      <li class="no">Lands on a random number that depends on the path <em class="mis">— quadratic variation as a path property.</em> The spread across paths is √(2/n) and vanishes: at n = 10⁶, 400 paths all landed within 0.005 of 1.</li>
+    </ul>
+  </div>
+
+  <div class="q"><div class="qno">Q2</div>
+    <p class="stem">Same path, same grids. Σ|ΔW| — the total distance travelled — as n → ∞:</p>
+    <ul>
+      <li class="ok">Grows without limit, like √n — E|ΔW| = √(2dt/π), and n of those make 0.798·n·√dt = 0.798·√(nT).</li>
+      <li class="no">Settles on the path's length <em class="mis">— every drawn curve has a length.</em> A curve with a tangent does; W has none (2.2). Its increments shrink like √dt while their number grows like 1/dt, and √dt/dt → ∞.</li>
+      <li class="no">Settles on 1, like Σ(ΔW)² <em class="mis">— squared and absolute variation confused.</em> Squaring a √dt-sized term makes it dt-sized, small enough for n of them to sum to T. Not squaring leaves it √dt-sized, too big.</li>
+      <li class="no">Shrinks to 0, since every |ΔW| → 0 <em class="mis">— vanishing terms mean a vanishing sum.</em> Each term is √dt-sized, but there are 1/dt of them. The count wins.</li>
+    </ul>
+  </div>
+
+  <div class="q"><div class="qno">Q3</div>
+    <p class="stem">Replace W by the smooth curve f(t) = sin(2πt) on the same grids. As n → ∞, Σ(Δf)² and Σ|Δf|:</p>
+    <ul>
+      <li class="ok">Σ(Δf)² → 0 like 1/n; Σ|Δf| → 4 — Δf ≈ f′dt, so squares are dt²-sized and vanish, while absolute values sum to ∫|f′|, the curve's total rise and fall.</li>
+      <li class="no">Σ(Δf)² → ∫f² = ½ <em class="mis">— increments confused with values.</em> Σ(Δf)² adds up squared <em>changes</em>, not squared heights. Each change is dt-sized, its square dt²-sized, and n·dt² → 0.</li>
+      <li class="no">Both → ∞, as for W <em class="mis">— W's behaviour generalised to every path.</em> f has a derivative, so Δf ≈ f′·dt is dt-sized, not √dt-sized. Everything W does traces back to that missing √.</li>
+      <li class="no">Σ(Δf)² → a positive number and Σ|Δf| → ∞ <em class="mis">— smooth and rough swapped.</em> That is W's pattern exactly. A smooth curve has length and no quadratic variation; W has quadratic variation and no length.</li>
+    </ul>
+  </div>
+
+  <div class="q"><div class="qno">Q4</div>
+    <p class="stem">On the same grids, Σ ΔW·Δt and Σ(Δt)² as n → ∞:</p>
+    <ul>
+      <li class="ok">Both → 0 like 1/n — Σ ΔW·Δt = dt·W_T and Σ(Δt)² = T·dt; one extra factor of dt kills each.</li>
+      <li class="no">Both → T <em class="mis">— "Δt sums to T, so anything with a Δt in it does".</em> Σ Δt = T because n terms of size dt make n·dt. Multiply each term by another dt, or by a √dt-sized ΔW, and the sum shrinks by that factor.</li>
+      <li class="no">Σ ΔW·Δt → W_T and Σ(Δt)² → 0 <em class="mis">— one factor forgotten.</em> Σ ΔW = W_T, yes. But each term also carries a Δt = dt, so the sum is dt·W_T, which is W_T/n → 0.</li>
+      <li class="no">Σ ΔW·Δt → 0 but Σ(Δt)² → T <em class="mis">— squaring keeps dt alive, as it did for dW.</em> (dW)² sums to T because ΔW is √dt-sized and squaring brings it to dt. Δt is already dt-sized; squaring takes it to dt², and n·dt² = T·dt → 0.</li>
+    </ul>
+  </div>
+
+  <div class="q"><div class="qno">Q5</div>
+    <p class="stem">Expand g(W + ΔW) − g(W) by Taylor and sum over the grid. Which term behaves differently for W than for a smooth path, and why?</p>
+    <ul>
+      <li class="ok">The second-order term ½g″(ΔW)², because Σ(ΔW)² → T instead of 0 — it survives, and the chain rule is off by ½∫g″ dt.</li>
+      <li class="no">None — first order is enough, as in ordinary calculus <em class="mis">— the chain rule assumed.</em> First order is enough only when Σ(ΔW)² → 0. It is T. That is the one fact this page exists to establish.</li>
+      <li class="no">Every term — W is too rough for Taylor to apply <em class="mis">— rough means no expansion.</em> Taylor expands g, which is smooth; W only supplies the increments. Third order and beyond still vanish: Σ|ΔW|³ → 0 like 1/√n.</li>
+      <li class="no">The first-order term, since W has no derivative <em class="mis">— no derivative, no first-order term.</em> g′(W)·ΔW needs W's increment, not W's derivative. The increments are all stochastic calculus ever uses.</li>
+    </ul>
+  </div>
+  <p class="note">Alternative Q5, if you would rather keep the Taylor argument for 2.4: the coin walk (§8) — "with steps of exactly ±√dt, Σ(ΔW)² is: exactly T for every path ✓ / approximately T, converging ✗ (Gaussian intuition applied to the coin) / random ✗ / 0 ✗". Your call.</p>
+</section>
+
+<!-- ============ 9b · NOTATION ============ -->
+<section class="wide">
+  <div class="eyebrow">Step 9b · for your approval</div>
+  <h2><span class="stepno">9b</span>S3 notation batch</h2>
+  <p class="note">Appends to <code>drafts/notation.md</code> after the S2 batch, same four columns. Rows that grew out of this session's questions: Z², χ², [0, ∞), N(·,·) as a family, f″ vs a quote mark, the three integrals of f′, the rulebook's "= 0". Say which to keep, cut or reword.</p>
+  <div class="tablewrap"><table style="white-space:normal">
+    <tr><th>Symbol</th><th>Say it</th><th>Here it means</th><th>Watch out</th></tr>
+    <tr><td style="white-space:normal"><code>Σ</code></td><td style="white-space:normal;text-align:left">"sigma" — sum</td><td style="white-space:normal;text-align:left">add up over every grid step, i = 1 … n: Σ(ΔW)² = (ΔW₁)² + … + (ΔWₙ)²</td><td style="white-space:normal;text-align:left">a sum over the grid is one number, not a function of t (P4 read it as a curve). n terms of size dt make order 1; of size √dt make order √n; of size dt² make order 1/n</td></tr>
+    <tr><td style="white-space:normal"><code>n`, `dt = T/n</code></td><td style="white-space:normal;text-align:left">steps, step size</td><td style="white-space:normal;text-align:left">the grid: [0, T] chopped into n steps of length dt</td><td style="white-space:normal;text-align:left">carry T: Σ|ΔW| ≈ 0.798·√(nT), which is 0.798·√n only because T = 1 in the experiment</td></tr>
+    <tr><td style="white-space:normal"><code>Z`, `Zᵢ</code></td><td style="white-space:normal;text-align:left">"Z"</td><td style="white-space:normal;text-align:left">the standard normal, Z ~ N(0, 1); Zᵢ is the i-th independent draw. ΔW = √dt·Z</td><td style="white-space:normal;text-align:left">a specific named variable, not a family: "Z(x, y)" means nothing. The bracket in N(μ, σ²) carries the Gaussian family's parameters; other families put other things there (χ²ₖ: a count; U(a, b): endpoints)</td></tr>
+    <tr><td style="white-space:normal"><code>Z²`, `χ²₁</code></td><td style="white-space:normal;text-align:left">"Z squared", "chi-squared with one degree of freedom"</td><td style="white-space:normal;text-align:left">the square of a standard normal. Mean 1, variance 2, lives on [0, ∞), median 0.45, piled against 0 with a long right tail</td><td style="white-space:normal;text-align:left">not N(1, 2): an N(1, 2) is negative 24 % of the time, a square never. Variance 2 comes from E[Z⁴] = 3: for X ~ N(0, σ²), Var(X²) = 2σ⁴. sd √2 is a root-mean-square, not a ± range — the spread is all on the right</td></tr>
+    <tr><td style="white-space:normal"><code>χ²ₖ</code></td><td style="white-space:normal;text-align:left">"chi-squared with k degrees of freedom"</td><td style="white-space:normal;text-align:left">Z₁² + … + Zₖ², k independent standard normals squared. Mean k, variance 2k</td><td style="white-space:normal;text-align:left">the subscript is a count, not a parameter like μ or σ². Σ(ΔW)²/dt is χ²ₙ with n = 10⁶ — a bell by the CLT, though each term is a spike</td></tr>
+    <tr><td style="white-space:normal"><code>[a, b)`, `[0, ∞)</code></td><td style="white-space:normal;text-align:left">interval notation</td><td style="white-space:normal;text-align:left">the numbers from a up to but not including b. Square bracket includes the end, round bracket excludes it. [0, ∞) = zero or any positive number</td><td style="white-space:normal;text-align:left">∞ always gets a round bracket — it is a direction, not a value reached</td></tr>
+    <tr><td style="white-space:normal"><code>[W]_T`, `⟨W⟩_T</code></td><td style="white-space:normal;text-align:left">"the quadratic variation of W up to T"</td><td style="white-space:normal;text-align:left">the limit of Σ(ΔW)² over [0, T] as the grid is refined; equals T for Brownian motion, path by path</td><td style="white-space:normal;text-align:left">square brackets here are not an interval; angle brackets are not an expectation. Both notations are in use for the same thing</td></tr>
+    <tr><td style="white-space:normal"><code>quadratic variation · total variation</code></td><td style="white-space:normal;text-align:left">—</td><td style="white-space:normal;text-align:left">quadratic: Σ(Δ·)² in the limit. Total: Σ|Δ·| in the limit — a curve's length</td><td style="white-space:normal;text-align:left">"variation" is not variance. A smooth curve: total variation finite, quadratic 0. W: total ∞, quadratic T. Each object has one and not the other</td></tr>
+    <tr><td style="white-space:normal"><code>(dW)² = dt`, `dW·dt = 0`, `(dt)² = 0`, `(dW)³ = 0</code></td><td style="white-space:normal;text-align:left">"the rulebook"</td><td style="white-space:normal;text-align:left">statements about sums over the grid as dt → 0: Σ(ΔW)² → T (what Σ dt sums to), Σ ΔW·Δt → 0, Σ(Δt)² → 0, Σ|ΔW|³ → 0</td><td style="white-space:normal;text-align:left">not about one step: a single (ΔW)² is a wild χ²₁ draw, nothing like dt. "= 0" means "vanishes when summed"; "= dt" means "sums to what dt sums to". Rule: size dt survives, anything smaller dies</td></tr>
+    <tr><td style="white-space:normal"><code>f′`, `f″`, `g‴</code></td><td style="white-space:normal;text-align:left">"f prime", "f double prime", "g triple prime"</td><td style="white-space:normal;text-align:left">first, second, third derivatives — each a function</td><td style="white-space:normal;text-align:left">on screen ″ looks like a closing quote mark. W′ does not exist (2.2); that is why the page works with ΔW, never W′</td></tr>
+    <tr><td style="white-space:normal"><code>chain rule</code></td><td style="white-space:normal;text-align:left">—</td><td style="white-space:normal;text-align:left">for f(t) = g(h(t)): f′(t) = g′(h(t)) · h′(t) — differentiate the outside with the inside left alone, then multiply by the inside's derivative</td><td style="white-space:normal;text-align:left">the inner derivative is the factor people drop: sin(2πt)′ = 2π·cos(2πt), and that 2π is squared in every integral of f′. For g(W) the chain rule is short by ½∫g″(W) dt — 2.4</td></tr>
+    <tr><td style="white-space:normal"><code>∫₀ᵀ … dt</code></td><td style="white-space:normal;text-align:left">"the integral from 0 to T"</td><td style="white-space:normal;text-align:left">the continuous version of Σ … Δt: area under the curve. Over [0, 1] it is just the average value of the integrand</td><td style="white-space:normal;text-align:left">three different integrals of f′ on this page: ∫f′ = net change (0 for a full sine wave), ∫|f′| = distance travelled (4), ∫f′² = mean squared speed (2π²). Only the first is "undoing the derivative"</td></tr>
+    <tr><td style="white-space:normal"><code>sin(2πt)`, `cos²</code></td><td style="white-space:normal;text-align:left">—</td><td style="white-space:normal;text-align:left">one full wave over t ∈ [0, 1]; f′ = 2π·cos(2πt); cos² averages ½ over a period (cos²θ = ½ + ½cos 2θ)</td><td style="white-space:normal;text-align:left">the 2π makes the period exactly 1 and reappears as 4π² under the integral</td></tr>
+    <tr><td style="white-space:normal"><code>φ(z)</code></td><td style="white-space:normal;text-align:left">"phi of z"</td><td style="white-space:normal;text-align:left">the standard normal density, e^(−z²/2)/√(2π): the height of the bell at z</td><td style="white-space:normal;text-align:left">a height, not a probability; probabilities are areas. E[g(Z)] = ∫ g(z)·φ(z) dz is the expectation recipe — value × how likely, summed</td></tr>
+    <tr><td style="white-space:normal"><code>E|Z| = √(2/π)</code></td><td style="white-space:normal;text-align:left">"expected size of Z"</td><td style="white-space:normal;text-align:left">0.7979, the average magnitude of a standard normal draw; hence E|ΔW| = 0.798·√dt and Σ|ΔW| ≈ 0.798·√(nT)</td><td style="white-space:normal;text-align:left">less than the sd of 1 because sd is a root-mean-square and squaring favours the big draws. The ±√dt coin has constant exactly 1 instead</td></tr>
+    <tr><td style="white-space:normal"><code>odd moment</code></td><td style="white-space:normal;text-align:left">—</td><td style="white-space:normal;text-align:left">E[X^k] with k odd (1, 3, 5, …); zero for any X symmetric about 0</td><td style="white-space:normal;text-align:left">why corr(Σ(ΔW)², W_T) is exactly 0: the only surviving covariance term is E[(ΔW)³], an odd moment. max|W| is not a sum of ΔW and the trick fails — its correlation is small, not zero</td></tr>
+    <tr><td style="white-space:normal"><code>log-log slope</code></td><td style="white-space:normal;text-align:left">—</td><td style="white-space:normal;text-align:left">fit a line to log(y) against log(n); its slope is the exponent p in "y goes like n^p"</td><td style="white-space:normal;text-align:left">−½ means 1/√n, −1 means 1/n, +½ means √n, 0 means settles. Every "goes like" claim in the JSON is checked this way</td></tr>
+    <tr><td style="white-space:normal"><code>Taylor expansion</code></td><td style="white-space:normal;text-align:left">—</td><td style="white-space:normal;text-align:left">g(x + Δ) − g(x) = g′(x)·Δ + ½g″(x)·Δ² + ⅙g‴(x)·Δ³ + …: the change in a smooth g over a small step, as a series in the step</td><td style="white-space:normal;text-align:left">for a smooth path only the Δ term survives summation (chain rule). For W the Δ² term survives too, because Σ(ΔW)² → T — the whole reason ordinary calculus fails</td></tr>
+  </table></div>
+</section>
+
+<!-- ============ 10 · AFTER THE READ ============ -->
+<section>
+  <div class="eyebrow">Step 10 · next</div>
+  <h2>After the read</h2>
+  <ol class="runsteps">
+    <li>Say which of Q1–Q5 to keep, cut or reword (and whether Q5 is the Taylor version or the coin).</li>
+    <li>Answer the interview questions I will put to you one at a time; your words become <code>drafts/2.3.md</code> verbatim, hook line included (I2).</li>
+    <li>Approve the S3 notation batch — Σ, (dW)², dW·dt, (dt)², the phrase "quadratic variation", and the rulebook's "= 0".</li>
+    <li>Commit both repos in one go, as at S2.</li>
+  </ol>
+</section>
+</div>
+
+<script>
+(function () {
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const NS = [100, 1000, 10000, 100000, 1000000];
+  // from 2_3_quadratic_variation.json (seed 20260906)
+  const QV_FIRST = [
+    [0.8828, 1.14882, 0.94548, 1.29301, 0.79619],
+    [0.96768, 1.03583, 0.98249, 1.06817, 0.99679],
+    [0.99866, 1.0035, 0.99325, 1.00808, 1.00486],
+    [0.99915, 0.9988, 0.99206, 1.00197, 0.9911],
+    [0.99975, 1.00023, 0.99755, 0.99927, 1.00083]];
+  const SERIES = {
+    qv:    { y: [1.00321, 0.99757, 1.00046, 0.99992, 0.99997], label: "Σ(ΔW)²", col: "--walk" },
+    av:    { y: [7.992, 25.186, 79.820, 252.301, 797.886],     label: "Σ|ΔW|",  col: "--walk" },
+    cubic: { y: [0.16043, 0.050354, 0.015965, 0.0050457, 0.0015956], label: "Σ|ΔW|³", col: "--walk", dash: [6, 5] },
+    sdf:   { y: [0.197327, 0.019739, 0.0019739, 0.00019739, 0.000019739], label: "Σ(Δf)²", col: "--smooth" },
+    adf:   { y: [4, 4, 4, 4, 4],                                label: "Σ|Δf|",  col: "--smooth" },
+    cross: { y: [9.673e-3, 9.673e-4, 9.673e-5, 9.673e-6, 9.673e-7], label: "rms Σ ΔW·Δt", col: "--theory", dy: 22 },
+    dt2:   { y: [1e-2, 1e-3, 1e-4, 1e-5, 1e-6],                 label: "Σ(Δt)²", col: "--theory", dash: [2, 5], dy: -4 },
+  };
+  const sans = '"IBM Plex Sans", system-ui, sans-serif';
+
+  function frame(ctx, W, H, pad) {
+    ctx.clearRect(0, 0, W, H);
+    ctx.strokeStyle = css('--line'); ctx.lineWidth = 1.5;
+    ctx.strokeRect(pad.l, pad.t, W - pad.l - pad.r, H - pad.t - pad.b);
+  }
+
+  function drawPaths() {
+    const c = document.getElementById('figPaths'); const ctx = c.getContext('2d');
+    const W = c.width, H = c.height, pad = { l: 90, r: 110, t: 30, b: 60 };
+    const x = (n) => pad.l + (Math.log10(n) - 2) / 4 * (W - pad.l - pad.r);
+    const y0 = 0.6, y1 = 1.45;
+    const y = (v) => H - pad.b - (v - y0) / (y1 - y0) * (H - pad.t - pad.b);
+    frame(ctx, W, H, pad);
+    ctx.font = `20px ${sans}`; ctx.fillStyle = css('--muted'); ctx.textAlign = 'center';
+    NS.forEach(n => { ctx.fillText('n = ' + n.toLocaleString('en-GB'), x(n), H - pad.b + 30); });
+    ctx.textAlign = 'right';
+    [0.6, 0.8, 1.0, 1.2, 1.4].forEach(v => {
+      ctx.fillText(v.toFixed(1), pad.l - 12, y(v) + 7);
+      ctx.strokeStyle = css('--line-faint'); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(pad.l, y(v)); ctx.lineTo(W - pad.r, y(v)); ctx.stroke();
+    });
+    // sd band, T*sqrt(2/n), drawn as a smooth region in log n
+    ctx.fillStyle = css('--walk-soft');
+    ctx.beginPath();
+    for (let i = 0; i <= 80; i++) { const n = Math.pow(10, 2 + i / 20); const p = i === 0 ? 'moveTo' : 'lineTo'; ctx[p](x(n), y(1 + Math.sqrt(2 / n))); }
+    for (let i = 80; i >= 0; i--) { const n = Math.pow(10, 2 + i / 20); ctx.lineTo(x(n), y(1 - Math.sqrt(2 / n))); }
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = css('--walk'); ctx.lineWidth = 1; ctx.setLineDash([4, 5]);
+    [1, -1].forEach(s => { ctx.beginPath(); for (let i = 0; i <= 80; i++) { const n = Math.pow(10, 2 + i / 20); ctx[i ? 'lineTo' : 'moveTo'](x(n), y(1 + s * Math.sqrt(2 / n))); } ctx.stroke(); });
+    ctx.setLineDash([]);
+    // T = 1
+    ctx.strokeStyle = css('--muted'); ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(pad.l, y(1)); ctx.lineTo(W - pad.r, y(1)); ctx.stroke();
+    // five paths
+    ctx.strokeStyle = css('--walk'); ctx.fillStyle = css('--walk'); ctx.lineWidth = 1.5;
+    for (let p = 0; p < 5; p++) {
+      ctx.globalAlpha = 0.55; ctx.beginPath();
+      NS.forEach((n, i) => ctx[i ? 'lineTo' : 'moveTo'](x(n), y(QV_FIRST[i][p])));
+      ctx.stroke(); ctx.globalAlpha = 1;
+      NS.forEach((n, i) => { ctx.beginPath(); ctx.arc(x(n), y(QV_FIRST[i][p]), 5, 0, 2 * Math.PI); ctx.fill(); });
+    }
+    ctx.fillStyle = css('--muted'); ctx.textAlign = 'left'; ctx.font = `18px ${sans}`;
+    ctx.fillText('T = 1', pad.l + 10, y(1) - 8);
+    ctx.fillText('±T·√(2/n)', x(100) + 12, y(1 + Math.sqrt(2 / 100)) - 8);
+    ctx.save(); ctx.translate(26, H / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.fillText('Σ(ΔW)², one path', 0, 0); ctx.restore();
+  }
+
+  function drawSlopes() {
+    const c = document.getElementById('figSlopes'); const ctx = c.getContext('2d');
+    const W = c.width, H = c.height, pad = { l: 90, r: 190, t: 30, b: 60 };
+    const x = (n) => pad.l + (Math.log10(n) - 2) / 4 * (W - pad.l - pad.r);
+    const lo = -6.3, hi = 3.3;
+    const y = (v) => H - pad.b - (Math.log10(v) - lo) / (hi - lo) * (H - pad.t - pad.b);
+    frame(ctx, W, H, pad);
+    ctx.font = `20px ${sans}`; ctx.fillStyle = css('--muted'); ctx.textAlign = 'center';
+    NS.forEach(n => ctx.fillText('10' + '⁰¹²³⁴⁵⁶'[Math.log10(n)], x(n), H - pad.b + 30));
+    ctx.fillText('n', (pad.l + W - pad.r) / 2, H - 8);
+    ctx.textAlign = 'right';
+    for (let e = -6; e <= 3; e++) {
+      const v = Math.pow(10, e);
+      ctx.fillText('10' + (e < 0 ? '⁻' : '') + '⁰¹²³⁴⁵⁶'[Math.abs(e)], pad.l - 12, y(v) + 7);
+      ctx.strokeStyle = css('--line-faint'); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(pad.l, y(v)); ctx.lineTo(W - pad.r, y(v)); ctx.stroke();
+    }
+    ctx.textAlign = 'left'; ctx.font = `17px ${sans}`;
+    Object.values(SERIES).forEach(s => {
+      ctx.strokeStyle = css(s.col); ctx.fillStyle = css(s.col); ctx.lineWidth = 2.5;
+      ctx.setLineDash(s.dash || []);
+      ctx.beginPath(); NS.forEach((n, i) => ctx[i ? 'lineTo' : 'moveTo'](x(n), y(s.y[i]))); ctx.stroke();
+      ctx.setLineDash([]);
+      NS.forEach((n, i) => { ctx.beginPath(); ctx.arc(x(n), y(s.y[i]), 4.5, 0, 2 * Math.PI); ctx.fill(); });
+      ctx.fillText(s.label, x(NS[4]) + 14, y(s.y[4]) + 6 + (s.dy || 0));
+    });
+    // slope labels
+    ctx.fillStyle = css('--muted'); ctx.font = `italic 16px ${sans}`;
+    ctx.fillText('slope +½', x(3000) + 10, y(60) - 6);
+    ctx.fillText('slope −½', x(3000) + 10, y(0.012) + 24);
+    ctx.fillText('slope −1', x(30000) + 10, y(0.0004) - 8);
+  }
+
+
+  function drawChi() {
+    const c = document.getElementById('figChi'); const ctx = c.getContext('2d');
+    const W = c.width, H = c.height, pad = { l: 70, r: 40, t: 24, b: 56 };
+    const x0 = 0, x1 = 5;
+    const x = (v) => pad.l + (v - x0) / (x1 - x0) * (W - pad.l - pad.r);
+    const ymax = 1.6;
+    const y = (v) => H - pad.b - v / ymax * (H - pad.t - pad.b);
+    const f = (v) => Math.exp(-v / 2) / Math.sqrt(2 * Math.PI * v);
+    frame(ctx, W, H, pad);
+    ctx.font = `20px ${sans}`; ctx.fillStyle = css('--muted'); ctx.textAlign = 'center';
+    [0, 1, 2, 3, 4, 5].forEach(v => ctx.fillText(v, x(v), H - pad.b + 30));
+    ctx.fillText('(ΔW)² in units of dt', (pad.l + W - pad.r) / 2, H - 6);
+    // shaded: below the median
+    ctx.fillStyle = css('--walk-soft'); ctx.beginPath(); ctx.moveTo(x(0.002), y(0));
+    for (let v = 0.002; v <= 0.455; v += 0.002) ctx.lineTo(x(v), y(Math.min(f(v), ymax)));
+    ctx.lineTo(x(0.455), y(0)); ctx.closePath(); ctx.fill();
+    // density
+    ctx.strokeStyle = css('--walk'); ctx.lineWidth = 3; ctx.beginPath();
+    let first = true;
+    for (let v = 0.002; v <= x1; v += 0.004) { const yy = y(Math.min(f(v), ymax)); ctx[first ? 'moveTo' : 'lineTo'](x(v), yy); first = false; }
+    ctx.stroke();
+    // mean and median
+    ctx.strokeStyle = css('--ink'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x(1), y(0)); ctx.lineTo(x(1), y(1.2)); ctx.stroke();
+    ctx.setLineDash([5, 5]); ctx.beginPath(); ctx.moveTo(x(0.455), y(0)); ctx.lineTo(x(0.455), y(1.2)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = css('--theory'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x(3.84), y(0)); ctx.lineTo(x(3.84), y(0.6)); ctx.stroke();
+    ctx.fillStyle = css('--ink'); ctx.textAlign = 'left'; ctx.font = `17px ${sans}`;
+    ctx.fillText('mean 1', x(1) + 8, y(1.2) + 6);
+    ctx.fillText('median 0.45', x(0.455) + 8, y(1.2) - 18);
+    ctx.fillStyle = css('--theory'); ctx.fillText('3.84: one in twenty beyond', x(3.84) + 8, y(0.6) + 6);
+    ctx.fillStyle = css('--muted'); ctx.fillText('half of all terms', x(0.03), y(0.25));
+  }
+
+  function drawAll() { drawPaths(); drawSlopes(); drawChi(); }
+  drawAll();
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+    new MutationObserver(drawAll).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  }
+  document.fonts && document.fonts.ready.then(drawAll);
+})();
+</script>

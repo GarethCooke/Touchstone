@@ -1,0 +1,986 @@
+{
+  "page": "2.3",
+  "script": "2_3_quadratic_variation.py",
+  "params": {
+    "seed": 20260906,
+    "T": 1.0,
+    "nested_grids": {
+      "n_fine": 1000000,
+      "coarsen_by": [
+        10000,
+        1000,
+        100,
+        10,
+        1
+      ],
+      "n_paths": 400,
+      "chunk_paths": 5,
+      "keep_first_paths": 5
+    },
+    "independence": {
+      "n": 10000,
+      "n_paths": 20000,
+      "chunk_paths": 2000
+    },
+    "smooth": {
+      "f": "sin(2*pi*t)",
+      "ns": [
+        100,
+        1000,
+        10000,
+        100000,
+        1000000
+      ]
+    },
+    "coin": {
+      "ns": [
+        100,
+        1000,
+        10000,
+        100000,
+        1000000
+      ],
+      "n_paths": 5
+    }
+  },
+  "environment": {
+    "numpy": "2.5.2"
+  },
+  "results": {
+    "grids": [
+      {
+        "n": 100,
+        "dt": 0.01,
+        "n_paths": 400,
+        "sum_dW_sq": {
+          "mean": 1.003206389140109,
+          "sd": 0.15033490796363366,
+          "sd_expected": 0.1414213562373095,
+          "min": 0.6186445589189896,
+          "max": 1.4361815775390088,
+          "max_abs_deviation_from_T_in_sd": 3.0842695130647897,
+          "first_paths": [
+            0.8828024753992326,
+            1.1488200658948216,
+            0.9454836636301828,
+            1.2930119715573456,
+            0.7961903674732705
+          ],
+          "corr_with_W_T": -0.10533584066369225,
+          "corr_with_max_abs_W": 0.08476586608213812,
+          "single_term_relative_sd_mean": 1.3938468970920526,
+          "single_term_relative_sd_expected": 1.4142135623730951,
+          "sum_relative_sd_expected": 0.1414213562373095
+        },
+        "sum_abs_dW": {
+          "mean": 7.992120251267879,
+          "expected": 7.978845608028654,
+          "mean_over_sqrt_nT": 0.7992120251267879,
+          "constant_expected": 0.7978845608028654,
+          "first_paths": [
+            7.4014693867188805,
+            8.330756833154632,
+            7.8682336625946725,
+            8.730064613769835,
+            7.0936272854476545
+          ]
+        },
+        "sum_dW_dt": {
+          "rms": 0.009673360759302028,
+          "rms_expected": 0.01,
+          "first_paths": [
+            -0.006733349197987311,
+            -0.01182056706300992,
+            -0.004030752361372929,
+            0.00130478448362358,
+            0.01029565051360944
+          ]
+        },
+        "sum_dt_sq": {
+          "value": 0.01,
+          "expected": 0.01
+        },
+        "sum_abs_dW_cubed": {
+          "mean": 0.16043314182712617,
+          "expected": 0.1595769121605731
+        }
+      },
+      {
+        "n": 1000,
+        "dt": 0.001,
+        "n_paths": 400,
+        "sum_dW_sq": {
+          "mean": 0.9975676328474219,
+          "sd": 0.04409818434873525,
+          "sd_expected": 0.044721359549995794,
+          "min": 0.8796578592599508,
+          "max": 1.1270993050535447,
+          "max_abs_deviation_from_T_in_sd": 2.8420268599270853,
+          "first_paths": [
+            0.9676779437025742,
+            1.0358284218354445,
+            0.98248783875478,
+            1.0681738170295236,
+            0.9967941143397205
+          ],
+          "corr_with_W_T": -0.00023798046101941768,
+          "corr_with_max_abs_W": 0.07368901695223491,
+          "single_term_relative_sd_mean": 1.4128194111864365,
+          "single_term_relative_sd_expected": 1.4142135623730951,
+          "sum_relative_sd_expected": 0.044721359549995794
+        },
+        "sum_abs_dW": {
+          "mean": 25.185896628498003,
+          "expected": 25.2313252202016,
+          "mean_over_sqrt_nT": 0.7964479825960934,
+          "constant_expected": 0.7978845608028654,
+          "first_paths": [
+            24.819147061705095,
+            26.228886928073127,
+            25.140437300817123,
+            26.19795671193778,
+            25.146101788329133
+          ]
+        },
+        "sum_dW_dt": {
+          "rms": 0.0009673360759302028,
+          "rms_expected": 0.001,
+          "first_paths": [
+            -0.0006733349197987309,
+            -0.0011820567063009926,
+            -0.0004030752361372928,
+            0.00013047844836235802,
+            0.0010295650513609438
+          ]
+        },
+        "sum_dt_sq": {
+          "value": 0.001,
+          "expected": 0.001
+        },
+        "sum_abs_dW_cubed": {
+          "mean": 0.050353527853436046,
+          "expected": 0.0504626504404032
+        }
+      },
+      {
+        "n": 10000,
+        "dt": 0.0001,
+        "n_paths": 400,
+        "sum_dW_sq": {
+          "mean": 1.0004579521755224,
+          "sd": 0.014342075310177066,
+          "sd_expected": 0.01414213562373095,
+          "min": 0.9577719453509335,
+          "max": 1.046371716404926,
+          "max_abs_deviation_from_T_in_sd": 3.278975512518264,
+          "first_paths": [
+            0.9986554014070151,
+            1.003498941738291,
+            0.9932460309729478,
+            1.0080808472116678,
+            1.0048569650147359
+          ],
+          "corr_with_W_T": 0.027135800310400998,
+          "corr_with_max_abs_W": 0.07012350850524623,
+          "single_term_relative_sd_mean": 1.4143123639039468,
+          "single_term_relative_sd_expected": 1.4142135623730951,
+          "sum_relative_sd_expected": 0.01414213562373095
+        },
+        "sum_abs_dW": {
+          "mean": 79.81992977868235,
+          "expected": 79.78845608028654,
+          "mean_over_sqrt_nT": 0.7981992977868235,
+          "constant_expected": 0.7978845608028654,
+          "first_paths": [
+            79.6328696180988,
+            80.26723738370586,
+            79.60787783947981,
+            80.07989775600481,
+            79.67782684413226
+          ]
+        },
+        "sum_dW_dt": {
+          "rms": 9.673360759302029e-05,
+          "rms_expected": 0.0001,
+          "first_paths": [
+            -6.733349197987309e-05,
+            -0.00011820567063009921,
+            -4.0307523613729285e-05,
+            1.3047844836235787e-05,
+            0.00010295650513609437
+          ]
+        },
+        "sum_dt_sq": {
+          "value": 0.0001,
+          "expected": 0.0001
+        },
+        "sum_abs_dW_cubed": {
+          "mean": 0.015964994791025602,
+          "expected": 0.015957691216057307
+        }
+      },
+      {
+        "n": 100000,
+        "dt": 1e-05,
+        "n_paths": 400,
+        "sum_dW_sq": {
+          "mean": 0.9999190936620306,
+          "sd": 0.004357648439039204,
+          "sd_expected": 0.00447213595499958,
+          "min": 0.9861276469754192,
+          "max": 1.01233411198546,
+          "max_abs_deviation_from_T_in_sd": 3.1019524370837446,
+          "first_paths": [
+            0.9991501389530866,
+            0.9988027207506462,
+            0.9920619256271264,
+            1.001968524971587,
+            0.9911041299156609
+          ],
+          "corr_with_W_T": 0.01801940004476405,
+          "corr_with_max_abs_W": -0.009486070600359475,
+          "single_term_relative_sd_mean": 1.414156685944767,
+          "single_term_relative_sd_expected": 1.4142135623730951,
+          "sum_relative_sd_expected": 0.00447213595499958
+        },
+        "sum_abs_dW": {
+          "mean": 252.30119052086602,
+          "expected": 252.31325220201603,
+          "mean_over_sqrt_nT": 0.7978464184180206,
+          "constant_expected": 0.7978845608028654,
+          "first_paths": [
+            252.09192206416796,
+            252.1786466620738,
+            251.2207073750551,
+            252.55927695880513,
+            251.42009821520682
+          ]
+        },
+        "sum_dW_dt": {
+          "rms": 9.673360759302028e-06,
+          "rms_expected": 1e-05,
+          "first_paths": [
+            -6.733349197987309e-06,
+            -1.1820567063009918e-05,
+            -4.030752361372927e-06,
+            1.3047844836235799e-06,
+            1.0295650513609438e-05
+          ]
+        },
+        "sum_dt_sq": {
+          "value": 1e-05,
+          "expected": 1e-05
+        },
+        "sum_abs_dW_cubed": {
+          "mean": 0.005045688439264825,
+          "expected": 0.00504626504404032
+        }
+      },
+      {
+        "n": 1000000,
+        "dt": 1e-06,
+        "n_paths": 400,
+        "sum_dW_sq": {
+          "mean": 0.9999728628387244,
+          "sd": 0.0013883189165567985,
+          "sd_expected": 0.001414213562373095,
+          "min": 0.9960600048888473,
+          "max": 1.004960488966191,
+          "max_abs_deviation_from_T_in_sd": 3.5075953859946645,
+          "first_paths": [
+            0.9997468808868499,
+            1.0002330390423062,
+            0.9975454798797947,
+            0.999268037066143,
+            1.0008265956350764
+          ],
+          "corr_with_W_T": 0.023352551353176147,
+          "corr_with_max_abs_W": 0.022502660641178167,
+          "single_term_relative_sd_mean": 1.4140881230194697,
+          "single_term_relative_sd_expected": 1.4142135623730951,
+          "sum_relative_sd_expected": 0.001414213562373095
+        },
+        "sum_abs_dW": {
+          "mean": 797.8863741162652,
+          "expected": 797.8845608028654,
+          "mean_over_sqrt_nT": 0.7978863741162652,
+          "constant_expected": 0.7978845608028654,
+          "first_paths": [
+            798.1192455346429,
+            798.14892678238,
+            797.197265326988,
+            797.7127834848848,
+            798.5780625344946
+          ]
+        },
+        "sum_dW_dt": {
+          "rms": 9.673360759302028e-07,
+          "rms_expected": 1e-06,
+          "first_paths": [
+            -6.73334919798731e-07,
+            -1.1820567063009916e-06,
+            -4.030752361372929e-07,
+            1.3047844836235789e-07,
+            1.0295650513609438e-06
+          ]
+        },
+        "sum_dt_sq": {
+          "value": 1e-06,
+          "expected": 1e-06
+        },
+        "sum_abs_dW_cubed": {
+          "mean": 0.0015956454659891315,
+          "expected": 0.0015957691216057308
+        }
+      }
+    ],
+    "independence": {
+      "n": 10000,
+      "n_paths": 20000,
+      "mean": 0.9998547990167219,
+      "sd": 0.01417321256244762,
+      "sd_expected": 0.01414213562373095,
+      "corr_with_W_T": -0.006553740665555764,
+      "corr_with_max_abs_W": 0.02319147463677088,
+      "mean_sum_dW_sq_given_W_T_above_1": 0.9998707700709634,
+      "mean_sum_dW_sq_given_W_T_below_minus_1": 1.0003168632504873,
+      "mean_sum_dW_sq_given_abs_W_T_below_0_5": 0.9998740278091897
+    },
+    "smooth": [
+      {
+        "n": 100,
+        "sum_df_sq": 0.1973271571728438,
+        "sum_df_sq_times_n": 19.73271571728438,
+        "sum_df_sq_times_n_expected": 19.739208802178716,
+        "sum_abs_df": 4.0,
+        "sum_abs_df_expected": 4.0,
+        "max_abs_df": 0.06279051952931347
+      },
+      {
+        "n": 1000,
+        "sum_df_sq": 0.019739143862870148,
+        "sum_df_sq_times_n": 19.739143862870147,
+        "sum_df_sq_times_n_expected": 19.739208802178716,
+        "sum_abs_df": 3.9999999999999996,
+        "sum_abs_df_expected": 4.0,
+        "max_abs_df": 0.006283143965559005
+      },
+      {
+        "n": 10000,
+        "sum_df_sq": 0.001973920815278478,
+        "sum_df_sq_times_n": 19.73920815278478,
+        "sum_df_sq_times_n_expected": 19.739208802178716,
+        "sum_abs_df": 4.0,
+        "sum_abs_df_expected": 4.0,
+        "max_abs_df": 0.0006283184893763958
+      },
+      {
+        "n": 100000,
+        "sum_df_sq": 0.00019739208795684776,
+        "sum_df_sq_times_n": 19.739208795684775,
+        "sum_df_sq_times_n_expected": 19.739208802178716,
+        "sum_abs_df": 4.0,
+        "sum_abs_df_expected": 4.0,
+        "max_abs_df": 6.283185303064564e-05
+      },
+      {
+        "n": 1000000,
+        "sum_df_sq": 1.9739208802113778e-05,
+        "sum_df_sq_times_n": 19.73920880211378,
+        "sum_df_sq_times_n_expected": 19.739208802178716,
+        "sum_abs_df": 4.0,
+        "sum_abs_df_expected": 4.0,
+        "max_abs_df": 6.283185307257014e-06
+      }
+    ],
+    "coin": [
+      {
+        "n": 100,
+        "n_paths": 5,
+        "sum_dW_sq_max_abs_deviation_from_T": 4.440892098500626e-16,
+        "sum_dW_sq_values": [
+          1.0000000000000004,
+          1.0000000000000004,
+          1.0000000000000004,
+          1.0000000000000004,
+          1.0000000000000004
+        ],
+        "sum_abs_dW_over_sqrt_nT": [
+          0.9999999999999998,
+          0.9999999999999998,
+          0.9999999999999998,
+          0.9999999999999998,
+          0.9999999999999998
+        ],
+        "sum_abs_dW_constant_expected": 1.0
+      },
+      {
+        "n": 1000,
+        "n_paths": 5,
+        "sum_dW_sq_max_abs_deviation_from_T": 4.440892098500626e-16,
+        "sum_dW_sq_values": [
+          0.9999999999999996,
+          0.9999999999999996,
+          0.9999999999999996,
+          0.9999999999999996,
+          0.9999999999999996
+        ],
+        "sum_abs_dW_over_sqrt_nT": [
+          0.9999999999999997,
+          0.9999999999999997,
+          0.9999999999999997,
+          0.9999999999999997,
+          0.9999999999999997
+        ],
+        "sum_abs_dW_constant_expected": 1.0
+      },
+      {
+        "n": 10000,
+        "n_paths": 5,
+        "sum_dW_sq_max_abs_deviation_from_T": 2.220446049250313e-16,
+        "sum_dW_sq_values": [
+          1.0000000000000002,
+          1.0000000000000002,
+          1.0000000000000002,
+          1.0000000000000002,
+          1.0000000000000002
+        ],
+        "sum_abs_dW_over_sqrt_nT": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "sum_abs_dW_constant_expected": 1.0
+      },
+      {
+        "n": 100000,
+        "n_paths": 5,
+        "sum_dW_sq_max_abs_deviation_from_T": 0.0,
+        "sum_dW_sq_values": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "sum_abs_dW_over_sqrt_nT": [
+          0.9999999999999997,
+          0.9999999999999997,
+          0.9999999999999997,
+          0.9999999999999997,
+          0.9999999999999997
+        ],
+        "sum_abs_dW_constant_expected": 1.0
+      },
+      {
+        "n": 1000000,
+        "n_paths": 5,
+        "sum_dW_sq_max_abs_deviation_from_T": 4.440892098500626e-16,
+        "sum_dW_sq_values": [
+          1.0000000000000004,
+          1.0000000000000004,
+          1.0000000000000004,
+          1.0000000000000004,
+          1.0000000000000004
+        ],
+        "sum_abs_dW_over_sqrt_nT": [
+          1.0000000000000004,
+          1.0000000000000004,
+          1.0000000000000004,
+          1.0000000000000004,
+          1.0000000000000004
+        ],
+        "sum_abs_dW_constant_expected": 1.0
+      }
+    ],
+    "slopes": {
+      "sd_sum_dW_sq": -0.5074309708535499,
+      "sum_abs_dW": 0.49993199607161326,
+      "rms_sum_dW_dt": -1.0,
+      "sum_dt_sq": -1.0000000000000002,
+      "sum_abs_dW_cubed": -0.5003824845206983,
+      "smooth_sum_df_sq": -0.9999712807656828
+    },
+    "constants": {
+      "sqrt_2_over_pi": 0.7978845608028654,
+      "two_pi_sq": 19.739208802178716,
+      "E_abs_Z_cubed": 1.5957691216057308
+    }
+  },
+  "checks": [
+    {
+      "claim": "C1 n=1e+02: mean Sum (dW)^2 within 5 s.e. of T",
+      "measured": 1.003206389140109,
+      "expected": 1.0,
+      "tolerance": 0.035355339059327376,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 n=1e+02: sd of Sum (dW)^2 across paths is T*sqrt(2/n)",
+      "measured": 0.15033490796363366,
+      "expected": 0.1414213562373095,
+      "tolerance": 0.15,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C1 n=1e+02: every path within 5 sd of T",
+      "measured": 3.0842695130647897,
+      "expected": 0.0,
+      "tolerance": 5.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 n=1e+02: a single (dW)^2/dt has relative sd sqrt 2 (the terms are wild)",
+      "measured": 1.3938468970920526,
+      "expected": 1.4142135623730951,
+      "tolerance": 0.02,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C2 n=1e+02: Sum |dW| / sqrt(nT) is sqrt(2/pi)",
+      "measured": 0.7992120251267879,
+      "expected": 0.7978845608028654,
+      "tolerance": 0.015,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C4 n=1e+02: Sum (dt)^2 = T dt",
+      "measured": 0.01,
+      "expected": 0.01,
+      "tolerance": 1e-09,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C1 n=1e+03: mean Sum (dW)^2 within 5 s.e. of T",
+      "measured": 0.9975676328474219,
+      "expected": 1.0,
+      "tolerance": 0.011180339887498949,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 n=1e+03: sd of Sum (dW)^2 across paths is T*sqrt(2/n)",
+      "measured": 0.04409818434873525,
+      "expected": 0.044721359549995794,
+      "tolerance": 0.15,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C1 n=1e+03: every path within 5 sd of T",
+      "measured": 2.8420268599270853,
+      "expected": 0.0,
+      "tolerance": 5.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 n=1e+03: a single (dW)^2/dt has relative sd sqrt 2 (the terms are wild)",
+      "measured": 1.4128194111864365,
+      "expected": 1.4142135623730951,
+      "tolerance": 0.02,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C2 n=1e+03: Sum |dW| / sqrt(nT) is sqrt(2/pi)",
+      "measured": 0.7964479825960934,
+      "expected": 0.7978845608028654,
+      "tolerance": 0.015,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C4 n=1e+03: Sum (dt)^2 = T dt",
+      "measured": 0.001,
+      "expected": 0.001,
+      "tolerance": 1e-09,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C1 n=1e+04: mean Sum (dW)^2 within 5 s.e. of T",
+      "measured": 1.0004579521755224,
+      "expected": 1.0,
+      "tolerance": 0.0035355339059327377,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 n=1e+04: sd of Sum (dW)^2 across paths is T*sqrt(2/n)",
+      "measured": 0.014342075310177066,
+      "expected": 0.01414213562373095,
+      "tolerance": 0.15,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C1 n=1e+04: every path within 5 sd of T",
+      "measured": 3.278975512518264,
+      "expected": 0.0,
+      "tolerance": 5.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 n=1e+04: a single (dW)^2/dt has relative sd sqrt 2 (the terms are wild)",
+      "measured": 1.4143123639039468,
+      "expected": 1.4142135623730951,
+      "tolerance": 0.02,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C2 n=1e+04: Sum |dW| / sqrt(nT) is sqrt(2/pi)",
+      "measured": 0.7981992977868235,
+      "expected": 0.7978845608028654,
+      "tolerance": 0.015,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C4 n=1e+04: Sum (dt)^2 = T dt",
+      "measured": 0.0001,
+      "expected": 0.0001,
+      "tolerance": 1e-09,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C1 n=1e+05: mean Sum (dW)^2 within 5 s.e. of T",
+      "measured": 0.9999190936620306,
+      "expected": 1.0,
+      "tolerance": 0.001118033988749895,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 n=1e+05: sd of Sum (dW)^2 across paths is T*sqrt(2/n)",
+      "measured": 0.004357648439039204,
+      "expected": 0.00447213595499958,
+      "tolerance": 0.15,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C1 n=1e+05: every path within 5 sd of T",
+      "measured": 3.1019524370837446,
+      "expected": 0.0,
+      "tolerance": 5.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 n=1e+05: a single (dW)^2/dt has relative sd sqrt 2 (the terms are wild)",
+      "measured": 1.414156685944767,
+      "expected": 1.4142135623730951,
+      "tolerance": 0.02,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C2 n=1e+05: Sum |dW| / sqrt(nT) is sqrt(2/pi)",
+      "measured": 0.7978464184180206,
+      "expected": 0.7978845608028654,
+      "tolerance": 0.015,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C4 n=1e+05: Sum (dt)^2 = T dt",
+      "measured": 1e-05,
+      "expected": 1e-05,
+      "tolerance": 1e-09,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C1 n=1e+06: mean Sum (dW)^2 within 5 s.e. of T",
+      "measured": 0.9999728628387244,
+      "expected": 1.0,
+      "tolerance": 0.00035355339059327376,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 n=1e+06: sd of Sum (dW)^2 across paths is T*sqrt(2/n)",
+      "measured": 0.0013883189165567985,
+      "expected": 0.001414213562373095,
+      "tolerance": 0.15,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C1 n=1e+06: every path within 5 sd of T",
+      "measured": 3.5075953859946645,
+      "expected": 0.0,
+      "tolerance": 5.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 n=1e+06: a single (dW)^2/dt has relative sd sqrt 2 (the terms are wild)",
+      "measured": 1.4140881230194697,
+      "expected": 1.4142135623730951,
+      "tolerance": 0.02,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C2 n=1e+06: Sum |dW| / sqrt(nT) is sqrt(2/pi)",
+      "measured": 0.7978863741162652,
+      "expected": 0.7978845608028654,
+      "tolerance": 0.015,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C4 n=1e+06: Sum (dt)^2 = T dt",
+      "measured": 1e-06,
+      "expected": 1e-06,
+      "tolerance": 1e-09,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C1: log-log slope of sd(Sum (dW)^2) vs n is -0.5",
+      "measured": -0.5074309708535499,
+      "expected": -0.5,
+      "tolerance": 0.03,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2: log-log slope of Sum |dW| vs n is +0.5",
+      "measured": 0.49993199607161326,
+      "expected": 0.5,
+      "tolerance": 0.01,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4: log-log slope of rms Sum dW.dt vs n is -1",
+      "measured": -1.0,
+      "expected": -1.0,
+      "tolerance": 0.03,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4: log-log slope of Sum (dt)^2 vs n is -1",
+      "measured": -1.0000000000000002,
+      "expected": -1.0,
+      "tolerance": 1e-09,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4: log-log slope of Sum |dW|^3 vs n is -0.5",
+      "measured": -0.5003824845206983,
+      "expected": -0.5,
+      "tolerance": 0.03,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 independence (n=1e+04, 20,000 paths): corr(Sum (dW)^2, W_T) is 0",
+      "measured": -0.006553740665555764,
+      "expected": 0.0,
+      "tolerance": 0.03,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 independence (n=1e+04): corr(Sum (dW)^2, max|W|) is small",
+      "measured": 0.02319147463677088,
+      "expected": 0.0,
+      "tolerance": 0.05,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 independence (n=1e+04): sd of Sum (dW)^2 is T*sqrt(2/n)",
+      "measured": 0.01417321256244762,
+      "expected": 0.01414213562373095,
+      "tolerance": 0.03,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C3 n=1e+02: n * Sum (df)^2 is 2 pi^2 (so Sum (df)^2 -> 0 like 1/n)",
+      "measured": 19.73271571728438,
+      "expected": 19.739208802178716,
+      "tolerance": 0.01,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C3 n=1e+02: Sum |df| is 4",
+      "measured": 4.0,
+      "expected": 4.0,
+      "tolerance": 0.001,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C3 n=1e+03: n * Sum (df)^2 is 2 pi^2 (so Sum (df)^2 -> 0 like 1/n)",
+      "measured": 19.739143862870147,
+      "expected": 19.739208802178716,
+      "tolerance": 0.01,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C3 n=1e+03: Sum |df| is 4",
+      "measured": 3.9999999999999996,
+      "expected": 4.0,
+      "tolerance": 0.001,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C3 n=1e+04: n * Sum (df)^2 is 2 pi^2 (so Sum (df)^2 -> 0 like 1/n)",
+      "measured": 19.73920815278478,
+      "expected": 19.739208802178716,
+      "tolerance": 0.01,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C3 n=1e+04: Sum |df| is 4",
+      "measured": 4.0,
+      "expected": 4.0,
+      "tolerance": 0.001,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C3 n=1e+05: n * Sum (df)^2 is 2 pi^2 (so Sum (df)^2 -> 0 like 1/n)",
+      "measured": 19.739208795684775,
+      "expected": 19.739208802178716,
+      "tolerance": 0.01,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C3 n=1e+05: Sum |df| is 4",
+      "measured": 4.0,
+      "expected": 4.0,
+      "tolerance": 0.001,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C3 n=1e+06: n * Sum (df)^2 is 2 pi^2 (so Sum (df)^2 -> 0 like 1/n)",
+      "measured": 19.73920880211378,
+      "expected": 19.739208802178716,
+      "tolerance": 0.01,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C3 n=1e+06: Sum |df| is 4",
+      "measured": 4.0,
+      "expected": 4.0,
+      "tolerance": 0.001,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C3: log-log slope of Sum (df)^2 vs n is -1",
+      "measured": -0.9999712807656828,
+      "expected": -1.0,
+      "tolerance": 0.001,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C5 coin n=1e+02: Sum (dW)^2 = T exactly, every path",
+      "measured": 4.440892098500626e-16,
+      "expected": 0.0,
+      "tolerance": 1e-09,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C5 coin n=1e+02: Sum |dW| / sqrt(nT) = 1, every path",
+      "measured": 0.9999999999999998,
+      "expected": 1.0,
+      "tolerance": 1e-09,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C5 coin n=1e+03: Sum (dW)^2 = T exactly, every path",
+      "measured": 4.440892098500626e-16,
+      "expected": 0.0,
+      "tolerance": 1e-09,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C5 coin n=1e+03: Sum |dW| / sqrt(nT) = 1, every path",
+      "measured": 0.9999999999999997,
+      "expected": 1.0,
+      "tolerance": 1e-09,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C5 coin n=1e+04: Sum (dW)^2 = T exactly, every path",
+      "measured": 2.220446049250313e-16,
+      "expected": 0.0,
+      "tolerance": 1e-09,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C5 coin n=1e+04: Sum |dW| / sqrt(nT) = 1, every path",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 1e-09,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C5 coin n=1e+05: Sum (dW)^2 = T exactly, every path",
+      "measured": 0.0,
+      "expected": 0.0,
+      "tolerance": 1e-09,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C5 coin n=1e+05: Sum |dW| / sqrt(nT) = 1, every path",
+      "measured": 0.9999999999999997,
+      "expected": 1.0,
+      "tolerance": 1e-09,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C5 coin n=1e+06: Sum (dW)^2 = T exactly, every path",
+      "measured": 4.440892098500626e-16,
+      "expected": 0.0,
+      "tolerance": 1e-09,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C5 coin n=1e+06: Sum |dW| / sqrt(nT) = 1, every path",
+      "measured": 1.0000000000000004,
+      "expected": 1.0,
+      "tolerance": 1e-09,
+      "mode": "rel",
+      "pass": true
+    }
+  ]
+}

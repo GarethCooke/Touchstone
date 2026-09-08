@@ -222,8 +222,8 @@ approved by the owner; the draft reviewed against I1. No tollgate — the sessio
 review.
 
 - ☑ S1 · 2.1 Random walks and scaling — evidence: `docs/evidence/S1/`
-- ☑ S2 · 2.2 Brownian motionn — evidence: `docs/evidence/S2/`
-- ☐ S3 · 2.3 Quadratic variation
+- ☑ S2 · 2.2 Brownian motion — evidence: `docs/evidence/S2/`
+- ☑ S3 · 2.3 Quadratic variation — evidence: `docs/evidence/S3/summary.md`
 - ☐ S4 · 2.4 The Itô integral
 - ☐ S5 · 2.5 Itô's lemma
 - ☐ S6 · 2.6 SDEs and geometric Brownian motion
