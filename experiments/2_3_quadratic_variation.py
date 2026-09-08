@@ -34,12 +34,17 @@ fails". Five claims, each measured:
 
 Run from the repository root:
 
-    uv run experiments/2_3_quadratic_variation.py [--seed 20260906]
+    uv run experiments/2_3_quadratic_variation.py [--seed 20260906] [--quick]
 
 Writes 2_3_quadratic_variation.json beside this file: parameters in, results
 out, no timestamps -- same seed, same file (I6). No plotting here; the site
 draws (see experiments/README.md; the counter is demo D2, which should check
 itself against this file). Exits non-zero if any check fails.
+
+--quick runs a tenth of the paths (about 8 s instead of 40) for the learn
+site's build-time snippet check (I3): the statistical tolerances widen by
+sqrt(400 / n_paths) so the same claims are still asserted, and NO JSON is
+written -- the committed result is always the full run.
 """
 
 from __future__ import annotations
@@ -198,6 +203,10 @@ def loglog_slope(xs, ys) -> float:
 def build_checks(res, params) -> list[dict]:
     checks = []
     T = params["T"]
+    # Statistical tolerances are set for the full run; a smaller run widens them
+    # by the square root of the path-count ratio (1.0 for the full run).
+    slack = sqrt(400 / params["nested_grids"]["n_paths"])
+    slack_ind = sqrt(20_000 / params["independence"]["n_paths"])
 
     def add(claim, measured, expected, tol, mode="abs"):
         ok = abs(measured - expected) <= tol if mode == "abs" else abs(measured / expected - 1) <= tol
@@ -210,34 +219,34 @@ def build_checks(res, params) -> list[dict]:
         add(f"C1 n={n:.0e}: mean Sum (dW)^2 within 5 s.e. of T",
             q["mean"], T, 5 * q["sd_expected"] / sqrt(m))
         add(f"C1 n={n:.0e}: sd of Sum (dW)^2 across paths is T*sqrt(2/n)",
-            q["sd"], q["sd_expected"], 0.15, "rel")
+            q["sd"], q["sd_expected"], 0.15 * slack, "rel")
         add(f"C1 n={n:.0e}: every path within 5 sd of T",
             q["max_abs_deviation_from_T_in_sd"], 0.0, 5.0)
         add(f"C1 n={n:.0e}: a single (dW)^2/dt has relative sd sqrt 2 (the terms are wild)",
-            q["single_term_relative_sd_mean"], sqrt(2.0), 0.02, "rel")
+            q["single_term_relative_sd_mean"], sqrt(2.0), 0.02 * slack, "rel")
         a = g["sum_abs_dW"]
         add(f"C2 n={n:.0e}: Sum |dW| / sqrt(nT) is sqrt(2/pi)",
-            a["mean_over_sqrt_nT"], SQRT_2_OVER_PI, 0.015, "rel")
+            a["mean_over_sqrt_nT"], SQRT_2_OVER_PI, 0.015 * slack, "rel")
         add(f"C4 n={n:.0e}: Sum (dt)^2 = T dt", g["sum_dt_sq"]["value"], T * g["dt"], 1e-9, "rel")
 
     add("C1: log-log slope of sd(Sum (dW)^2) vs n is -0.5",
-        res["slopes"]["sd_sum_dW_sq"], -0.5, 0.03)
+        res["slopes"]["sd_sum_dW_sq"], -0.5, 0.03 * slack)
     add("C2: log-log slope of Sum |dW| vs n is +0.5",
         res["slopes"]["sum_abs_dW"], 0.5, 0.01)
     add("C4: log-log slope of rms Sum dW.dt vs n is -1",
-        res["slopes"]["rms_sum_dW_dt"], -1.0, 0.03)
+        res["slopes"]["rms_sum_dW_dt"], -1.0, 0.03 * slack)
     add("C4: log-log slope of Sum (dt)^2 vs n is -1",
         res["slopes"]["sum_dt_sq"], -1.0, 1e-9)
     add("C4: log-log slope of Sum |dW|^3 vs n is -0.5",
-        res["slopes"]["sum_abs_dW_cubed"], -0.5, 0.03)
+        res["slopes"]["sum_abs_dW_cubed"], -0.5, 0.03 * slack)
 
     ind = res["independence"]
     add(f"C1 independence (n={ind['n']:.0e}, {ind['n_paths']:,} paths): "
-        "corr(Sum (dW)^2, W_T) is 0", ind["corr_with_W_T"], 0.0, 0.03)
+        "corr(Sum (dW)^2, W_T) is 0", ind["corr_with_W_T"], 0.0, 0.03 * slack_ind)
     add(f"C1 independence (n={ind['n']:.0e}): corr(Sum (dW)^2, max|W|) is small",
-        ind["corr_with_max_abs_W"], 0.0, 0.05)
+        ind["corr_with_max_abs_W"], 0.0, 0.05 * slack_ind)
     add(f"C1 independence (n={ind['n']:.0e}): sd of Sum (dW)^2 is T*sqrt(2/n)",
-        ind["sd"], ind["sd_expected"], 0.03, "rel")
+        ind["sd"], ind["sd_expected"], 0.03 * slack_ind, "rel")
 
     for s in res["smooth"]:
         n = s["n"]
@@ -260,6 +269,8 @@ def build_checks(res, params) -> list[dict]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--seed", type=int, default=20260906)
+    parser.add_argument("--quick", action="store_true",
+                        help="a tenth of the paths, wider tolerances, no JSON written")
     args = parser.parse_args()
 
     params = {
@@ -268,11 +279,11 @@ def main() -> int:
         "nested_grids": {
             "n_fine": 1_000_000,
             "coarsen_by": [10_000, 1_000, 100, 10, 1],   # n = 10^2, 10^3, 10^4, 10^5, 10^6
-            "n_paths": 400,
+            "n_paths": 40 if args.quick else 400,
             "chunk_paths": 5,      # memory only: draws are consumed row by row, so the paths do not depend on it
             "keep_first_paths": 5,
         },
-        "independence": {"n": 10_000, "n_paths": 20_000, "chunk_paths": 2_000},
+        "independence": {"n": 10_000, "n_paths": 2_000 if args.quick else 20_000, "chunk_paths": 2_000},
         "smooth": {"f": "sin(2*pi*t)", "ns": [100, 1_000, 10_000, 100_000, 1_000_000]},
         "coin": {"ns": [100, 1_000, 10_000, 100_000, 1_000_000], "n_paths": 5},
     }
@@ -340,15 +351,18 @@ def main() -> int:
         "checks": checks,
     }
     out_path = Path(__file__).with_suffix(".json")
-    with open(out_path, "w", encoding="utf-8", newline="\n") as f:
-        json.dump(out, f, indent=2)
-        f.write("\n")
+    if args.quick:
+        print(f"[2.3] --quick: {out_path.name} NOT written (the committed result is the full run)")
+    else:
+        with open(out_path, "w", encoding="utf-8", newline="\n") as f:
+            json.dump(out, f, indent=2)
+            f.write("\n")
 
     failed = [c for c in checks if not c["pass"]]
     for c in checks:
         print(f"  {'PASS' if c['pass'] else 'FAIL'}  {c['claim']}  "
               f"({c['measured']:.4g} vs {c['expected']:.4g})")
-    print(f"[2.3] wrote {out_path.name} in {time.perf_counter() - t0:.1f}s "
+    print(f"[2.3] {'checked (--quick)' if args.quick else 'wrote ' + out_path.name} in {time.perf_counter() - t0:.1f}s "
           f"({len(checks) - len(failed)}/{len(checks)} checks pass)")
     return 1 if failed else 0
 
