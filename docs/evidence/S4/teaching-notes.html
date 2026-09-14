@@ -1,0 +1,761 @@
+<title>S4 · The Itô Integral</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #F4F6F9; --card: #FCFCFD; --ink: #1B2330; --muted: #59657A;
+    --line: #DEE3EC; --line-faint: #E9EDF3;
+    --walk: #2E59C7; --walk-soft: rgba(46, 89, 199, 0.13);
+    --theory: #B07818; --theory-soft: rgba(176, 120, 24, 0.12);
+    --smooth: #1E7A46; --smooth-soft: rgba(30, 122, 70, 0.12);
+    --peek: #B4413A; --peek-soft: rgba(180, 65, 58, 0.12);
+    --code-bg: #EEF1F6; --good: #1E7A46; --bad: #B4413A;
+    --shadow: 0 1px 2px rgba(27, 35, 48, 0.05), 0 4px 16px rgba(27, 35, 48, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0F141D; --card: #161C27; --ink: #E6EAF2; --muted: #97A2B5;
+      --line: #29323F; --line-faint: #1F2733;
+      --walk: #5B7FE3; --walk-soft: rgba(91, 127, 227, 0.16);
+      --theory: #B08422; --theory-soft: rgba(176, 132, 34, 0.16);
+      --smooth: #4CAF79; --smooth-soft: rgba(76, 175, 121, 0.16);
+      --peek: #D9736B; --peek-soft: rgba(217, 115, 107, 0.16);
+      --code-bg: #1B2230; --good: #4CAF79; --bad: #D9736B;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0F141D; --card: #161C27; --ink: #E6EAF2; --muted: #97A2B5;
+    --line: #29323F; --line-faint: #1F2733;
+    --walk: #5B7FE3; --walk-soft: rgba(91, 127, 227, 0.16);
+    --theory: #B08422; --theory-soft: rgba(176, 132, 34, 0.16);
+    --smooth: #4CAF79; --smooth-soft: rgba(76, 175, 121, 0.16);
+    --peek: #D9736B; --peek-soft: rgba(217, 115, 107, 0.16);
+    --code-bg: #1B2230; --good: #4CAF79; --bad: #D9736B;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ground); color: var(--ink);
+    font-family: "Source Serif 4", Georgia, "Times New Roman", serif; font-size: 17px; line-height: 1.68;
+    -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 40px 20px 80px; }
+  .eyebrow { font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 11.5px; font-weight: 600;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  header.top { padding: 28px 0 8px; border-bottom: 1px solid var(--line); margin-bottom: 36px; }
+  header.top .eyebrow .sess { color: var(--walk); }
+  h1 { font-family: "Source Serif 4", Georgia, serif; font-size: clamp(30px, 6vw, 42px); font-weight: 700;
+    line-height: 1.12; letter-spacing: -0.01em; margin: 10px 0 12px; text-wrap: balance; }
+  .standfirst { color: var(--muted); font-size: 16px; margin: 0 0 18px; max-width: 62ch; }
+  .standfirst strong { color: var(--ink); font-weight: 600; }
+  section { margin: 44px 0; }
+  h2 { font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 21px; font-weight: 600;
+    letter-spacing: -0.005em; margin: 6px 0 14px; text-wrap: balance; }
+  h2 .stepno { color: var(--walk); font-variant-numeric: tabular-nums; margin-right: 6px; }
+  h3 { font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 15.5px; font-weight: 600; margin: 22px 0 8px; }
+  p { margin: 0 0 14px; max-width: 66ch; }
+  .note { color: var(--muted); font-size: 15px; max-width: 66ch; }
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, Consolas, monospace; font-size: 0.86em; }
+  code { background: var(--code-bg); border-radius: 4px; padding: 0.1em 0.35em; }
+  pre { background: var(--code-bg); border: 1px solid var(--line-faint); border-radius: 8px; padding: 14px 16px;
+    overflow-x: auto; font-size: 14px; line-height: 1.55; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+  .predictions { display: flex; flex-direction: column; gap: 12px; }
+  .prediction { display: flex; gap: 14px; align-items: baseline; }
+  .prediction .tag { flex: none; font-family: "IBM Plex Sans", sans-serif; font-size: 11px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--walk); border: 1px solid var(--walk);
+    border-radius: 99px; padding: 2px 10px; white-space: nowrap; }
+  .prediction q { font-style: italic; }
+  .prediction .asked { font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 14.5px; color: var(--muted); }
+  .verdict { font-family: "IBM Plex Sans", sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+  .verdict.ok { color: var(--good); } .verdict.no { color: var(--bad); } .verdict.half { color: var(--theory); }
+  ul.steps { margin: 6px 0 16px; padding-left: 22px; max-width: 66ch; }
+  ul.steps li { margin: 0 0 6px; }
+  figure { margin: 26px 0; }
+  .figbox { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; box-shadow: var(--shadow); }
+  canvas { display: block; width: 100%; height: auto; }
+  .figbox canvas { cursor: zoom-in; }
+  .lightbox { position: fixed; inset: 0; z-index: 50; background: var(--ground); display: flex; flex-direction: column; }
+  .lightbox[hidden] { display: none; }
+  .lightbox .bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line);
+    font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 13px; color: var(--muted); flex: none; }
+  .lightbox .bar button { font: inherit; font-weight: 600; color: var(--ink); background: var(--card); border: 1px solid var(--line);
+    border-radius: 6px; padding: 4px 12px; cursor: pointer; min-width: 36px; }
+  .lightbox .bar button:focus-visible { outline: 2px solid var(--walk); outline-offset: 2px; }
+  .lightbox .bar .spacer { flex: 1; }
+  .lightbox .stage { flex: 1; overflow: hidden; position: relative; touch-action: none; cursor: grab; }
+  .lightbox .stage.dragging { cursor: grabbing; }
+  .lightbox .stage canvas { position: absolute; left: 0; top: 0; width: auto; height: auto; transform-origin: 0 0; }
+  figcaption { font-size: 14px; color: var(--muted); margin-top: 10px; max-width: 76ch; }
+  .figbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; font-family: "IBM Plex Sans", sans-serif; font-size: 12.5px; color: var(--muted); }
+  .swatch { width: 14px; height: 3px; border-radius: 2px; }
+  .swatch.dash { background: repeating-linear-gradient(90deg, currentColor 0 4px, transparent 4px 7px); height: 2px; }
+  .tablewrap { overflow-x: auto; margin: 14px 0; }
+  table { border-collapse: collapse; width: 100%; font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 14px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--line-faint); text-align: right; white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; }
+  td.hi { color: var(--walk); font-weight: 600; }
+  td.warn { color: var(--theory); font-weight: 600; }
+  td.pk { color: var(--peek); font-weight: 600; }
+  td.sm { color: var(--smooth); font-weight: 600; }
+  td.dim { color: var(--muted); }
+  .aside { border-left: 3px solid var(--theory); background: var(--theory-soft); padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 18px 0; }
+  .aside .eyebrow { color: var(--theory); margin-bottom: 4px; }
+  .aside p { font-size: 15.5px; }
+  .identity { margin: 16px 0; padding: 16px 20px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); }
+  .identity .line { font-family: "Source Serif 4", Georgia, serif; font-size: 19px; font-weight: 600; margin: 4px 0; overflow-x: auto; white-space: nowrap; }
+  .identity .line .l { color: var(--walk); } .identity .line .m { color: var(--theory); } .identity .line .r { color: var(--peek); }
+  .identity .why { font-size: 14.5px; color: var(--muted); font-family: "IBM Plex Sans", system-ui, sans-serif; margin: 2px 0 10px; }
+  .grid3 { display: grid; grid-template-columns: auto 1fr 1fr 1fr; gap: 0; margin: 16px 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--card); box-shadow: var(--shadow);
+    font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 14.5px; }
+  .grid3 > div { padding: 12px 14px; border-bottom: 1px solid var(--line-faint); }
+  .grid3 > div.head, .grid3 > div.rowh { color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+  .grid3 > div.head { border-bottom: 1px solid var(--line); }
+  .grid3 > div:nth-last-child(-n+4) { border-bottom: none; }
+  .grid3 .l { color: var(--walk); font-weight: 600; } .grid3 .m { color: var(--theory); font-weight: 600; } .grid3 .r { color: var(--peek); font-weight: 600; }
+  .q { margin: 18px 0; padding: 16px 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+  .q .qno { font-family: "IBM Plex Sans", sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: var(--walk); text-transform: uppercase; }
+  .q p.stem { font-weight: 600; margin: 6px 0 10px; }
+  .q ul { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .q li { padding-left: 26px; position: relative; font-size: 15.5px; }
+  .q li::before { position: absolute; left: 0; top: 0; font-family: "IBM Plex Sans", sans-serif; font-weight: 600; }
+  .q li.ok::before { content: "✓"; color: var(--good); }
+  .q li.no::before { content: "✗"; color: var(--bad); }
+  .q li em.mis { color: var(--muted); font-style: italic; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+  @media (max-width: 560px) { .grid3 { font-size: 13px; grid-template-columns: auto 1fr 1fr 1fr; } .grid3 > div { padding: 10px 8px; } }
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Touchstone · study track · <span class="sess">Session S4</span> — teaching notes</div>
+  <h1>The Itô integral</h1>
+  <p class="standfirst">Working material for <strong>page 2.4</strong>, which you write in your own words (I2 — none of this is page prose). Pitch: <strong>solid</strong>, as at S1–S3. The experiment has already run on your machine; every number below is in <code>2_4_ito_integral.json</code> (seed 20260908, T = 1, 108 checks). The page has one job: show that Σ W·ΔW has <em>three</em> limits depending on where in each step W is read, that the gaps between them are exactly 2.3's Σ(ΔW)², and that finance forces the left-endpoint one.</p>
+</header>
+
+<!-- ============ 0 · PREDICTIONS ============ -->
+<section>
+  <div class="eyebrow">On the record</div>
+  <h2>Your predictions, before any code ran</h2>
+  <p class="note" style="margin-bottom:12px"><strong>Setup as posed:</strong> one Brownian path W on [0, T] with T = 1, chopped into n equal steps of length dt = T/n. Grid times tᵢ = i·dt; the increment over one step is ΔWᵢ = W(tᵢ₊₁) − W(tᵢ). The object is the sum Σ W(tᵢ)·ΔWᵢ — the value of W at the <em>start</em> of each step, times the change over that step, added up over the grid. It is the Riemann sum that defines ∫₀ᵀ W dW. Gut answers, not derivations; the 2.3 identity W_T² = 2Σ W·ΔW + Σ(ΔW)² was declared fair game.</p>
+  <div class="card predictions">
+    <div class="prediction"><span class="tag">P1</span><div><span class="asked">Σ W(tᵢ)·ΔWᵢ with the left endpoint, as n → ∞: what number, in terms of W_T and T? (W_T is the path's value at the end, T = 1.)</span><br>You: <q>T·W_T</q> &nbsp;<span class="verdict no">½W_T² − ½T</span> — §3; units alone rule it out (§3 aside)</div></div>
+    <div class="prediction"><span class="tag">P2</span><div><span class="asked">Same sum, but W read at the midpoint of each step, W((tᵢ + tᵢ₊₁)/2), instead of the start: same limit or a different one? If different, by how much?</span><br>You: <q>T·W_T</q> (same) &nbsp;<span class="verdict no">different: ½W_T², higher by exactly ½Σ(ΔW)² → ½T</span> — §3</div></div>
+    <div class="prediction"><span class="tag">P3</span><div><span class="asked">Same sum with W read at the right endpoint W(tᵢ₊₁): same, or different, and by how much?</span><br>You: <q>T·W_T</q> (same) &nbsp;<span class="verdict no">different: ½W_T² + ½T, higher by exactly Σ(ΔW)² → T</span> — §3</div></div>
+    <div class="prediction"><span class="tag">P4</span><div><span class="asked">E[Σ W(tᵢ)·ΔWᵢ] for the left-endpoint sum — zero, T, or something else? And E of the midpoint version?</span><br>You: <q>0</q> &nbsp;<span class="verdict ok">right for the left sum</span>; <span class="verdict half">the midpoint version has E = ½T</span> — §4</div></div>
+    <div class="prediction"><span class="tag">P5</span><div><span class="asked">In finance, why must the integrand be read at the left endpoint? One sentence.</span><br>You: <q>Because that represents the value that the change affects</q> &nbsp;<span class="verdict ok">right idea</span> — §5 sharpens it</div></div>
+  </div>
+  <p class="note" style="margin-top:14px">P1 and P2/P3 are the page's target misconceptions and are draft check distractors in §8. P4 and P5 together are the finance half of the page: you had both, and the work is in saying <em>why</em> the left endpoint is the one with zero mean.</p>
+</section>
+
+<!-- ============ 1 · WHAT RAN ============ -->
+<section>
+  <div class="eyebrow">Numbers first</div>
+  <h2><span class="stepno">1</span>The experiment on your disk</h2>
+  <p><code>experiments/2_4_ito_integral.py</code> wrote <code>2_4_ito_integral.json</code> in 36 s on your machine (numpy 2.5.2, via <code>uv run --frozen</code>); the container run (numpy 2.4.4) agrees to every printed digit except the 16th significant figure of the fitted slopes and one correlation, as in S3. Four claims, all measured:</p>
+  <ul class="steps">
+    <li><strong>C1</strong> — 400 paths, each drawn once at 2 × 10⁶ steps and read on five grids n = 10², 10³, 10⁴, 10⁵, 10⁶ (the same path five times, as in 2.3). The path is drawn at <em>twice</em> the finest reported grid so that every grid's <em>midpoints</em> are real path values: the n = 10⁶ grid is the even drawn points and its midpoints are the odd ones; the coarser grids stride by 20, 200, 2,000, 20,000 — all even. Interpolating a midpoint would be wrong for Brownian motion (the true midpoint is the endpoint average plus an independent N(0, dt/4) kick), and it would force δ₁ = δ₂ on every step, killing the term the midpoint result depends on. On each grid, three sums: W read at the start of each step, at the midpoint, at the end.</li>
+    <li><strong>C2</strong> — 20,000 fresh paths at n = 10⁴ for the expectations: mean and mean-square of the left sum, the running sum at t = 0.25, 0.5, 0.75, 1, and the two halves of the sum against each other.</li>
+    <li><strong>C3</strong> — the smooth curve x(t) = t² on the same five grids: the same three sums.</li>
+    <li><strong>C4</strong> — the ±√dt coin walk from 2.1, five paths on each grid.</li>
+  </ul>
+  <p class="note">Notation for everything below. The grid is t₀ = 0, t₁ = dt, …, tₙ = T with dt = T/n. ΔWᵢ = W(tᵢ₊₁) − W(tᵢ) is the change over step i. The three sums are Σ W(tᵢ)·ΔWᵢ (<span style="color:var(--walk);font-weight:600">left</span>), Σ W(mᵢ)·ΔWᵢ with mᵢ = (tᵢ + tᵢ₊₁)/2 (<span style="color:var(--theory);font-weight:600">mid</span>), and Σ W(tᵢ₊₁)·ΔWᵢ (<span style="color:var(--peek);font-weight:600">right</span>). W_T is the path's end value. ∫₀ᵀ W dW — read "the integral of W with respect to W" — is the name for the limit of the left sum; the page's job is to say why <em>that</em> one gets the name.</p>
+</section>
+
+<!-- ============ 2 · ONE PATH ============ -->
+<section>
+  <div class="eyebrow">What the JSON says</div>
+  <h2><span class="stepno">2</span>One path, five grids, three answers</h2>
+  <p>Path 1 ends at W_T = 1.2621. Its three sums, read on finer and finer grids:</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>n</th><th>dt</th><th>left</th><th>mid</th><th>right</th><th>Σ(ΔW)²</th></tr></thead>
+    <tbody>
+      <tr><td>100</td><td class="dim">10⁻²</td><td class="hi">0.2595</td><td class="warn">0.7752</td><td class="pk">1.3334</td><td class="dim">1.0739</td></tr>
+      <tr><td>1,000</td><td class="dim">10⁻³</td><td class="hi">0.2799</td><td class="warn">0.7725</td><td class="pk">1.3131</td><td class="dim">1.0332</td></tr>
+      <tr><td>10,000</td><td class="dim">10⁻⁴</td><td class="hi">0.2993</td><td class="warn">0.7967</td><td class="pk">1.2937</td><td class="dim">0.9943</td></tr>
+      <tr><td>100,000</td><td class="dim">10⁻⁵</td><td class="hi">0.2993</td><td class="warn">0.7980</td><td class="pk">1.2937</td><td class="dim">0.9944</td></tr>
+      <tr><td>1,000,000</td><td class="dim">10⁻⁶</td><td class="hi">0.2975</td><td class="warn">0.7959</td><td class="pk">1.2955</td><td class="dim">0.9980</td></tr>
+      <tr><td><em>limit</em></td><td></td><td class="hi">½W_T² − ½T = 0.2965</td><td class="warn">½W_T² = 0.7965</td><td class="pk">½W_T² + ½T = 1.2965</td><td class="dim">T = 1</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="note"><code>results.grids[*].first_paths.{left,mid,right,sum_dW_sq}[0]</code>. Read the columns down: each settles. Read the rows across: they never meet. At every n, right − left is the Σ(ΔW)² column to the last digit, and mid − left is about half of it.</p>
+  <p>Four more paths at n = 10⁶, so the pattern is not path 1's:</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>path</th><th>W_T</th><th>left</th><th>½W_T² − ½T</th><th>mid</th><th>½W_T²</th><th>right</th><th>½W_T² + ½T</th></tr></thead>
+    <tbody>
+      <tr><td>2</td><td>−0.9467</td><td class="hi">−0.0512</td><td class="dim">−0.0518</td><td class="warn">0.4482</td><td class="dim">0.4482</td><td class="pk">0.9476</td><td class="dim">0.9482</td></tr>
+      <tr><td>3</td><td>1.9795</td><td class="hi">1.4594</td><td class="dim">1.4592</td><td class="warn">1.9589</td><td class="dim">1.9592</td><td class="pk">2.4589</td><td class="dim">2.4592</td></tr>
+      <tr><td>4</td><td>−0.8526</td><td class="hi">−0.1357</td><td class="dim">−0.1365</td><td class="warn">0.3638</td><td class="dim">0.3635</td><td class="pk">0.8627</td><td class="dim">0.8635</td></tr>
+      <tr><td>5</td><td>1.0056</td><td class="hi">0.0051</td><td class="dim">0.0056</td><td class="warn">0.5053</td><td class="dim">0.5056</td><td class="pk">1.0061</td><td class="dim">1.0056</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="note">Path 5 is the one to remember: it ends at W_T ≈ 1, and the chain rule says ∫W dW = ½W_T² ≈ ½. The Itô sum says 0.005. The path went up by one and the integral is nothing — because it also paid T = 1 in quadratic variation on the way, and the identity subtracts half of that.</p>
+
+  <figure>
+    <div class="figbox">
+      <canvas id="fig1" width="1400" height="820" aria-label="One Brownian path and its three running sums, which fan apart linearly in time"></canvas>
+      <div class="figbar">
+        <span class="chip"><span class="swatch" style="background:var(--ink)"></span>W(t)</span>
+        <span class="chip"><span class="swatch" style="background:var(--walk)"></span>left running sum</span>
+        <span class="chip"><span class="swatch" style="background:var(--theory)"></span>mid</span>
+        <span class="chip"><span class="swatch" style="background:var(--peek)"></span>right</span>
+        <span class="chip"><span class="swatch dash" style="color:var(--muted)"></span>½W(t)² − ½t, ½W(t)², ½W(t)² + ½t</span>
+      </div>
+    </div>
+    <figcaption>Click the figure to enlarge and zoom. One path drawn in this page (seeded, n = 2,000 steps; not from the JSON), and the three sums accumulated step by step as running totals I(t) = Σ over the steps before t. Top: the path. Bottom: the three running sums, each hugging its dashed target. They fan apart <em>linearly in t</em>: the gap between right and left at time t is Σ(ΔW)² up to t, which is t.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 3 · THE ALGEBRA ============ -->
+<section>
+  <div class="eyebrow">Why — no limit needed</div>
+  <h2><span class="stepno">3</span>It is 2.3's identity, rearranged</h2>
+  <p>You already wrote this in 2.3 for g(x) = x²: over one step, (W + ΔW)² − W² = 2W·ΔW + (ΔW)². Solve it for the thing 2.4 wants, W·ΔW = ½[(W + ΔW)² − W²] − ½(ΔW)², and add up the n steps. The first bracket telescopes — every W(tᵢ)² appears once with a plus and once with a minus except the ends — leaving ½W_T² − ½W₀² = ½W_T² because W₀ = 0. So on <strong>every</strong> grid, for <strong>every</strong> path:</p>
+  <div class="identity">
+    <div class="line"><span class="l">P1 · left &nbsp; Σ W(tᵢ)·ΔWᵢ</span> = ½W_T² − ½Σ(ΔW)²</div>
+    <div class="why">exact algebra, checked to 2 × 10⁻¹⁵ on 400 paths × 5 grids (<code>identities_max_abs_residual.left</code>)</div>
+    <div class="line"><span class="m">P2 · mid &nbsp; Σ W(mᵢ)·ΔWᵢ</span> = ½W_T² + ½(Σδ₁² − Σδ₂²)</div>
+    <div class="why">split each step into two half-steps with increments δ₁ (first half) and δ₂ (second half), ΔW = δ₁ + δ₂. Then W(mᵢ) = W(tᵢ) + δ₁, and the same algebra leaves the difference of the two half-step quadratic variations</div>
+    <div class="line"><span class="r">P3 · right &nbsp; Σ W(tᵢ₊₁)·ΔWᵢ</span> = ½W_T² + ½Σ(ΔW)²</div>
+    <div class="why">ΔWᵢ = W(tᵢ₊₁) − W(tᵢ) by definition, so W(tᵢ₊₁) = W(tᵢ) + ΔWᵢ. Then W(tᵢ₊₁)·ΔWᵢ = (W(tᵢ) + ΔWᵢ)·ΔWᵢ = W(tᵢ)·ΔWᵢ + (ΔWᵢ)²: each right term is the left term plus the square of the move. Sum: right = left + Σ(ΔW)², and with left = ½W_T² − ½Σ(ΔW)² that is ½W_T² + ½Σ(ΔW)²</div>
+    <div class="line">(<span class="l">left</span> + <span class="r">right</span>) / 2 = ½W_T²</div>
+    <div class="why">trapezoid: average the left and right lines and the ±½Σ(ΔW)² cancel. The chain-rule answer, exactly, on every grid — path 1 at n = 100: (0.2595 + 1.3334)/2 = 0.7965 = ½·1.2621². The midpoint sum tends to the same number but is exact only in the limit</div>
+  </div>
+  <div class="aside">
+    <div class="eyebrow">Aside — the telescoping, written out</div>
+    <p>Write Wᵢ for W(tᵢ). Then (W + ΔW)² − W² on step i is just Wᵢ₊₁² − Wᵢ², and the sum of consecutive differences collapses to last minus first — the sections of a telescope sliding into each other. For n = 3:</p>
+<pre><code>step 0:  (W₀ + ΔW₀)² − W₀²  =  W₁² − W₀²
+step 1:  (W₁ + ΔW₁)² − W₁²  =  W₂² − W₁²
+step 2:  (W₂ + ΔW₂)² − W₂²  =  W₃² − W₂²
+                              ─────────────
+sum:                          W₃² − W₀²  =  W_T²     (W₀ = 0)</code></pre>
+    <p>W₁² enters step 0 with a plus and step 1 with a minus; W₂² likewise. Only the two ends survive; no randomness is left in that step and no limit is taken. The ½[…] itself is 2.3's one-step expansion solved for the term 2.4 wants: (Wᵢ + ΔWᵢ)² − Wᵢ² = 2WᵢΔWᵢ + (ΔWᵢ)², so Wᵢ·ΔWᵢ = ½[(Wᵢ + ΔWᵢ)² − Wᵢ²] − ½(ΔWᵢ)². Sum over the grid: the first piece telescopes to ½W_T², the second is ½Σ(ΔW)². Made-up three-step check: W = 0, 0.3, −0.1, 0.5 gives ΔW = 0.3, −0.4, 0.6; the left sum is 0·0.3 + 0.3·(−0.4) + (−0.1)·0.6 = −0.18, and ½·0.5² − ½·(0.09 + 0.16 + 0.36) = 0.125 − 0.305 = −0.18. Same number at n = 3; the limit enters only when Σ(ΔW)² is replaced by T.</p>
+  </div>
+  <div class="aside">
+    <div class="eyebrow">Aside — the midpoint identity, derived</div>
+    <p>On one step write Wᵢ = W(tᵢ), Wₘ = W(mᵢ), Wᵢ₊₁ = W(tᵢ₊₁); the half-step changes are δ₁ = Wₘ − Wᵢ and δ₂ = Wᵢ₊₁ − Wₘ, so ΔWᵢ = δ₁ + δ₂ and Wₘ = Wᵢ + δ₁.</p>
+<pre><code>W(mᵢ)·ΔWᵢ = (Wᵢ + δ₁)(δ₁ + δ₂) = Wᵢ·ΔWᵢ + δ₁² + δ₁δ₂
+sum:   mid = left + Σδ₁² + Σδ₁δ₂                                 (A)
+
+left = ½W_T² − ½Σ(ΔW)²  and  Σ(ΔW)² = Σ(δ₁+δ₂)² = Σδ₁² + 2Σδ₁δ₂ + Σδ₂²
+mid  = ½W_T² − ½Σδ₁² − Σδ₁δ₂ − ½Σδ₂² + Σδ₁² + Σδ₁δ₂
+     = ½W_T² + ½(Σδ₁² − Σδ₂²)                                    (B)</code></pre>
+    <p>(A) and (B) are the same identity; the card shows (B) because the limit is then plain: Σδ₁² is a quadratic variation over n half-steps of length dt/2, so it → n·dt/2 = ½T, and Σδ₂² → ½T likewise; the difference dies and mid → ½W_T². The JSON checks both forms to 10⁻¹⁵ (<code>identities_max_abs_residual.mid</code>, <code>.mid_halves</code>). The picture: a midpoint term is Wₘ·δ₁ + Wₘ·δ₂. The second piece is a left-endpoint term on the half-step grid; the first is a <em>right</em>-endpoint term (position at the end of the first half-step, times its move), and a right-endpoint term is the left one plus the square of the move. So the midpoint sum is the left sum on 2n half-steps, peeking on every odd one — it gains Σδ₁² ≈ ½T, which is E[mid] = ½T: half an insider. Two-step check, W at t = 0, ¼, ½, ¾, 1 being 0, 0.2, 0.3, −0.1, 0.5: step 0 has δ₁ = 0.2, δ₂ = 0.1, ΔW = 0.3; step 1 has δ₁ = −0.4, δ₂ = 0.6, ΔW = 0.2. Mid sum = 0.2·0.3 + (−0.1)·0.2 = 0.04; (B) gives ½·0.5² + ½(0.20 − 0.37) = 0.04; left = 0·0.3 + 0.3·0.2 = 0.06 and (A) gives 0.06 + 0.20 + (0.02 − 0.24) = 0.04.</p>
+  </div>
+  <p>Now let n → ∞ and use the one fact 2.3 established: Σ(ΔW)² → T, path by path. The left sum (P1) goes to ½W_T² − ½T. For the midpoint (P2), each set of half-steps carries half the quadratic variation — Σδ₁² → ½T and Σδ₂² → ½T (measured: 0.5000 and 0.5000 at n = 10⁶) — so their difference dies and the midpoint sum goes to ½W_T², which is what the chain rule would have said. The right sum (P3) goes to ½W_T² + ½T. Three limits, and the two gaps between them are ½T and T: 2.3's number, halved and whole.</p>
+  <p>For a smooth curve the same three identities hold with x in place of W, and Σ(Δx)² → 0, so all three limits coincide at ½x_T². That is the whole difference between the two calculi in one line: <em>the endpoint matters exactly when Σ(Δ·)² does not vanish.</em> §6 has the numbers.</p>
+
+  <div class="aside">
+    <div class="eyebrow">Aside — three cheap checks on any candidate answer</div>
+    <p><strong>Units.</strong> W has units of √time (Var(W_t) = t, so sd is √t); ΔW likewise. W·ΔW is √time × √time = time, so the sum is time, and so is ½W_T² − ½T. T·W_T is time × √time = time^(3/2): not in the running before a single number is looked at.</p>
+    <p><strong>The factor.</strong> d(x²) = 2x dx, so x dx = ½ d(x²), so Σ x·Δx → ½x_T² for anything smooth. A candidate W_T² has the right units but is twice the chain-rule value — the ½ has been dropped. Units cannot catch this one, since W_T² and ½W_T² have the same units.</p>
+    <p><strong>Expectation.</strong> E[Σ W(tᵢ)·ΔWᵢ] = 0 (§4). E[W_T²] = T and E[½W_T²] = ½T, so neither can be the answer; the only way to bring the mean to zero is to subtract ½T, and E[½W_T² − ½T] = ½T − ½T = 0. This check kills the chain-rule answer as well as W_T², and forces the correction term.</p>
+  </div>
+
+  <h3>How fast, and with what spread</h3>
+  <p>One question: on a grid of n steps, how far is each sum from its n → ∞ value — the number it settles on as the grid is refined, the last row of the §2 table — and how fast does that gap close? Answer: it is 2.3's gap, halved. ("Limit" below always means this n → ∞ value, never a bound.)</p>
+  <p><strong>Left.</strong> Same path, two grids: the actual one with n steps, and the infinitely fine one. W_T is the path's end value, W(T); on any grid it is Σ ΔWᵢ exactly (the increments telescope to Wₙ − W₀), so it is the same number on both grids. Σ(ΔW)² is not: on the actual grid it is whatever it is, on the infinitely fine one it has become T.</p>
+<pre><code>grid value       left   =  ½W_T²  −  ½Σ(ΔW)²
+n → ∞ value      limit  =  ½W_T²  −  ½T
+                 ───────────────────────────
+difference   left − limit =  (½W_T² − ½Σ(ΔW)²) − (½W_T² − ½T)
+                          =   0   −  ½Σ(ΔW)² + ½T
+                          =  ½T − ½Σ(ΔW)²</code></pre>
+  <p>Path 1 at n = 100, with ½W_T² = ½·1.2621² = 0.7965 and Σ(ΔW)² = 1.0739:</p>
+<pre><code>grid value       0.2595  =  0.7965  −  ½·1.0739
+n → ∞ value      0.2965  =  0.7965  −  ½·1
+                 ───────────────────────────
+difference      −0.0370  =  (0.7965 − 0.5370) − (0.7965 − 0.5)
+                         =    0     −  0.5370 + 0.5
+                         =  ½·1 − ½·1.0739</code></pre>
+  <p>The first column is the same in both rows and goes. The error is set by the second column alone: ½T minus half of this grid's Σ(ΔW)². W_T does not enter it.</p>
+  <p>So the left sum's error is ½(T − Σ(ΔW)²): half of 2.3's quadratic-variation error, with the sign flipped. 2.3 measured that error's sd as T·√(2/n); halve it: sd T/√(2n). At T = 1: n = 100 gives 0.0707 (measured 0.0722), n = 10⁶ gives 0.00071 (measured 0.00075).</p>
+  <p><strong>Right.</strong> right = ½W_T² + ½Σ(ΔW)² with limit ½W_T² + ½T, so right − limit = ½Σ(ΔW)² − ½T: the left error, sign flipped, same size on every path. Same sd, so the sd table below this section has left and mid columns only; right is omitted because it would repeat the left column.</p>
+  <p><strong>Mid.</strong> mid = ½W_T² + ½(Σδ₁² − Σδ₂²) with limit ½W_T², so mid − limit = ½(Σδ₁² − Σδ₂²). Σδ₁² is a Σ(ΔW)² over n half-steps of length dt/2: 2.3's formula with T/2 in place of T gives mean T/2 and sd (T/2)·√(2/n). Same for Σδ₂², and the two are independent (different increments), so their difference has sd √2·(T/2)·√(2/n) = T/√n. Halve it: T/(2√n). At n = 100: 0.050 (measured 0.0496). Against the left's T/√(2n) = 0.707·T/√n, the midpoint's 0.5·T/√n lands a little closer at the same n.</p>
+  <p><strong>All three</strong> have sd ∝ 1/√n, so the log-log slope of sd against n is −½; measured −0.494 for each.</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>n</th><th>sd of left error</th><th>T/√(2n)</th><th>sd of mid error</th><th>T/(2√n)</th><th>mean Σ(ΔW)²</th></tr></thead>
+    <tbody>
+      <tr><td>100</td><td class="hi">0.0722</td><td class="dim">0.0707</td><td class="warn">0.0496</td><td class="dim">0.0500</td><td class="dim">1.0075</td></tr>
+      <tr><td>1,000</td><td class="hi">0.0220</td><td class="dim">0.0224</td><td class="warn">0.0161</td><td class="dim">0.0158</td><td class="dim">1.0003</td></tr>
+      <tr><td>10,000</td><td class="hi">0.00698</td><td class="dim">0.00707</td><td class="warn">0.00516</td><td class="dim">0.00500</td><td class="dim">0.9995</td></tr>
+      <tr><td>100,000</td><td class="hi">0.00237</td><td class="dim">0.00224</td><td class="warn">0.00156</td><td class="dim">0.00158</td><td class="dim">1.0000</td></tr>
+      <tr><td>1,000,000</td><td class="hi">0.00075</td><td class="dim">0.00071</td><td class="warn">0.00054</td><td class="dim">0.00050</td><td class="dim">1.0001</td></tr>
+      <tr><td><em>log-log slope</em></td><td class="hi">−0.494</td><td class="dim">−½</td><td class="warn">−0.494</td><td class="dim">−½</td><td></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="note"><code>results.grids[*].{left_error,mid_error}.{sd,sd_expected}</code>, <code>results.slopes</code>. The sd of the right error is the left column exactly, so it is not repeated. The mean error at every n is within 5 standard errors of 0 (checked); the worst single path at n = 10⁶ is 0.0022 from its limit.</p>
+
+  <div class="aside">
+    <div class="eyebrow">Aside — the spread of the midpoint error, derived</div>
+    <p>A half-step has length dt/2, so a half-step increment is δ ~ N(0, dt/2) and δ² = (dt/2)·Z² with Z ~ N(0, 1). From 2.3, Var(Z²) = 2, so Var(δ²) = 2·(dt/2)² = dt²/2. Σδ₁² is n independent such terms: variance n·dt²/2 = T·dt/2 = T²/(2n). Σδ₂² has the same variance and is independent of Σδ₁² (different increments). The error is ½(Σδ₁² − Σδ₂²): variance ¼·(T²/(2n) + T²/(2n)) = T²/(4n); sd = T/(2√n). Units: T²/n is time², its root is time, matching the sum. Compare the left error −½(Σ(ΔW)² − T): variance ¼·Var(Σ(ΔW)²) = ¼·2T²/n = T²/(2n); sd T/√(2n) = 0.707·T/√n against the midpoint's 0.5·T/√n. The midpoint sum converges a little faster — and finance still cannot use it (§5).</p>
+  </div>
+</section>
+
+<!-- ============ 4 · MARTINGALE ============ -->
+<section>
+  <div class="eyebrow">Expectations</div>
+  <h2><span class="stepno">4</span>Zero mean, martingale, isometry — and what peeking earns</h2>
+  <p>Now 20,000 paths at n = 10⁴, and ask what the sums do <em>on average</em>. A left-endpoint term is W(tᵢ)·ΔWᵢ, where ΔWᵢ is the change over the step that starts at tᵢ. Independent increments (2.2) say ΔWᵢ knows nothing about the path before tᵢ, so it is independent of W(tᵢ), and E[W(tᵢ)·ΔWᵢ] = E[W(tᵢ)]·E[ΔWᵢ] = anything × 0 = 0. Every term has mean zero, so the sum does. A right-endpoint term is W(tᵢ₊₁)·ΔWᵢ = W(tᵢ)·ΔWᵢ + (ΔWᵢ)²: the same zero-mean piece plus a (ΔW)², mean dt. Sum n of them and the mean is n·dt = T. The midpoint gets half of that.</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>sum</th><th>mean over 20,000 paths</th><th>± s.e.</th><th>expected</th></tr></thead>
+    <tbody>
+      <tr><td>left</td><td class="hi">−0.0041</td><td class="dim">0.0049</td><td class="dim">0</td></tr>
+      <tr><td>mid</td><td class="warn">0.4959</td><td class="dim">0.0049</td><td class="dim">½T = 0.5</td></tr>
+      <tr><td>right</td><td class="pk">0.9960</td><td class="dim">0.0049</td><td class="dim">T = 1</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="note"><code>results.expectations.{left,mid,right}</code>. s.e. — standard error — is the sd of the 20,000 values divided by √20,000: how far the sample mean is expected to sit from the true mean. Each measured mean is within one s.e. of its target.</p>
+
+  <h3>Running total: a martingale in t</h3>
+  <p>Let I(t) be the left sum over the steps before t — the integral "so far". Its mean is 0 at every t, not only at T. Its mean-square grows like ½t². And the second half of the sum has no memory of the first: knowing I(½T) tells you nothing about I(T) − I(½T). That is the martingale property from 2.2 (E[X_t | F_s] = X_s: the best forecast is the present value), now for the integral rather than the path. The right sum R(t), by contrast, drifts upward at rate 1: E[R(t)] = t.</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>t</th><th>E[I(t)]</th><th>E[I(t)²]</th><th>½t²</th><th>E[R(t)]</th><th>t</th></tr></thead>
+    <tbody>
+      <tr><td>0.25</td><td class="hi">0.0017 ± 0.0013</td><td class="hi">0.0326 ± 0.0008</td><td class="dim">0.0312</td><td class="pk">0.2517 ± 0.0013</td><td class="dim">0.25</td></tr>
+      <tr><td>0.50</td><td class="hi">0.0005 ± 0.0025</td><td class="hi">0.1251 ± 0.0031</td><td class="dim">0.1250</td><td class="pk">0.5005 ± 0.0025</td><td class="dim">0.50</td></tr>
+      <tr><td>0.75</td><td class="hi">−0.0039 ± 0.0037</td><td class="hi">0.2726 ± 0.0065</td><td class="dim">0.2812</td><td class="pk">0.7460 ± 0.0037</td><td class="dim">0.75</td></tr>
+      <tr><td>1.00</td><td class="hi">−0.0041 ± 0.0049</td><td class="hi">0.4839 ± 0.0118</td><td class="dim">0.5000</td><td class="pk">0.9960 ± 0.0049</td><td class="dim">1.00</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="note"><code>results.expectations.running[*]</code>. Martingale check: corr(I(½T), I(T) − I(½T)) = −0.010; E[second half | first half &gt; 0] = −0.006 ± 0.006 and E[second half | first half &lt; 0] = −0.004 ± 0.006 (<code>results.expectations.martingale</code>). On the grid the exact mean-square is ½t²·(1 − dt/t), which at n = 10⁴ differs from ½t² in the fourth figure; the JSON carries both.</p>
+
+  <div class="aside">
+    <div class="eyebrow">Aside — the Itô isometry, derived from the grid</div>
+    <p>Square the left sum and expand: (Σᵢ Wᵢ·ΔWᵢ)² = Σᵢ Σⱼ Wᵢ·ΔWᵢ·Wⱼ·ΔWⱼ, with Wᵢ short for W(tᵢ). Take expectations term by term. Off the diagonal, say i &lt; j: ΔWⱼ is the change over a step that starts <em>after</em> everything else in the term is known (Wᵢ, ΔWᵢ, Wⱼ all sit at or before tⱼ), so it is independent of them and has mean 0 — the term vanishes. On the diagonal, i = j: E[Wᵢ²·(ΔWᵢ)²] = E[Wᵢ²]·E[(ΔWᵢ)²] = tᵢ·dt, again by independence. So E[(left sum)²] = Σ tᵢ·dt, which is the ordinary integral ∫₀ᵀ t dt = ½T² in the limit and dt²·(0 + 1 + … + (n−1)) = ½T²·(1 − 1/n) exactly on the grid. The general statement, E[(∫H dW)²] = ∫E[H²] dt, is the Itô isometry: the mean-square of a stochastic integral is an ordinary integral of the mean-square integrand. Here it says sd(∫₀ᵀ W dW) = T/√2 = 0.707; measured 0.696. Cross-check by the identity: E[(½W_T² − ½T)²] = ¼(E[W_T⁴] − 2T·E[W_T²] + T²) = ¼(3T² − 2T² + T²) = ½T². Same number, two routes.</p>
+  </div>
+</section>
+
+<!-- ============ 5 · NON-ANTICIPATION ============ -->
+<section>
+  <div class="eyebrow">The finance reason</div>
+  <h2><span class="stepno">5</span>The integrand is the position you hold over the next step</h2>
+  <p>Your P5 had the idea; here is the sharp form. Trade a stock S on the grid. At time tᵢ you decide how many shares to hold, call it h(tᵢ), and you hold them until tᵢ₊₁. Over that step the price moves by ΔSᵢ = S(tᵢ₊₁) − S(tᵢ) and your P&amp;L is h(tᵢ)·ΔSᵢ: what you held, times how much it moved. Total P&amp;L to T is Σ h(tᵢ)·ΔSᵢ — a left-endpoint sum, not by convention but by construction. The position is fixed at the start of the step because that is when you trade; the price change arrives afterwards.</p>
+  <p>The right-endpoint sum Σ h(tᵢ₊₁)·ΔSᵢ is the P&amp;L of someone who sees the step's price move and then chooses the position that was held during it. The midpoint sum sees half of it. With h = S = W, §4 measured what that is worth: E[right] = T and E[mid] = ½T, against E[left] = 0 — a guaranteed profit from information nobody has. The words for the rule are that the integrand must be <em>adapted</em>, or <em>non-anticipating</em>: h(t) may depend only on what is known at t — F_t, the filtration from 2.2. The Itô integral is the left-endpoint limit because it is the only one of the three that a trader can realise, and its zero mean is the statement that no adapted strategy has an edge on a driftless price.</p>
+
+  <figure>
+    <div class="figbox">
+      <canvas id="fig2" width="1400" height="620" aria-label="A short Brownian path with the left-endpoint staircase of positions held over each step, and the shifted right-endpoint staircase"></canvas>
+      <div class="figbar">
+        <span class="chip"><span class="swatch" style="background:var(--ink)"></span>W(t) — the price</span>
+        <span class="chip"><span class="swatch" style="background:var(--walk)"></span>W(tᵢ) held over [tᵢ, tᵢ₊₁] — the Itô integrand</span>
+        <span class="chip"><span class="swatch" style="background:var(--peek)"></span>W(tᵢ₊₁) held over the same step — peeking</span>
+        <span class="chip"><span class="swatch" style="background:var(--walk-soft);height:10px;border:1px solid var(--walk)"></span>the position, as a bar from 0</span>
+        <span class="chip"><span class="swatch" style="background:var(--muted);width:3px;height:14px"></span>ΔWᵢ, the move over the step</span>
+      </div>
+    </div>
+    <figcaption>Click the figure to enlarge and zoom. Twelve steps of a path drawn in this page (seeded; not from the JSON). The blue staircase is the position an adapted trader can hold: decided at the left end of each step, flat across it; the shaded bar under it is that position's size. The grey arrow at each step's end is the price change ΔWᵢ over the step. One term of the sum is bar × arrow, W(tᵢ)·ΔWᵢ, signed. The red staircase is the same position shifted one step early: it already contains the move it is about to profit from. Multiply the red height by the same arrows instead and every term picks up an extra (ΔWᵢ)², which is why E[right] − E[left] = T.</figcaption>
+  </figure>
+
+  <div class="aside">
+    <div class="eyebrow">Aside — Stratonovich, since the index asks</div>
+    <p>The midpoint limit ½W_T² is the <em>Stratonovich</em> integral, written ∫W ∘ dW with a small circle. It obeys the ordinary chain rule — which is exactly why physicists like it for noise that is the limit of something smooth — and it is related to Itô's by ∫W ∘ dW = ∫W dW + ½T, the ½T being half the quadratic variation of the integrand against W (in general ½∫dH·dW). Two things disqualify it here: its integrand looks half a step ahead, so no trader can hold it, and §4 shows the consequence — E = ½T, not a martingale. On this course "∫ … dW" always means Itô. The circle is the only thing the page needs to be able to recognise.</p>
+  </div>
+</section>
+
+<!-- ============ 6 · SMOOTH ============ -->
+<section>
+  <div class="eyebrow">The contrast</div>
+  <h2><span class="stepno">6</span>For a smooth curve the endpoint does not matter</h2>
+  <p>Take x(t) = t² on the same five grids and form the same three sums Σ x·Δx. The identities of §3 hold letter for letter; the difference is that Σ(Δx)² → 0 — each Δx ≈ x′(t)·dt = 2t·dt is dt-sized, so its square is dt²-sized and n of them make (4/3)·dt → 0 (the 4/3 is ∫₀¹(2t)² dt). All three sums land on ½x_T² = ½, the chain rule d(x²) = 2x dx:</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>n</th><th>left</th><th>mid</th><th>right</th><th>right − left = Σ(Δx)²</th><th>n·Σ(Δx)²</th></tr></thead>
+    <tbody>
+      <tr><td>100</td><td class="sm">0.49333</td><td class="sm">0.49998</td><td class="sm">0.50667</td><td class="dim">0.01333</td><td class="dim">1.3333</td></tr>
+      <tr><td>1,000</td><td class="sm">0.49933</td><td class="sm">0.500000</td><td class="sm">0.50067</td><td class="dim">0.001333</td><td class="dim">1.3333</td></tr>
+      <tr><td>10,000</td><td class="sm">0.499933</td><td class="sm">0.500000</td><td class="sm">0.500067</td><td class="dim">0.0001333</td><td class="dim">1.3333</td></tr>
+      <tr><td>100,000</td><td class="sm">0.4999933</td><td class="sm">0.5000000</td><td class="sm">0.5000067</td><td class="dim">1.333 × 10⁻⁵</td><td class="dim">1.3333</td></tr>
+      <tr><td>1,000,000</td><td class="sm">0.49999933</td><td class="sm">0.50000000</td><td class="sm">0.50000067</td><td class="dim">1.333 × 10⁻⁶</td><td class="dim">1.3333</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="note"><code>results.smooth[*]</code>; slope of the gap against n is −1.000 to six figures. Put the two tables side by side on the page: for W the gap column sits at 1 and never moves; for x it is 1.33/n and goes to zero. That column is the entire difference between stochastic calculus and the calculus the reader already knows.</p>
+  <div class="grid3">
+    <div class="head"></div><div class="head l">left</div><div class="head m">mid</div><div class="head r">right</div>
+    <div class="rowh">smooth x</div><div class="l">½x_T²</div><div class="m">½x_T²</div><div class="r">½x_T²</div>
+    <div class="rowh">Brownian W</div><div class="l">½W_T² − ½T</div><div class="m">½W_T²</div><div class="r">½W_T² + ½T</div>
+    <div class="rowh">mean, W</div><div class="l">0 — martingale</div><div class="m">½T</div><div class="r">T</div>
+    <div class="rowh">who can hold it</div><div class="l">a trader</div><div class="m">nobody</div><div class="r">an insider</div>
+  </div>
+</section>
+
+<!-- ============ 7 · COIN ============ -->
+<section>
+  <div class="eyebrow">The exact case</div>
+  <h2><span class="stepno">7</span>The coin walk has it exactly</h2>
+  <p>For the ±√dt coin walk of 2.1, Σ(ΔW)² = n·dt = T on every grid with no spread at all (2.3, C5). Put that into the §3 identity and the left sum is ½W_T² − ½T <em>exactly</em>, at n = 100 as much as at n = 10⁶, and the right sum ½W_T² + ½T exactly; the JSON's worst deviation across five grids and five paths is 5 × 10⁻¹⁴ (<code>results.coin[*]</code>). At n = 100 one coin path ends at W_T = −1.0 and its left sum is 0.000 (−1.2 × 10⁻¹⁶): up-and-down by one, and the integral is zero, the same story as path 5 in §2 without the Gaussian noise. Itô's −½T is not an artefact of Gaussian steps or of the limit; it is the price of √dt-sized steps, and the coin pays it in full at every n.</p>
+</section>
+
+<!-- ============ 8 · CHECKS ============ -->
+<section>
+  <div class="eyebrow">For your approval</div>
+  <h2><span class="stepno">8</span>Draft check questions</h2>
+  <p class="note">Per I5: each wrong option names the misconception it encodes and the feedback says why it is wrong. Q1's "T·W_T" and Q2's "all three agree" are your own pre-run predictions (P1, P2/P3).</p>
+
+  <div class="q">
+    <div class="qno">Q1</div>
+    <p class="stem">A Brownian path on [0, 1] is chopped into n equal steps and you compute Σ W(tᵢ)·ΔWᵢ with W read at the start of each step. As n → ∞ it tends to:</p>
+    <ul>
+      <li class="ok"><strong>½W_T² − ½T</strong> — the x² identity gives ½W_T² − ½Σ(ΔW)² on every grid, and Σ(ΔW)² → T.</li>
+      <li class="no">½W_T² <em class="mis">— the chain rule assumed.</em> d(W²) = 2W dW needs Σ(ΔW)² → 0. It is T. The sum is short of ½W_T² by exactly half of it.</li>
+      <li class="no">T·W_T <em class="mis">— units not carried.</em> W and ΔW each have units of √time, so the sum has units of time; T·W_T has time^(3/2). Whatever the limit is, it is not this.</li>
+      <li class="no">W_T² <em class="mis">— the ½ of the chain rule dropped and the −½T never seen.</em> x dx = ½ d(x²), so even for a smooth x, Σ x·Δx → ½x_T², not x_T². And E[W_T²] = T while the sum has mean 0 (Q3).</li>
+    </ul>
+  </div>
+
+  <div class="q">
+    <div class="qno">Q2</div>
+    <p class="stem">Same path, same grids, but now W is read at the midpoint of each step, or at the end. As n → ∞, compared with the left-endpoint sum:</p>
+    <ul>
+      <li class="ok"><strong>Midpoint lands ½T higher, endpoint T higher — three different limits</strong> — right − left = Σ(ΔW)² → T exactly; mid − left → ½T.</li>
+      <li class="no">All three agree in the limit, as Riemann sums do <em class="mis">— smooth intuition.</em> Riemann sums agree because the gap between them is Σ(Δx)², which vanishes for a smooth curve. For W that gap is the quadratic variation, T, on every grid.</li>
+      <li class="no">They differ at finite n but the differences vanish as n → ∞ <em class="mis">— the gap mistaken for a discretisation error.</em> The gap right − left is not an error that refines away: it is Σ(ΔW)², and 2.3 measured it at 1.00 on every grid from 10² to 10⁶.</li>
+      <li class="no">They differ by a random amount that depends on the path <em class="mis">— quadratic variation as a path property.</em> The gap is Σ(ΔW)², which is T for every path (spread √(2/n) → 0). Path 1 and path 5 have different limits but the same three gaps.</li>
+    </ul>
+  </div>
+
+  <div class="q">
+    <div class="qno">Q3</div>
+    <p class="stem">E[Σ W(tᵢ)·ΔWᵢ] for the left-endpoint sum is:</p>
+    <ul>
+      <li class="ok"><strong>0</strong> — ΔWᵢ is the change over a step that starts at tᵢ, independent of W(tᵢ) and mean zero, so every term has mean zero. Consistent with E[½W_T² − ½T] = ½T − ½T = 0.</li>
+      <li class="no">T <em class="mis">— the right-endpoint mean.</em> W(tᵢ₊₁)·ΔWᵢ = W(tᵢ)·ΔWᵢ + (ΔWᵢ)², and the (ΔW)² terms sum to T. Reading W at the end of the step is what earns it.</li>
+      <li class="no">½T <em class="mis">— the midpoint mean, or ½E[W_T²] with the −½T forgotten.</em> The midpoint integrand has already seen half the step; the left one has seen none of it.</li>
+      <li class="no">It depends on the path <em class="mis">— expectation confused with a path value.</em> The sum's value depends on the path (½W_T² − ½T does); its expectation is an average over paths and is one number. It is 0: measured −0.004 ± 0.005 over 20,000 paths.</li>
+    </ul>
+  </div>
+
+  <div class="q">
+    <div class="qno">Q4</div>
+    <p class="stem">In finance the integrand of ∫h dS is always read at the left endpoint of each step. Why?</p>
+    <ul>
+      <li class="ok"><strong>h(tᵢ) is the position held over [tᵢ, tᵢ₊₁]; it must be fixed before the step's price change is known</strong> — that is what trading is. The zero mean follows from it, not the other way round.</li>
+      <li class="no">It is the convention that makes the integral a martingale, adopted for mathematical convenience <em class="mis">— consequence taken for cause.</em> The martingale property is what you get once the integrand cannot see the step. Non-anticipation is the requirement; zero mean is its shadow.</li>
+      <li class="no">Any endpoint works — they agree in the limit <em class="mis">— smooth intuition again.</em> They differ by ½T and T (Q2), and the difference has a name: E[right] = T is the profit of a trader who chooses the position after seeing the move.</li>
+      <li class="no">The left endpoint gives the smallest error at finite n <em class="mis">— accuracy mistaken for legitimacy.</em> The midpoint sum's error spread is T/(2√n), smaller than the left's T/√(2n). It is still a sum nobody can trade.</li>
+    </ul>
+  </div>
+
+  <div class="q">
+    <div class="qno">Q5</div>
+    <p class="stem">E[(∫₀ᵀ W dW)²] — the mean-square of the Itô integral — equals:</p>
+    <ul>
+      <li class="ok"><strong>½T²</strong> — the Itô isometry: E[(∫H dW)²] = ∫₀ᵀ E[H²] dt, and ∫₀ᵀ t dt = ½T². Cross-check: E[(½W_T² − ½T)²] = ¼(3T² − 2T² + T²) = ½T².</li>
+      <li class="no">T <em class="mis">— the quadratic variation of W substituted for the variance of the integral.</em> Σ(ΔW)² = T is about W; the question is about ∫W dW, whose spread grows with how big W itself gets — hence the extra factor of t under the integral.</li>
+      <li class="no">0, because E[∫W dW] = 0 <em class="mis">— mean and mean-square confused.</em> A zero-mean quantity can be as spread out as you like. sd(∫₀ᵀ W dW) = T/√2 = 0.707 at T = 1; measured 0.696.</li>
+      <li class="no">¾T², from E[(½W_T²)²] = ¼E[W_T⁴] = ¾T² <em class="mis">— the chain-rule value squared.</em> The integral is ½W_T² − ½T, not ½W_T²; the −½T is worth exactly ¼T² in the mean-square.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ 9 · NOTATION ============ -->
+<section>
+  <div class="eyebrow">For the ledger</div>
+  <h2><span class="stepno">9</span>S4 notation batch — draft</h2>
+  <p class="note">Every glyph new to this page, with its birth certificate. Rows marked ↺ revisit an earlier row in its new role. Goes into <code>drafts/notation.md</code> once you approve; tell me which to cut or add.</p>
+  <div class="tablewrap">
+  <table style="white-space:normal">
+    <thead><tr><th style="text-align:left">Symbol</th><th style="text-align:left">Say it</th><th style="text-align:left">Here it means</th><th style="text-align:left">Watch out</th></tr></thead>
+    <tbody>
+      <tr><td style="text-align:left;white-space:nowrap"><code>∫₀ᵀ W dW</code></td><td style="text-align:left">"the integral of W with respect to W" — a stochastic integral</td><td style="text-align:left">the limit as n → ∞ of the left-endpoint sum Σ W(tᵢ)·ΔWᵢ. Equals ½W_T² − ½T</td><td style="text-align:left">not "the area under W" — that is ∫W dt (2.3's kind of integral, with dt). Here the increment is dW, so this is a sum of position × change, a P&amp;L</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap"><code>∫ H dW</code>, <code>∫ h dS</code></td><td style="text-align:left">"integral of H against W"</td><td style="text-align:left">the general form: H is the integrand (the position), W or S what it is held against (the price). ∫W dW is the case H = W</td><td style="text-align:left">H must be adapted — read at the left end of each step. Which letter is "position" and which is "price" is the whole content of the notation</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap"><code>tᵢ</code>, <code>mᵢ</code>, <code>tᵢ₊₁</code></td><td style="text-align:left">left endpoint, midpoint, right endpoint</td><td style="text-align:left">the three places in step i where the integrand can be read: tᵢ = i·dt, mᵢ = (tᵢ + tᵢ₊₁)/2, tᵢ₊₁ = tᵢ + dt</td><td style="text-align:left">the choice changes the answer by ½T or T. On the smooth pages it changed nothing, which is why nobody mentioned it before</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap"><code>δ₁</code>, <code>δ₂</code></td><td style="text-align:left">"delta one, delta two"</td><td style="text-align:left">the two half-step increments of a step: δ₁ = W(mᵢ) − W(tᵢ), δ₂ = W(tᵢ₊₁) − W(mᵢ), so ΔW = δ₁ + δ₂; each ~ N(0, dt/2)</td><td style="text-align:left">lower-case δ for a half-step, capital Δ for a full step — same "change of" meaning, different grid</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap"><code>∫ W ∘ dW</code></td><td style="text-align:left">"Stratonovich integral" — the circle</td><td style="text-align:left">the midpoint limit, ½W_T². Related to Itô by ∫W ∘ dW = ∫W dW + ½T</td><td style="text-align:left">recognise it, do not use it: on this course every ∫ … dW is Itô. The circle is not composition of functions</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap">adapted · non-anticipating</td><td style="text-align:left">—</td><td style="text-align:left">a process H is adapted if H(t) depends only on what is known at t — on F_t, the filtration from 2.2. "Non-anticipating" is the same word from the other side</td><td style="text-align:left">the trading meaning: you choose the position before the price moves. W itself is adapted; W(t + dt) is not adapted at t</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap"><code>I(t)</code>, <code>R(t)</code></td><td style="text-align:left">"the running integral"</td><td style="text-align:left">the left (I) or right (R) sum over the steps before t — the integral as a process in t, not one number</td><td style="text-align:left">I(t) is a martingale; R(t) has E[R(t)] = t. I is for integral (not an identity matrix), R for right endpoint (not a return)</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap">martingale ↺</td><td style="text-align:left">—</td><td style="text-align:left">S2's property, now applied to I(t): E[I(T) | F_s] = I(s). The first thing the Itô integral is, once you have it</td><td style="text-align:left">it is a property of the left-endpoint limit only. Checked here as corr(first half, second half) = 0 and E[second half | sign of first half] = 0</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap">Itô isometry</td><td style="text-align:left">—</td><td style="text-align:left">E[(∫₀ᵀ H dW)²] = ∫₀ᵀ E[H²] dt: the mean-square of a stochastic integral is an ordinary integral of the mean-square integrand. For H = W: ½T²</td><td style="text-align:left">"isometry" is geometry's word for "preserves lengths": the size of the integral (root-mean-square) equals the size of the integrand. Not a statement about means</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap"><code>E[X²]</code> vs <code>Var(X)</code></td><td style="text-align:left">mean-square vs variance</td><td style="text-align:left">Var(X) = E[X²] − (E[X])². When E[X] = 0 they coincide, which is why the isometry gives the variance of ∫W dW directly</td><td style="text-align:left">for the right sum they differ: E[R²] ≠ Var(R) because E[R] = T</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap">s.e.</td><td style="text-align:left">"standard error"</td><td style="text-align:left">sd of a sample mean: sd of the values divided by √(number of values). 20,000 values with sd 0.7 give s.e. 0.005</td><td style="text-align:left">not the sd of the thing itself. "−0.004 ± 0.005" means the mean is 0 to within noise; the values themselves spread ±0.7</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap">limit</td><td style="text-align:left">"the limit as n → ∞"</td><td style="text-align:left">the value a grid quantity settles on as the grid is refined without end: the last row of a table like §2's. lim Σ W(tᵢ)·ΔWᵢ = ½W_T² − ½T</td><td style="text-align:left">not a bound, a maximum or an extreme path — the everyday sense of the word is the wrong one here. "left − limit" is "this grid's value minus the settled value", the discretisation error, and it can have either sign</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap">= (exact) vs → (limit)</td><td style="text-align:left">"equals on every grid" vs "tends to"</td><td style="text-align:left">two kinds of equality on this page: left = ½W_T² − ½Σ(ΔW)² is algebra, true at n = 3; left → ½W_T² − ½T is a limit, and needs 2.3</td><td style="text-align:left">the page's argument is "exact identity, then one limit". Keep the two visibly apart or the reader thinks the −½T is approximate</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap">units of W</td><td style="text-align:left">"root time"</td><td style="text-align:left">Var(W_t) = t, so W has units √time; W·ΔW and Σ W·ΔW have units of time, as do ½W_T² and ½T</td><td style="text-align:left">the check that kills T·W_T (time^(3/2)) before any arithmetic. Carry units through every stochastic formula; they catch factor-of-√dt slips</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap">telescoping sum</td><td style="text-align:left">—</td><td style="text-align:left">Σ [f(tᵢ₊₁) − f(tᵢ)] = f(T) − f(0): every interior term appears once with each sign and cancels</td><td style="text-align:left">why Σ [W(tᵢ₊₁)² − W(tᵢ)²] = W_T² with no limit and no randomness left in it — the one exact step in the derivation</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ============ AFTER ============ -->
+<section>
+  <h2>After the read</h2>
+  <p>Read §2–§7, ask "why" on any line that skips a step, rule on the checks in §8 and the ledger rows in §9. Then the interview for <code>drafts/2.4.md</code>: I ask, you answer in bullets, I assemble your words verbatim. The three pieces the page needs in your voice are the identity of §3 (you have half of it from 2.3 already), the trader's sentence of §5, and the ½T/T gaps as 2.3's number.</p>
+</section>
+</div>
+
+<script>
+(function () {
+  // Seeded PRNG so every viewer sees the same path (mulberry32 + Box-Muller).
+  function rng(seed) {
+    let a = seed >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function gaussians(seed, n) {
+    const u = rng(seed), out = new Float64Array(n);
+    for (let i = 0; i < n; i += 2) {
+      let u1 = u(); if (u1 < 1e-12) u1 = 1e-12;
+      const u2 = u(), r = Math.sqrt(-2 * Math.log(u1)), th = 2 * Math.PI * u2;
+      out[i] = r * Math.cos(th); if (i + 1 < n) out[i + 1] = r * Math.sin(th);
+    }
+    return out;
+  }
+  function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  // Every figure draws in a fixed logical size (BASE[id]); the on-page canvas is 1x,
+  // the lightbox canvas is drawn at k x and zoomed with a CSS transform.
+  const BASE = { fig1: [1400, 820], fig2: [1400, 620] };
+  function setup(id, canvas, k) {
+    const c = canvas || document.getElementById(id); if (!c) return null;
+    const [W, H] = BASE[id]; k = k || 1;
+    c.width = Math.round(W * k); c.height = Math.round(H * k);
+    const ctx = c.getContext("2d");
+    ctx.setTransform(k, 0, 0, k, 0, 0);
+    return { c, ctx, W, H };
+  }
+  const fontSans = '"IBM Plex Sans", system-ui, sans-serif';
+
+  // ---------- Figure 1: one path, three running sums ----------
+  function fig1(canvas, k) {
+    const s = setup("fig1", canvas, k); if (!s) return;
+    const { ctx, W, H } = s;
+    const ink = css("--ink"), muted = css("--muted"), line = css("--line"), faint = css("--line-faint");
+    const cWalk = css("--walk"), cMid = css("--theory"), cRight = css("--peek");
+    ctx.clearRect(0, 0, W, H);
+
+    const T = 1, nFine = 4000, n = nFine / 2, dtF = T / nFine;
+    const z = gaussians(20260908, nFine);
+    const wf = new Float64Array(nFine + 1);
+    for (let i = 0; i < nFine; i++) wf[i + 1] = wf[i] + Math.sqrt(dtF) * z[i];
+    // coarse grid: every second fine point; midpoints: the odd fine points
+    const w = new Float64Array(n + 1), wm = new Float64Array(n);
+    for (let i = 0; i <= n; i++) w[i] = wf[2 * i];
+    for (let i = 0; i < n; i++) wm[i] = wf[2 * i + 1];
+    const L = new Float64Array(n + 1), M = new Float64Array(n + 1), R = new Float64Array(n + 1);
+    for (let i = 0; i < n; i++) {
+      const d = w[i + 1] - w[i];
+      L[i + 1] = L[i] + w[i] * d; M[i + 1] = M[i] + wm[i] * d; R[i + 1] = R[i] + w[i + 1] * d;
+    }
+    const tOf = i => i * (T / n);
+
+    // layout: two panels
+    const padL = 78, padR = 190, top = 30, gapY = 34, bottom = 44;   // room on the right for the three end labels
+    const ph = (H - top - bottom - gapY) / 2;
+    const p1 = { y0: top, y1: top + ph }, p2 = { y0: top + ph + gapY, y1: H - bottom };
+    const xOf = t => padL + (t / T) * (W - padL - padR);
+
+    function extent(arrs) {
+      let lo = Infinity, hi = -Infinity;
+      arrs.forEach(a => { for (let i = 0; i < a.length; i++) { if (a[i] < lo) lo = a[i]; if (a[i] > hi) hi = a[i]; } });
+      const pad = (hi - lo) * 0.08; return [lo - pad, hi + pad];
+    }
+    function niceTicks(lo, hi, target) {
+      const span = hi - lo, raw = span / target, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+      const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => span / s <= target) || mag * 10;
+      const out = []; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(6)); return out;
+    }
+    function panel(p, ext, label) {
+      const yOf = v => p.y1 - ((v - ext[0]) / (ext[1] - ext[0])) * (p.y1 - p.y0);
+      ctx.strokeStyle = faint; ctx.lineWidth = 1;
+      ctx.fillStyle = muted; ctx.font = `20px ${fontSans}`; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+      niceTicks(ext[0], ext[1], 5).forEach(v => {
+        const y = yOf(v); ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+        ctx.fillText(v.toFixed(2).replace(/\.?0+$/, "") || "0", padL - 10, y);
+      });
+      if (ext[0] < 0 && ext[1] > 0) { ctx.strokeStyle = line; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(padL, yOf(0)); ctx.lineTo(W - padR, yOf(0)); ctx.stroke(); }
+      ctx.fillStyle = muted; ctx.font = `600 18px ${fontSans}`; ctx.textAlign = "left"; ctx.textBaseline = "top";
+      ctx.fillText(label, padL + 8, p.y0 + 4);
+      return yOf;
+    }
+    function series(arr, yOf, color, width, dash) {
+      ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash || []);
+      ctx.beginPath();
+      for (let i = 0; i <= n; i++) { const x = xOf(tOf(i)), y = yOf(arr[i]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+      ctx.stroke(); ctx.setLineDash([]);
+    }
+    // panel 1: the path
+    const y1 = panel(p1, extent([w]), "W(t)");
+    series(w, y1, ink, 2.2);
+    // panel 2: running sums and targets
+    const tgtL = new Float64Array(n + 1), tgtM = new Float64Array(n + 1), tgtR = new Float64Array(n + 1);
+    for (let i = 0; i <= n; i++) { const t = tOf(i), h = 0.5 * w[i] * w[i]; tgtL[i] = h - 0.5 * t; tgtM[i] = h; tgtR[i] = h + 0.5 * t; }
+    const y2 = panel(p2, extent([L, M, R, tgtL, tgtR]), "running sums Σ W(·)·ΔW up to t");
+    series(tgtL, y2, muted, 1.6, [7, 6]); series(tgtM, y2, muted, 1.6, [7, 6]); series(tgtR, y2, muted, 1.6, [7, 6]);
+    series(R, y2, cRight, 2.4); series(M, y2, cMid, 2.4); series(L, y2, cWalk, 2.6);
+    // end labels
+    ctx.font = `600 19px ${fontSans}`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    const xe = xOf(T) + 10;
+    // keep the three labels from colliding: spread them at least 24 px apart around their curve ends
+    let ys = [[y2(L[n]), cWalk, "½W_T² − ½T"], [y2(M[n]), cMid, "½W_T²"], [y2(R[n]), cRight, "½W_T² + ½T"]].sort((a, b) => a[0] - b[0]);
+    for (let i = 1; i < ys.length; i++) if (ys[i][0] - ys[i - 1][0] < 24) ys[i][0] = ys[i - 1][0] + 24;
+    ys.forEach(([y, col, txt]) => { ctx.fillStyle = col; ctx.fillText(txt, xe, y); });
+    // gap bracket: right - left = Σ(ΔW)² so far ≈ t
+    const tb = 0.6, iB = Math.round(tb * n), xb = xOf(tb);
+    ctx.strokeStyle = muted; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(xb, y2(L[iB])); ctx.lineTo(xb, y2(R[iB])); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(xb - 6, y2(L[iB])); ctx.lineTo(xb + 6, y2(L[iB])); ctx.moveTo(xb - 6, y2(R[iB])); ctx.lineTo(xb + 6, y2(R[iB])); ctx.stroke();
+    ctx.fillStyle = muted; ctx.font = `18px ${fontSans}`; ctx.textAlign = "left"; ctx.textBaseline = "top";
+    ctx.fillText("bracket at t = " + tb + ": red − blue = Σ(ΔW)² so far ≈ t", padL + 8, p2.y0 + 30);
+    // x axis
+    ctx.fillStyle = muted; ctx.font = `20px ${fontSans}`; ctx.textAlign = "center"; ctx.textBaseline = "top";
+    [0, 0.25, 0.5, 0.75, 1].forEach(t => ctx.fillText(t === 1 ? "T = 1" : t.toString(), xOf(t), H - bottom + 10));
+  }
+
+  // ---------- Figure 2: the staircase of positions ----------
+  function fig2(canvas, k) {
+    const s = setup("fig2", canvas, k); if (!s) return;
+    const { ctx, W, H } = s;
+    const ink = css("--ink"), muted = css("--muted"), faint = css("--line-faint"), line = css("--line");
+    const cWalk = css("--walk"), cWalkSoft = css("--walk-soft"), cRight = css("--peek");
+    ctx.clearRect(0, 0, W, H);
+    const n = 12, T = 1, dt = T / n, sub = 40;      // 12 steps, 40 fine points per step for the drawn path
+    const z = gaussians(20260904, n * sub);
+    const wf = new Float64Array(n * sub + 1);
+    for (let i = 0; i < n * sub; i++) wf[i + 1] = wf[i] + Math.sqrt(dt / sub) * z[i];
+    const w = []; for (let i = 0; i <= n; i++) w.push(wf[i * sub]);
+    const padL = 78, padR = 30, top = 44, bottom = 50;
+    let lo = Math.min(...wf), hi = Math.max(...wf); const pad = (hi - lo) * 0.12; lo -= pad; hi += pad;
+    const xOf = t => padL + (t / T) * (W - padL - padR);
+    const yOf = v => H - bottom - ((v - lo) / (hi - lo)) * (H - bottom - top);
+    // grid + zero
+    ctx.strokeStyle = faint; ctx.lineWidth = 1;
+    for (let i = 0; i <= n; i++) { const x = xOf(i * dt); ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x, H - bottom); ctx.stroke(); }
+    ctx.strokeStyle = line; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(padL, yOf(0)); ctx.lineTo(W - padR, yOf(0)); ctx.stroke();
+    // the position held over each step, as a bar from 0 to W(t_i): the height of one term W(t_i)*dW_i
+    for (let i = 0; i < n; i++) {
+      const x0 = xOf(i * dt), x1 = xOf((i + 1) * dt);
+      const y0 = yOf(0), yA = yOf(w[i]);
+      ctx.fillStyle = cWalkSoft;
+      ctx.fillRect(x0 + 1, Math.min(y0, yA), x1 - x0 - 2, Math.abs(yA - y0));
+    }
+    // path
+    ctx.strokeStyle = ink; ctx.lineWidth = 1.6; ctx.globalAlpha = 0.75; ctx.beginPath();
+    for (let i = 0; i <= n * sub; i++) { const x = xOf(i * dt / sub), y = yOf(wf[i]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+    ctx.stroke(); ctx.globalAlpha = 1;
+    // the price change over each step, as an arrow just inside the step's end from W(t_i) to W(t_{i+1}): the other factor of the same term
+    ctx.strokeStyle = muted; ctx.lineWidth = 2.6;
+    for (let i = 0; i < n; i++) {
+      const x1 = xOf((i + 1) * dt) - 12, yA = yOf(w[i]), yB = yOf(w[i + 1]);
+      ctx.beginPath(); ctx.moveTo(x1, yA); ctx.lineTo(x1, yB); ctx.stroke();
+      const dir = yB < yA ? -1 : 1;
+      ctx.beginPath(); ctx.moveTo(x1, yB); ctx.lineTo(x1 - 6, yB - dir * 9); ctx.moveTo(x1, yB); ctx.lineTo(x1 + 6, yB - dir * 9); ctx.stroke();
+    }
+    // right staircase (peeking): W(t_{i+1}) held over [t_i, t_{i+1}]
+    ctx.strokeStyle = cRight; ctx.lineWidth = 2.2; ctx.setLineDash([6, 5]); ctx.beginPath();
+    for (let i = 0; i < n; i++) { const y = yOf(w[i + 1]); ctx.moveTo(xOf(i * dt), y); ctx.lineTo(xOf((i + 1) * dt), y); }
+    ctx.stroke(); ctx.setLineDash([]);
+    // left staircase: W(t_i) held over [t_i, t_{i+1}]
+    ctx.strokeStyle = cWalk; ctx.lineWidth = 3.2; ctx.beginPath();
+    for (let i = 0; i < n; i++) { const y = yOf(w[i]); ctx.moveTo(xOf(i * dt), y); ctx.lineTo(xOf((i + 1) * dt), y); }
+    ctx.stroke();
+    // dots at decision times
+    ctx.fillStyle = cWalk;
+    for (let i = 0; i < n; i++) { ctx.beginPath(); ctx.arc(xOf(i * dt), yOf(w[i]), 5, 0, 2 * Math.PI); ctx.fill(); }
+    // one line of reading guidance, kept clear of the drawing
+    ctx.fillStyle = muted; ctx.font = `600 18px ${fontSans}`; ctx.textAlign = "left"; ctx.textBaseline = "top";
+    ctx.fillText("● decide the position h = W(tᵢ)   →   hold it flat across the step   →   ΔWᵢ arrives (grey arrow)   →   the term is h × ΔWᵢ", padL + 6, 4);
+    // x axis labels
+    ctx.fillStyle = muted; ctx.font = `19px ${fontSans}`; ctx.textAlign = "center"; ctx.textBaseline = "top";
+    for (let i = 0; i <= n; i += 3) ctx.fillText(i === 0 ? "t₀ = 0" : i === n ? "T" : "t" + String(i).replace(/\d/g, d => "₀₁₂₃₄₅₆₇₈₉"[d]), xOf(i * dt), H - bottom + 12);
+    // y label
+    ctx.textAlign = "right"; ctx.textBaseline = "middle"; ctx.font = `20px ${fontSans}`;
+    [lo + pad, 0, hi - pad].forEach(v => ctx.fillText(v.toFixed(1), padL - 10, yOf(v)));
+  }
+
+  const FIGS = { fig1, fig2 };
+
+  // ---------- Lightbox: click a figure to enlarge; wheel / pinch to zoom, drag to pan ----------
+  const lb = (function () {
+    const box = document.createElement("div");
+    box.className = "lightbox"; box.hidden = true; box.setAttribute("role", "dialog"); box.setAttribute("aria-label", "Enlarged figure");
+    box.innerHTML = '<div class="bar"><button type="button" data-act="out" aria-label="Zoom out">−</button>' +
+      '<button type="button" data-act="in" aria-label="Zoom in">+</button>' +
+      '<button type="button" data-act="fit">Fit</button><span class="pct">100 %</span>' +
+      '<span class="spacer"></span><span>scroll or pinch to zoom · drag to pan · double-click to fit · Esc to close</span>' +
+      '<button type="button" data-act="close" aria-label="Close">Close</button></div><div class="stage"><canvas></canvas></div>';
+    document.body.appendChild(box);
+    const stage = box.querySelector(".stage"), cv = box.querySelector("canvas"), pct = box.querySelector(".pct");
+    const K = Math.max(2, Math.min(3, window.devicePixelRatio * 2 || 2));   // render resolution multiplier
+    let id = null, scale = 1, tx = 0, ty = 0, base = [1, 1];
+    const pointers = new Map(); let lastDist = 0, dragging = false, lx = 0, ly = 0;
+
+    function apply() {
+      cv.style.transform = `translate(${tx}px, ${ty}px) scale(${scale / K})`;
+      pct.textContent = Math.round(100 * scale / base[0]) + " %";
+    }
+    function fit() {
+      const [W, H] = BASE[id], r = stage.getBoundingClientRect();
+      const s = Math.min((r.width - 24) / W, (r.height - 24) / H);
+      base = [s, s]; scale = s; tx = (r.width - W * s) / 2; ty = (r.height - H * s) / 2; apply();
+    }
+    function zoomAt(factor, cx, cy) {
+      const ns = Math.min(scale * factor, base[0] * 8), f = ns / scale;
+      if (ns < base[0] * 0.5) return;
+      tx = cx - (cx - tx) * f; ty = cy - (cy - ty) * f; scale = ns; apply();
+    }
+    function redraw() { FIGS[id](cv, K); apply(); }
+    function open(figId) {
+      id = figId; box.hidden = false; document.body.style.overflow = "hidden";
+      FIGS[id](cv, K); fit(); box.querySelector('[data-act="close"]').focus();
+    }
+    function close() { box.hidden = true; document.body.style.overflow = ""; id = null; }
+
+    box.querySelector(".bar").addEventListener("click", e => {
+      const act = e.target.dataset && e.target.dataset.act; if (!act) return;
+      const r = stage.getBoundingClientRect(), cx = r.width / 2, cy = r.height / 2;
+      if (act === "in") zoomAt(1.5, cx, cy); else if (act === "out") zoomAt(1 / 1.5, cx, cy);
+      else if (act === "fit") fit(); else if (act === "close") close();
+    });
+    stage.addEventListener("wheel", e => {
+      e.preventDefault(); const r = stage.getBoundingClientRect();
+      zoomAt(e.deltaY < 0 ? 1.15 : 1 / 1.15, e.clientX - r.left, e.clientY - r.top);
+    }, { passive: false });
+    stage.addEventListener("dblclick", fit);
+    stage.addEventListener("pointerdown", e => {
+      pointers.set(e.pointerId, [e.clientX, e.clientY]); stage.setPointerCapture(e.pointerId);
+      if (pointers.size === 1) { dragging = true; lx = e.clientX; ly = e.clientY; stage.classList.add("dragging"); }
+      if (pointers.size === 2) { const p = [...pointers.values()]; lastDist = Math.hypot(p[0][0] - p[1][0], p[0][1] - p[1][1]); }
+    });
+    stage.addEventListener("pointermove", e => {
+      if (!pointers.has(e.pointerId)) return;
+      pointers.set(e.pointerId, [e.clientX, e.clientY]);
+      if (pointers.size === 2) {
+        const p = [...pointers.values()], d = Math.hypot(p[0][0] - p[1][0], p[0][1] - p[1][1]);
+        const r = stage.getBoundingClientRect();
+        if (lastDist) zoomAt(d / lastDist, (p[0][0] + p[1][0]) / 2 - r.left, (p[0][1] + p[1][1]) / 2 - r.top);
+        lastDist = d;
+      } else if (dragging) { tx += e.clientX - lx; ty += e.clientY - ly; lx = e.clientX; ly = e.clientY; apply(); }
+    });
+    const up = e => { pointers.delete(e.pointerId); if (pointers.size < 2) lastDist = 0; if (pointers.size === 0) { dragging = false; stage.classList.remove("dragging"); } };
+    stage.addEventListener("pointerup", up); stage.addEventListener("pointercancel", up);
+    document.addEventListener("keydown", e => { if (box.hidden) return; if (e.key === "Escape") close(); if (e.key === "+" || e.key === "=") zoomAt(1.5, stage.clientWidth / 2, stage.clientHeight / 2); if (e.key === "-") zoomAt(1 / 1.5, stage.clientWidth / 2, stage.clientHeight / 2); });
+    window.addEventListener("resize", () => { if (!box.hidden) fit(); });
+    Object.keys(FIGS).forEach(f => { const c = document.getElementById(f); if (c) { c.addEventListener("click", () => open(f)); c.tabIndex = 0; c.addEventListener("keydown", e => { if (e.key === "Enter") open(f); }); } });
+    return { get open() { return !box.hidden; }, redraw };
+  })();
+
+  function draw() { fig1(); fig2(); if (lb.open) lb.redraw(); }
+  draw();
+  if (window.matchMedia) {
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw);
+    new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  }
+})();
+</script>

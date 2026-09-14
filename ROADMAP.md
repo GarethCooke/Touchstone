@@ -224,7 +224,7 @@ review.
 - ☑ S1 · 2.1 Random walks and scaling — evidence: `docs/evidence/S1/`
 - ☑ S2 · 2.2 Brownian motion — evidence: `docs/evidence/S2/`
 - ☑ S3 · 2.3 Quadratic variation — evidence: `docs/evidence/S3/summary.md`
-- ☐ S4 · 2.4 The Itô integral
+- ☑ S4 · 2.4 The Itô integral — evidence: `docs/evidence/S4/summary.md`
 - ☐ S5 · 2.5 Itô's lemma
 - ☐ S6 · 2.6 SDEs and geometric Brownian motion
 - ☐ S7 · 2.7 Delta hedging and the Black–Scholes PDE
