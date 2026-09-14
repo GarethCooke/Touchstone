@@ -76,7 +76,7 @@ def variations(w: np.ndarray, dt: float) -> dict[str, np.ndarray]:
         "sum_dW_dt": d.sum(axis=1) * dt,           # Sum dW.dt  (= dt * W_T)
         "sum_abs_dW_cubed": (a**3).sum(axis=1),    # Sum |dW|^3
         "max_abs_W": np.abs(w).max(axis=1),
-        "W_T": w[:, -1],
+        "W_T": w[:, -1].copy(),               # copy: a view would keep the whole chunk alive
         "single_dW_sq_over_dt_sd": (d * d / dt).std(axis=1, ddof=1),  # sd of one term
     }
 

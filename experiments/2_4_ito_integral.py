@@ -51,7 +51,12 @@ measured:
 
 Run from the repository root:
 
-    uv run experiments/2_4_ito_integral.py [--seed 20260908]
+    uv run experiments/2_4_ito_integral.py [--seed 20260908] [--quick]
+
+--quick runs a tenth of the paths (about 5 s instead of 36) for the learn
+site's build-time snippet check (I3): the statistical tolerances widen by
+sqrt(400 / n_paths) so the same claims are still asserted, and NO JSON is
+written -- the committed result is always the full run.
 
 Writes 2_4_ito_integral.json beside this file: parameters in, results out,
 no timestamps -- same seed, same file (I6). No plotting here; the site draws
@@ -328,6 +333,11 @@ def loglog_slope(xs, ys) -> float:
 def build_checks(res, params) -> list[dict]:
     checks = []
     T = params["T"]
+    # Statistical tolerances are set for the full run; a smaller run widens them
+    # by the square root of the path-count ratio (1.0 for the full run). Checks
+    # phrased as "within 5 s.e." scale themselves and need no slack.
+    slack = sqrt(400 / params["nested_grids"]["n_paths"])
+    slack_exp = sqrt(20_000 / params["expectations"]["n_paths"])
 
     def add(claim, measured, expected, tol, mode="abs"):
         ok = abs(measured - expected) <= tol if mode == "abs" else abs(measured / expected - 1) <= tol
@@ -343,21 +353,22 @@ def build_checks(res, params) -> list[dict]:
         add(f"C1 n={n:.0e}: mid = 1/2 W_T^2 + 1/2 (Sum d1^2 - Sum d2^2) on every path (algebra)",
             r["mid_halves"], 0.0, 1e-9)
         hq = g["half_step_qv"]
-        add(f"C1 n={n:.0e}: rms of Sum d1 d2 is T/(2 sqrt n)", hq["sum_d1_d2_rms"], hq["sum_d1_d2_rms_expected"], 0.15, "rel")
+        add(f"C1 n={n:.0e}: rms of Sum d1 d2 is T/(2 sqrt n)", hq["sum_d1_d2_rms"], hq["sum_d1_d2_rms_expected"],
+            0.15 * slack, "rel")
         for name, label in (("left_error", "left - (1/2 W_T^2 - 1/2 T)"),
                             ("mid_error", "mid - 1/2 W_T^2"),
                             ("right_error", "right - (1/2 W_T^2 + 1/2 T)")):
             e = g[name]
             add(f"C1 n={n:.0e}: mean of {label} within 5 s.e. of 0", e["mean"], 0.0, 5 * e["se_of_mean"])
             add(f"C1 n={n:.0e}: sd of {label} is {'T/(2 sqrt n)' if name == 'mid_error' else 'T/sqrt(2n)'}",
-                e["sd"], e["sd_expected"], 0.15, "rel")
+                e["sd"], e["sd_expected"], 0.15 * slack, "rel")
         add(f"C1 n={n:.0e}: right - left (= Sum (dW)^2) has mean T",
             g["gap_right_minus_left"]["mean"], T, 5 * g["gap_right_minus_left"]["se_of_mean"])
         add(f"C1 n={n:.0e}: mid - left has mean T/2",
             g["gap_mid_minus_left"]["mean"], 0.5 * T, 5 * g["gap_mid_minus_left"]["se_of_mean"])
 
     for name in ("left_error", "mid_error", "right_error"):
-        add(f"C1: log-log slope of sd({name}) vs n is -0.5", res["slopes"][f"sd_{name}"], -0.5, 0.03)
+        add(f"C1: log-log slope of sd({name}) vs n is -0.5", res["slopes"][f"sd_{name}"], -0.5, 0.03 * slack)
 
     e = res["expectations"]
     add(f"C2 (n={e['n']:.0e}, {e['n_paths']:,} paths): E[left] = 0", e["left"]["mean"], 0.0, 5 * e["left"]["se"])
@@ -372,7 +383,8 @@ def build_checks(res, params) -> list[dict]:
         add(f"C2 running t={r['t']:.2f}: E[R(t)] = t for the right-endpoint sum",
             r["R"]["mean"], r["R_expected"], 5 * r["R"]["se"])
     mg = e["martingale"]
-    add("C2 martingale: corr(first half of the sum, second half) is 0", mg["corr_first_half_second_half"], 0.0, 0.03)
+    add("C2 martingale: corr(first half of the sum, second half) is 0", mg["corr_first_half_second_half"], 0.0,
+        0.03 * slack_exp)
     add("C2 martingale: E[second half | first half > 0] is 0",
         mg["mean_second_half_given_first_half_positive"], 0.0, 5 * mg["se_second_half"])
     add("C2 martingale: E[second half | first half < 0] is 0",
@@ -400,6 +412,8 @@ def build_checks(res, params) -> list[dict]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--seed", type=int, default=20260908)
+    parser.add_argument("--quick", action="store_true",
+                        help="a tenth of the paths, wider tolerances, no JSON written")
     args = parser.parse_args()
 
     params = {
@@ -408,11 +422,11 @@ def main() -> int:
         "nested_grids": {
             "n_fine": 2_000_000,     # twice the finest grid, so every grid's midpoints are path values
             "coarsen_by": [20_000, 2_000, 200, 20, 2],   # n = 10^2, 10^3, 10^4, 10^5, 10^6
-            "n_paths": 400,
+            "n_paths": 40 if args.quick else 400,
             "chunk_paths": 5,        # memory only: draws are consumed row by row, so the paths do not depend on it
             "keep_first_paths": 5,
         },
-        "expectations": {"n": 10_000, "n_paths": 20_000, "chunk_paths": 1_000,
+        "expectations": {"n": 10_000, "n_paths": 2_000 if args.quick else 20_000, "chunk_paths": 1_000,
                          "checkpoints": [0.25, 0.5, 0.75, 1.0]},
         "smooth": {"x": "t^2", "ns": [100, 1_000, 10_000, 100_000, 1_000_000]},
         "coin": {"ns": [100, 1_000, 10_000, 100_000, 1_000_000], "n_paths": 5},
@@ -453,15 +467,18 @@ def main() -> int:
         "checks": checks,
     }
     out_path = Path(__file__).with_suffix(".json")
-    with open(out_path, "w", encoding="utf-8", newline="\n") as f:
-        json.dump(out, f, indent=2)
-        f.write("\n")
+    if args.quick:
+        print(f"[2.4] --quick: {out_path.name} NOT written (the committed result is the full run)")
+    else:
+        with open(out_path, "w", encoding="utf-8", newline="\n") as f:
+            json.dump(out, f, indent=2)
+            f.write("\n")
 
     failed = [c for c in checks if not c["pass"]]
     for c in checks:
         print(f"  {'PASS' if c['pass'] else 'FAIL'}  {c['claim']}  "
               f"({c['measured']:.4g} vs {c['expected']:.4g})")
-    print(f"[2.4] wrote {out_path.name} in {time.perf_counter() - t0:.1f}s "
+    print(f"[2.4] {'checked (--quick)' if args.quick else 'wrote ' + out_path.name} in {time.perf_counter() - t0:.1f}s "
           f"({len(checks) - len(failed)}/{len(checks)} checks pass)")
     return 1 if failed else 0
 
