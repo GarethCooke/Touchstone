@@ -1,0 +1,803 @@
+<title>S5 · Itô's Lemma</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #F4F6F9; --card: #FCFCFD; --ink: #1B2330; --muted: #59657A;
+    --line: #DEE3EC; --line-faint: #E9EDF3;
+    --walk: #2E59C7; --walk-soft: rgba(46, 89, 199, 0.13);
+    --theory: #B07818; --theory-soft: rgba(176, 120, 24, 0.12);
+    --smooth: #1E7A46; --smooth-soft: rgba(30, 122, 70, 0.12);
+    --peek: #B4413A; --peek-soft: rgba(180, 65, 58, 0.12);
+    --code-bg: #EEF1F6; --good: #1E7A46; --bad: #B4413A;
+    --shadow: 0 1px 2px rgba(27, 35, 48, 0.05), 0 4px 16px rgba(27, 35, 48, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0F141D; --card: #161C27; --ink: #E6EAF2; --muted: #97A2B5;
+      --line: #29323F; --line-faint: #1F2733;
+      --walk: #5B7FE3; --walk-soft: rgba(91, 127, 227, 0.16);
+      --theory: #B08422; --theory-soft: rgba(176, 132, 34, 0.16);
+      --smooth: #4CAF79; --smooth-soft: rgba(76, 175, 121, 0.16);
+      --peek: #D9736B; --peek-soft: rgba(217, 115, 107, 0.16);
+      --code-bg: #1B2230; --good: #4CAF79; --bad: #D9736B;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0F141D; --card: #161C27; --ink: #E6EAF2; --muted: #97A2B5;
+    --line: #29323F; --line-faint: #1F2733;
+    --walk: #5B7FE3; --walk-soft: rgba(91, 127, 227, 0.16);
+    --theory: #B08422; --theory-soft: rgba(176, 132, 34, 0.16);
+    --smooth: #4CAF79; --smooth-soft: rgba(76, 175, 121, 0.16);
+    --peek: #D9736B; --peek-soft: rgba(217, 115, 107, 0.16);
+    --code-bg: #1B2230; --good: #4CAF79; --bad: #D9736B;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ground); color: var(--ink);
+    font-family: "Source Serif 4", Georgia, "Times New Roman", serif; font-size: 17px; line-height: 1.68;
+    -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 40px 20px 80px; }
+  .eyebrow { font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 11.5px; font-weight: 600;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  header.top { padding: 28px 0 8px; border-bottom: 1px solid var(--line); margin-bottom: 36px; }
+  header.top .eyebrow .sess { color: var(--walk); }
+  h1 { font-family: "Source Serif 4", Georgia, serif; font-size: clamp(30px, 6vw, 42px); font-weight: 700;
+    line-height: 1.12; letter-spacing: -0.01em; margin: 10px 0 12px; text-wrap: balance; }
+  .standfirst { color: var(--muted); font-size: 16px; margin: 0 0 18px; max-width: 62ch; }
+  .standfirst strong { color: var(--ink); font-weight: 600; }
+  section { margin: 44px 0; }
+  h2 { font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 21px; font-weight: 600;
+    letter-spacing: -0.005em; margin: 6px 0 14px; text-wrap: balance; }
+  h2 .stepno { color: var(--walk); font-variant-numeric: tabular-nums; margin-right: 6px; }
+  h3 { font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 15.5px; font-weight: 600; margin: 22px 0 8px; }
+  p { margin: 0 0 14px; max-width: 66ch; }
+  .note { color: var(--muted); font-size: 15px; max-width: 66ch; }
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, Consolas, monospace; font-size: 0.86em; }
+  code { background: var(--code-bg); border-radius: 4px; padding: 0.1em 0.35em; }
+  pre { background: var(--code-bg); border: 1px solid var(--line-faint); border-radius: 8px; padding: 14px 16px;
+    overflow-x: auto; font-size: 14px; line-height: 1.55; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+  .predictions { display: flex; flex-direction: column; gap: 12px; }
+  .prediction { display: flex; gap: 14px; align-items: baseline; }
+  .prediction .tag { flex: none; font-family: "IBM Plex Sans", sans-serif; font-size: 11px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--walk); border: 1px solid var(--walk);
+    border-radius: 99px; padding: 2px 10px; white-space: nowrap; }
+  .prediction q { font-style: italic; }
+  .prediction .asked { font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 14.5px; color: var(--muted); }
+  .verdict { font-family: "IBM Plex Sans", sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+  .verdict.ok { color: var(--good); } .verdict.no { color: var(--bad); } .verdict.half { color: var(--theory); }
+  ul.steps { margin: 6px 0 16px; padding-left: 22px; max-width: 66ch; }
+  ul.steps li { margin: 0 0 6px; }
+  figure { margin: 26px 0; }
+  .figbox { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; box-shadow: var(--shadow); }
+  canvas { display: block; width: 100%; height: auto; }
+  .figbox canvas { cursor: zoom-in; }
+  .lightbox { position: fixed; inset: 0; z-index: 50; background: var(--ground); display: flex; flex-direction: column; }
+  .lightbox[hidden] { display: none; }
+  .lightbox .bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line);
+    font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 13px; color: var(--muted); flex: none; }
+  .lightbox .bar button { font: inherit; font-weight: 600; color: var(--ink); background: var(--card); border: 1px solid var(--line);
+    border-radius: 6px; padding: 4px 12px; cursor: pointer; min-width: 36px; }
+  .lightbox .bar button:focus-visible { outline: 2px solid var(--walk); outline-offset: 2px; }
+  .lightbox .bar .spacer { flex: 1; }
+  .lightbox .stage { flex: 1; overflow: hidden; position: relative; touch-action: none; cursor: grab; }
+  .lightbox .stage.dragging { cursor: grabbing; }
+  .lightbox .stage canvas { position: absolute; left: 0; top: 0; width: auto; height: auto; transform-origin: 0 0; }
+  figcaption { font-size: 14px; color: var(--muted); margin-top: 10px; max-width: 76ch; }
+  .figbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; font-family: "IBM Plex Sans", sans-serif; font-size: 12.5px; color: var(--muted); }
+  .swatch { width: 14px; height: 3px; border-radius: 2px; }
+  .swatch.dash { background: repeating-linear-gradient(90deg, currentColor 0 4px, transparent 4px 7px); height: 2px; }
+  .tablewrap { overflow-x: auto; margin: 14px 0; }
+  table { border-collapse: collapse; width: 100%; font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 14px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--line-faint); text-align: right; white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; }
+  td.hi { color: var(--walk); font-weight: 600; }
+  td.warn { color: var(--theory); font-weight: 600; }
+  td.pk { color: var(--peek); font-weight: 600; }
+  td.sm { color: var(--smooth); font-weight: 600; }
+  td.dim { color: var(--muted); }
+  .aside { border-left: 3px solid var(--theory); background: var(--theory-soft); padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 18px 0; }
+  .aside .eyebrow { color: var(--theory); margin-bottom: 4px; }
+  .aside p { font-size: 15.5px; }
+  .identity { margin: 16px 0; padding: 16px 20px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); }
+  .identity .line { font-family: "Source Serif 4", Georgia, serif; font-size: 19px; font-weight: 600; margin: 4px 0; overflow-x: auto; white-space: nowrap; }
+  .identity .line .l { color: var(--walk); } .identity .line .m { color: var(--theory); } .identity .line .r { color: var(--peek); } .identity .line .s { color: var(--smooth); }
+  .identity .why { font-size: 14.5px; color: var(--muted); font-family: "IBM Plex Sans", system-ui, sans-serif; margin: 2px 0 10px; }
+  .q { margin: 18px 0; padding: 16px 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+  .q .qno { font-family: "IBM Plex Sans", sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: var(--walk); text-transform: uppercase; }
+  .q p.stem { font-weight: 600; margin: 6px 0 10px; }
+  .q ul { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .q li { padding-left: 26px; position: relative; font-size: 15.5px; }
+  .q li::before { position: absolute; left: 0; top: 0; font-family: "IBM Plex Sans", sans-serif; font-weight: 600; }
+  .q li.ok::before { content: "✓"; color: var(--good); }
+  .q li.no::before { content: "✗"; color: var(--bad); }
+  .q li em.mis { color: var(--muted); font-style: italic; }
+  .map { display: grid; grid-template-columns: auto 1fr; gap: 0; margin: 0 0 8px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; box-shadow: var(--shadow);
+    font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 14.5px; line-height: 1.5; }
+  .map > div { padding: 9px 14px; border-bottom: 1px solid var(--line-faint); }
+  .map > div:nth-last-child(-n+2) { border-bottom: none; }
+  .map .no { color: var(--walk); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .map .no.p { color: var(--muted); }
+  .map .what strong { font-weight: 600; }
+  .map .what .why { color: var(--muted); }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Touchstone · study track · <span class="sess">Session S5</span> — teaching notes</div>
+  <h1>Itô's lemma</h1>
+  <p class="standfirst">Working material for <strong>page 2.5</strong>, which you write in your own words (I2 — none of this is page prose). Pitch: <strong>solid</strong>, as at S1–S4. The experiment has already run on your machine; every number below is in <code>2_5_ito_lemma.json</code> (seed 20260914, T = 1, 196 checks). The page has one job: show that 2.4's −½T is one case of a general rule — Taylor to second order, then 2.3's (dW)² = dt — and that the rule is exact algebra on every grid for g = x², a limit for every other g, and the whole reason E[e^(W_t)] grows.</p>
+</header>
+
+<!-- ============ MAP ============ -->
+<section style="margin-top:0">
+  <div class="eyebrow">The notes in one card</div>
+  <h2>What each section shows, and why it is there</h2>
+  <div class="map">
+    <div class="no p">P</div><div class="what"><strong>Your five predictions, verbatim, scored.</strong> <span class="why">— P1/P2 are the page's target misconception; P3–P5 are its mechanics, which you had.</span></div>
+    <div class="no">§1</div><div class="what"><strong>What ran: five claims, 196 checks, 66 s, and where every number lives in the JSON.</strong> <span class="why">— I1: nothing below is claimed that the file does not show.</span></div>
+    <div class="no p">→</div><div class="what"><strong>The bridge: 2.3's identity → 2.4's −½T → 2.5's ½g″ dt, as an eight-rung ladder on g = x².</strong> <span class="why">— the two rungs 2.4 never wrote (the flip to d-notation, and dt as (ΔW)² per step).</span></div>
+    <div class="no">§2</div><div class="what"><strong>The lemma is Taylor to second order, summed, with (ΔW)² swapped for dt — and what it is for: how a function of a random price moves.</strong> <span class="why">— exact identity, then one limit, as 2.4; the "so what" panel is the page's hook.</span></div>
+    <div class="no">§3</div><div class="what"><strong>g = x²: the identity holds to 10⁻¹⁵; the dt-form is off by Σ(ΔW)² − T, 2.3's noise, sd T√(2/n).</strong> <span class="why">— 2.4's −½T is the lemma's simplest case, and the lemma's grid error is not the lemma's.</span></div>
+    <div class="no">§4</div><div class="what"><strong>g = eˣ, x³: the remainder exists and dies like 1/n; the grid's (ΔW)²-vs-dt noise dies like 1/√n and is 10–1000× bigger.</strong> <span class="why">— P3 and P5 with numbers: dropping third order is free, replacing (ΔW)² by dt is what costs.</span></div>
+    <div class="no">§5</div><div class="what"><strong>E[e^W] = e^(t/2): all of the growth is the dt term, none is the dW term; e^(W − ½t) has constant mean.</strong> <span class="why">— P1/P2 corrected, the index's check passed, and the first sighting of 2.6's −½σ².</span></div>
+    <div class="no">§6</div><div class="what"><strong>Smooth x(t): no dt term, and adding one is a constant error (0.73 for eˣ) that never shrinks.</strong> <span class="why">— P4: the term is the price of Σ(ΔW)² = T, not a general improvement to calculus.</span></div>
+    <div class="no">§7</div><div class="what"><strong>Coin walk: both forms coincide exactly; x³'s remainder is dt·W_T exactly.</strong> <span class="why">— nothing Gaussian about any of it; √dt-sized steps are the whole cause.</span></div>
+    <div class="no">§8</div><div class="what"><strong>Five draft check questions, distractors built from P1/P2.</strong> <span class="why">— for your approval (I5).</span></div>
+    <div class="no">§9</div><div class="what"><strong>Twelve ledger rows born on this page.</strong> <span class="why">— for your approval, then into <code>drafts/notation.md</code>.</span></div>
+    <div class="no">§10</div><div class="what"><strong>A "the point" line for each Part 2 page on the site, eleven drafts.</strong> <span class="why">— your rewrite, then an L session's job; not built here.</span></div>
+  </div>
+</section>
+
+<!-- ============ 0 · PREDICTIONS ============ -->
+<section>
+  <div class="eyebrow">On the record</div>
+  <h2>Your predictions, before any code ran</h2>
+  <p class="note" style="margin-bottom:12px"><strong>Setup as posed:</strong> W is Brownian motion on [0, T] with T = 1 and W₀ = 0; W_t is its value at time t. g is a smooth function of one variable, g′, g″, g‴ its first, second and third derivatives. "Smooth" is an assumption about g, never about W: g has continuous derivatives up to the order Taylor needs (two in x, one in t for the f(t, x) form), which x², eˣ, x³, log x, e^(x − ½t) and every pricing function on the course have. W is the rough one — nowhere differentiable (2.2) — and the lemma is exactly "a smooth function of a rough path". Where g has a kink, like an option's payoff max(S − K, 0) at expiry, g″ is a spike and the lemma needs an extra term; 2.10 meets that as gamma blowing up at the strike. E[·] is the average over all paths. Gut answers, not derivations.</p>
+  <div class="card predictions">
+    <div class="prediction"><span class="tag">P1</span><div><span class="asked">For g(x) = eˣ, is E[e^(W_t)] constant in t, growing, or shrinking? If it moves, like what?</span><br>You: <q>growing – continuously compounding at a rate of approx sqrt t</q> &nbsp;<span class="verdict half">growing — yes</span>; <span class="verdict no">like e^(t/2), a constant rate ½, not √t</span> — §5</div></div>
+    <div class="prediction"><span class="tag">P2</span><div><span class="asked">What constant c makes e^(W_t − c·t) have constant mean? (Gut number.)</span><br>You: <q>1 / sqrt t</q> &nbsp;<span class="verdict no">c = ½</span> — §5; your c is not a constant, and e^(W_t − √t) has a mean that falls from 1 to 0.61</div></div>
+    <div class="prediction"><span class="tag">P3</span><div><span class="asked">Itô for g(W) = W³: what is the dt term? (Something × W dt — what?)</span><br>You: <q>3W dt</q> &nbsp;<span class="verdict ok">right</span> — ½g″ = ½·6W; §4 measures it</div></div>
+    <div class="prediction"><span class="tag">P4</span><div><span class="asked">For a smooth x(t), does g(x(t)) pick up a ½g″ dt term? Why or why not, one line.</span><br>You: <q>No, because the quadratic variation vanishes</q> &nbsp;<span class="verdict ok">right</span> — §6 shows what adding it would cost</div></div>
+    <div class="prediction"><span class="tag">P5</span><div><span class="asked">The Taylor remainder: does the third-order term ⅙g‴(ΔW)³ contribute anything in the limit? Why?</span><br>You: <q>no, because this vanishes, sum(dw^3) -> 0 as dt ->0</q> &nbsp;<span class="verdict ok">right</span> — §4; and it vanishes faster than 2.3's bound says, because the cubes cancel</div></div>
+  </div>
+  <p class="note" style="margin-top:14px">P3, P4 and P5 are the mechanics of the lemma and you had all three. P1 and P2 are the same miss twice: you applied "W_t is about √t in size" to the exponential, when the rule you used for P3 — ½g″ — gives the answer directly. That is the page's target misconception and it is a check distractor in §8. Read §5 with P3 in your hand.</p>
+</section>
+
+<!-- ============ 1 · WHAT RAN ============ -->
+<section>
+  <div class="eyebrow">Numbers first</div>
+  <h2><span class="stepno">1</span>The experiment on your disk</h2>
+  <p><code>experiments/2_5_ito_lemma.py</code> wrote <code>2_5_ito_lemma.json</code> in 66 s on your machine (numpy 2.5.2, via <code>uv run --frozen</code>); <code>--quick</code> runs in 7 s. The container run (numpy 2.4.4) agrees to every printed digit; the largest difference is 5 parts in 10⁹ of a residual that is itself 10⁻⁶ — rounding in <code>exp</code> between numpy versions. Five claims, all measured:</p>
+  <ul class="steps">
+    <li><strong>C1</strong> — 400 paths, each drawn once at 10⁶ steps and read on five grids n = 10², 10³, 10⁴, 10⁵, 10⁶ (2.3's shape; no midpoints are needed this time, so the fine grid is 10⁶, not 2.4's 2 × 10⁶). On each grid, for g = x², both sides of the lemma in its two forms (§2).</li>
+    <li><strong>C2</strong> — the same paths and grids for g = eˣ and g = x³: the same two forms, plus the third-order term on its own, plus Σ(ΔW)³ and Σ|ΔW|³.</li>
+    <li><strong>C3</strong> — 20,000 fresh paths at n = 10⁴: E[e^(W_t)] at t = 0.1, 0.25, 0.5, 0.75, 1, split into its Itô-sum part and its dt part; the candidates e^(W_t − ½t), e^(W_t − t), e^(W_t − √t); the martingale test on e^(W_t − ½t).</li>
+    <li><strong>C4</strong> — the smooth curve x(t) = t² on the same five grids, for all three g.</li>
+    <li><strong>C5</strong> — the ±√dt coin walk from 2.1, five paths on each grid, for x² and x³.</li>
+  </ul>
+  <p class="note">Notation for everything below. The grid is t₀ = 0, t₁ = dt, …, tₙ = T with dt = T/n; Wᵢ is short for W(tᵢ), the path's value at grid time i; ΔWᵢ = Wᵢ₊₁ − Wᵢ is the change over step i; W_T = Wₙ is the end value. Σ with no limits means "add over the n steps, i = 0 … n − 1". g′(Wᵢ) means the derivative g′ evaluated at the number Wᵢ — read at the <em>start</em> of the step, as 2.4 requires. "Left side" always means g(W_T) − g(0); "right side" always means the sum the lemma proposes for it.</p>
+</section>
+
+<!-- ============ BRIDGE ============ -->
+<section>
+  <div class="eyebrow">The bridge — added after your "I don't recall us saying that"</div>
+  <h2>From 2.4 to here, in one ladder</h2>
+  <p>Every rung is one line and uses only g = x², the case 2.3 and 2.4 already did. The last rung swaps the 2 for g″. Read down; say which rung is the first one you do not recognise.</p>
+<pre><code>1 (2.3)  one step of x²:      (W + ΔW)² − W²  =  2W·ΔW + (ΔW)²                 identity, any numbers
+2 (2.3)  add the n steps:      W_T²  =  2·Σ W·ΔW  +  Σ(ΔW)²                       identity, every grid
+3 (2.3)  the fact:             Σ(ΔW)² → T                                        limit — the surprise of 2.3
+4 (2.4)  Σ W·ΔW read at the LEFT end is the tradable sum, named ∫W dW.
+         Put 3 into 2:         W_T²  =  T  +  2·∫W dW
+         solve for the sum:    ∫W dW  =  ½W_T² − ½T                              2.4's result
+5 (2.4)  the chain rule says   d(x²) = 2x dx, so ∫W dW would be ½W_T².
+         That is the MIDPOINT sum's limit (Stratonovich). The left sum is short of it by ½T,
+         and ½T is half of Σ(ΔW)². Finance cannot read at the midpoint (the position is
+         fixed before the move), so the ½T stays.                                 why 2.4 did left/mid/right
+6 (flip) rung 4, written as a rule for one small step instead of the whole integral:
+              W_T² = T + 2∫W dW      ⇔      d(W²) = dt + 2W dW
+         chain rule:                         d(W²) =      2W dW      — the "dt" is missing
+         "dt" is a DRIFT: the 2W dW part has mean 0 (2.4), so E[W_T²] = T. The chain
+         rule's version would give E[W_T²] = 0, which is false.                    the −½T in d-clothing
+7 (step) before the limit, that dt was (ΔW)² — the square of the step's random increment ΔW
+         (the S1 ledger's "kick": √dt-sized, mean zero) — rung 1.
+         For g = x²: g″ = 2, so (ΔW)² = ½·g″·(ΔW)².                                "½g″ × (ΔW)²"
+8 (2.5)  for any smooth g, rung 1 is Taylor:  g(W + ΔW) − g(W) = g′·ΔW + ½g″·(ΔW)² + (smaller)
+         sum, take 3:                          dg(W) = ½g″(W) dt + g′(W) dW         Itô's lemma
+         chain rule:                           dg(W) =             g′(W) dW         — short by ½g″ dt</code></pre>
+  <p>So the sentence "for a Brownian S the chain rule gets the drift wrong by ½g″ × (kick size)²" — kick size meaning the step's random increment ΔW, so (kick size)² is (ΔW)² — is rung 4 of 2.4 — ∫W dW = ½W_T² − ½T — read backwards through rungs 6 and 7: the −½T on the integral is a T on W_T², is a dt on d(W²), is a (ΔW)² per step, is ½g″(ΔW)² with g″ = 2. The factor of 2 and the sign flip between "−½T" and "+dt" are where the thread is easy to drop, and 2.4 never wrote rung 6 or 7 — it stopped at rung 5 and previewed rung 8 in "Into 2.5". That is the gap you are feeling, and it is real.</p>
+  <p>What left/mid/right was <em>for</em>, in this ladder: it is rung 5. The chain rule is not wrong in the abstract — it is the answer you get by reading the integrand halfway through the step, which is the one thing a trader cannot do. Reading at the left end, which is the only tradable choice, costs exactly ½Σ(ΔW)². 2.5 says that cost has a general form, ½g″, and that it is the entire reason E[e^W] grows (§5).</p>
+</section>
+
+<!-- ============ 2 · THE LEMMA IN ONE STEP ============ -->
+<section>
+  <div class="eyebrow">The statement, and where it comes from</div>
+  <h2><span class="stepno">2</span>Taylor to second order, then 2.3's rulebook</h2>
+  <div class="aside">
+    <div class="eyebrow">First — what problem it solves</div>
+    <p>You have a model for how one thing moves at random — the price, S — and you hold something that is a <em>function</em> of it: an option worth V(t, S), a hedged book, log S, e^(W). The question every later page asks is "how does <em>my</em> thing move, given how S moves?" — what is its drift, and how much of S's noise does it carry? For a smooth S the chain rule answers that. For a Brownian S the chain rule gives the wrong drift, by exactly ½g″ × (ΔW)² per step — ΔW the step's random increment, whose square is dt-sized and never dies (2.3) — and the lemma is the chain rule with that term put back. It is the only tool on the course that turns "S moves like this" into "f(t, S) moves like this", and everything from here is an application of it:</p>
+    <p><strong>2.6</strong> — solve dS = μS dt + σS dW by asking how log S moves: d(log S) = (μ − ½σ²) dt + σ dW, a plain drift plus Brownian motion, so S_T = S₀·e^((μ − ½σ²)T + σW_T) in closed form — that is how prices are simulated, and the −½σ² is §5's E[e^W] = e^(t/2) in a suit. <strong>2.7</strong> — hold V − Δ·S; the lemma gives dV, choosing Δ = ∂V/∂S cancels the dW term, and what is left must earn the riskless rate: the Black–Scholes PDE, in which the lemma's ½b²f_xx is the ½σ²S²·Γ term — gamma costing theta. <strong>2.8</strong> — change the drift of S and the lemma says the noise coefficient of V, and so the hedge, does not change. Without the lemma you cannot write dV at all, so no delta, no PDE, no price.</p>
+    <p>It is also the course's thesis in one line. A forward is linear in S, g″ = 0, the extra term is zero and the chain rule was right all along — linear products need no stochastic calculus. An option is curved, g″ ≠ 0, and the extra term is what the curvature earns or pays from the price's jitter. §5's e^(W) is the smallest curved payoff there is, and its ½e^W dt is that earning.</p>
+  </div>
+  <p>2.3's Taylor expansion, one step at a time, says how much a smooth g changes when its argument moves from Wᵢ to Wᵢ + ΔWᵢ:</p>
+  <div class="identity">
+    <div class="line">g(Wᵢ + ΔWᵢ) − g(Wᵢ) = <span class="l">g′(Wᵢ)·ΔWᵢ</span> + <span class="m">½g″(Wᵢ)·(ΔWᵢ)²</span> + <span class="r">⅙g‴(Wᵢ)·(ΔWᵢ)³ + …</span></div>
+    <div class="why">one step. Nothing stochastic yet: this is calculus about the function g, true for any number ΔWᵢ. The ½ and the ⅙ are Taylor's coefficients, 1/2! and 1/3!</div>
+  </div>
+  <p>Add the n steps. The left side telescopes to g(W_T) − g(0), exactly as W_T² did in 2.4 (aside below). The right side becomes three sums:</p>
+  <div class="identity">
+    <div class="line">g(W_T) − g(0) = <span class="l">Σ g′(Wᵢ)·ΔWᵢ</span> + <span class="m">½Σ g″(Wᵢ)·(ΔWᵢ)²</span> + <span class="r">[third order and beyond]</span></div>
+    <div class="why">the <strong>(ΔW)²-form</strong>. Still exact algebra on every grid, for every path, for every g — it is Taylor's theorem summed. For g = x² the red bracket is empty (g‴ = 0) and this is the identity you wrote on 2.3 ("Why ordinary calculus fails"): W_T² = 2Σ W·ΔW + Σ(ΔW)² — which 2.4 then solves for the left sum, Σ W(tᵢ)·ΔWᵢ = ½W_T² − ½Σ(ΔW)². The JSON checks it to 2 × 10⁻¹⁵ (§3)</div>
+    <div class="line">g(W_T) − g(0) ≈ <span class="m">½Σ g″(Wᵢ)·dt</span> + <span class="l">Σ g′(Wᵢ)·ΔWᵢ</span></div>
+    <div class="why">the <strong>dt-form</strong>: the same line with two things done to it — (ΔWᵢ)² replaced by dt (the rulebook, 2.3) and the red bracket dropped (P5). Both are limits, not identities: on a grid this line is off by a noise that shrinks like 1/√n (§3, §4). The blue sum is a left-endpoint sum, so it tends to the Itô integral ∫₀ᵀ g′(W) dW (2.4); the orange sum is an ordinary Riemann sum, so it tends to ½∫₀ᵀ g″(W) dt</div>
+    <div class="line">dg(W_t) = <span class="m">½g″(W_t) dt</span> + <span class="l">g′(W_t) dW_t</span></div>
+    <div class="why"><strong>Itô's lemma</strong>, in the d-notation of 2.3's rulebook: the same statement written for one infinitesimal step. Read it as "over the next dt, g moves by half its curvature times dt, plus its slope times the kick". Order of terms, from here to the end of the course: the certain dt part first, the random dW part second — a dt + b dW — as the index and 2.6's dS = μS dt + σS dW have it. (2.4's "Into 2.5" paragraph wrote the two the other way round; it is the one place to flip.) The chain rule is the blue term alone. The orange term is 2.4's −½T with g″ in place of 2 — what 2.3 called the survivor</div>
+  </div>
+  <p>Two forms, and it matters which is which. The (ΔW)²-form is an equals sign: it holds at n = 3 with made-up numbers, no Brownian motion required. The dt-form is an arrow: it needs 2.3 twice — Σ(ΔW)² → T for the orange term, Σ|ΔW|³ → 0 for the red bracket. The page's argument is the same as 2.4's: exact identity, then one limit. This time the identity has a name.</p>
+  <div class="aside">
+    <div class="eyebrow">Aside — the telescoping, for a general g</div>
+    <p>Write gᵢ for g(Wᵢ). The one-step left side on step i is gᵢ₊₁ − gᵢ, and consecutive differences collapse to last minus first. For n = 3:</p>
+<pre><code>step 0:  g(W₀ + ΔW₀) − g(W₀)  =  g₁ − g₀
+step 1:  g(W₁ + ΔW₁) − g(W₁)  =  g₂ − g₁
+step 2:  g(W₂ + ΔW₂) − g(W₂)  =  g₃ − g₂
+                                 ──────────
+sum:                             g₃ − g₀  =  g(W_T) − g(0)</code></pre>
+    <p>g₁ enters step 0 with a plus and step 1 with a minus; g₂ likewise. Only the ends survive, and no limit is taken. This is why the left side of the lemma is one number per path — g at the end minus g at the start — while the right side is a sum over the whole path. For g = x², g(0) = 0 and the left side is W_T², as in 2.4; for g = eˣ, g(0) = 1 and the left side is e^(W_T) − 1; for g = x³ it is W_T³.</p>
+  </div>
+  <div class="aside">
+    <div class="eyebrow">Aside — why the ½ is there and why the (ΔW)² term survives at all</div>
+    <p>The ½ is Taylor's: the second-order coefficient of any smooth function is g″/2! (for g = x²: (W + Δ)² = W² + 2WΔ + Δ², and ½g″ = ½·2 = 1 is the coefficient of Δ² — check). It is the same ½ as 2.4's −½T, which is why the −½T is "2.4's number" and not a new one.</p>
+    <p>Why the term survives summation is 2.3's whole point, restated with g″ in front. Each (ΔWᵢ)² is dt-sized on average (E[(ΔW)²] = dt), so ½Σ g″(Wᵢ)(ΔWᵢ)² is n terms of size dt: a sum of size T that does not go away. For a smooth x, each (Δxᵢ)² is dt²-sized, n of them make dt, and the term vanishes (§6). The third-order term is n pieces of size dt^(3/2), which sum to something of size √dt → 0 (§4). "Size dt survives, anything smaller dies" — the rulebook — is the sorting rule, and the second-order term is the only one that lands exactly on the line.</p>
+  </div>
+</section>
+
+<!-- ============ 3 · x² EXACT ============ -->
+<section>
+  <div class="eyebrow">What the JSON says — the exact case</div>
+  <h2><span class="stepno">3</span>g = x²: the (ΔW)²-form is an identity, the dt-form is off by Σ(ΔW)² − T</h2>
+  <p>For g = x²: g′ = 2x, g″ = 2, g‴ = 0. The (ΔW)²-form is W_T² = 2Σ W·ΔW + Σ(ΔW)², 2.3's identity — 2.4 has it as its one-step version (W + ΔW)² − W² = 2W·ΔW + (ΔW)², rearranged to Σ W(tᵢ)·ΔWᵢ = ½W_T² − ½Σ(ΔW)², and in "Into 2.5" as the limit W_T² = 2∫₀ᵀ W dW + T (quoted in 2.4's order). The dt-form replaces Σ(ΔW)² by Σ dt = T. Path 1 ends at W_T = −1.1702, so the left side is W_T² = 1.3694 on every grid:</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>n</th><th>Σ 2Wᵢ·ΔWᵢ</th><th>Σ(ΔW)²</th><th>blue + orange</th><th>left − (ΔW)²-form</th><th>Σ dt = T</th><th>left − dt-form</th></tr></thead>
+    <tbody>
+      <tr><td>100</td><td class="hi">0.3338</td><td class="warn">1.0356</td><td>1.3694</td><td class="sm">−2 × 10⁻¹⁶</td><td class="warn">1</td><td class="pk">+0.0356</td></tr>
+      <tr><td>1,000</td><td class="hi">0.3769</td><td class="warn">0.9925</td><td>1.3694</td><td class="sm">0</td><td class="warn">1</td><td class="pk">−0.0075</td></tr>
+      <tr><td>10,000</td><td class="hi">0.3730</td><td class="warn">0.9964</td><td>1.3694</td><td class="sm">4 × 10⁻¹⁶</td><td class="warn">1</td><td class="pk">−0.0036</td></tr>
+      <tr><td>100,000</td><td class="hi">0.3766</td><td class="warn">0.9928</td><td>1.3694</td><td class="sm">−7 × 10⁻¹⁶</td><td class="warn">1</td><td class="pk">−0.0072</td></tr>
+      <tr><td>1,000,000</td><td class="hi">0.3711</td><td class="warn">0.9983</td><td>1.3694</td><td class="sm">6 × 10⁻¹⁶</td><td class="warn">1</td><td class="pk">−0.0017</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="note"><code>results.grids[*].functions.x^2.first_paths.{ito_sum, qv_term, r_qv, dt_term, r_dt}[0]</code>. The green column is rounding: over 400 paths and five grids the worst is 2.3 × 10⁻¹⁵ (<code>r_qv.max_abs</code>). The red column is exactly Σ(ΔW)² − 1 (checked as an identity, 10⁻¹⁵) — the orange column minus 1, row by row. It is 2.3's quadratic-variation error, sign and all.</p>
+  <p>Over 400 paths the red column has mean 0 and spread T·√(2/n), which is 2.3's number for Σ(ΔW)² − T:</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>n</th><th>mean of left − dt-form</th><th>± s.e.</th><th>sd</th><th>T√(2/n)</th></tr></thead>
+    <tbody>
+      <tr><td>100</td><td>+0.0102</td><td class="dim">0.0067</td><td class="pk">0.1344</td><td class="dim">0.1414</td></tr>
+      <tr><td>1,000</td><td>−0.0025</td><td class="dim">0.0022</td><td class="pk">0.0439</td><td class="dim">0.0447</td></tr>
+      <tr><td>10,000</td><td>−0.0004</td><td class="dim">0.0007</td><td class="pk">0.0142</td><td class="dim">0.0141</td></tr>
+      <tr><td>100,000</td><td>−0.0003</td><td class="dim">0.0002</td><td class="pk">0.0043</td><td class="dim">0.0045</td></tr>
+      <tr><td>1,000,000</td><td>+0.0000</td><td class="dim">0.0001</td><td class="pk">0.0014</td><td class="dim">0.0014</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="note"><code>results.grids[*].functions.x^2.r_dt.{mean, se_of_mean, sd}</code>; log-log slope of the sd against n is −0.498 (<code>slopes.sd_r_dt_x^2</code>). So for x² the lemma's dt-form is right on average at every n, and right on every path only in the limit — with an error that is not the lemma's, it is the grid's: (ΔW)² is dt on average, not step by step.</p>
+</section>
+
+<!-- ============ 4 · eˣ AND x³ ============ -->
+<section>
+  <div class="eyebrow">What the JSON says — every other g</div>
+  <h2><span class="stepno">4</span>g = eˣ and g = x³: the remainder is there, and it dies like 1/n</h2>
+  <p>For g = eˣ every derivative is eˣ, so every order of Taylor is present; for g = x³, g′ = 3x², g″ = 6x, g‴ = 6 and the expansion stops at third order — the red bracket of §2 is <em>exactly</em> Σ(ΔW)³, nothing after it. Path 1 again (W_T = −1.1702), the same two residuals as §3, plus the third-order term on its own:</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>n</th><th>g</th><th>left side</th><th>Σ g′·ΔW</th><th>½Σ g″·(ΔW)²</th><th>½Σ g″·dt</th><th>left − (ΔW)²-form</th><th>⅙Σ g‴·(ΔW)³</th><th>left − dt-form</th></tr></thead>
+    <tbody>
+      <tr><td>100</td><td>eˣ</td><td>−0.6897</td><td class="hi">−0.9079</td><td class="warn">0.2238</td><td class="warn">0.2247</td><td class="sm">−0.0057</td><td class="dim">−0.0064</td><td class="pk">−0.0065</td></tr>
+      <tr><td>1,000</td><td>eˣ</td><td>−0.6897</td><td class="hi">−0.9136</td><td class="warn">0.2245</td><td class="warn">0.2237</td><td class="sm">−0.00059</td><td class="dim">−0.00065</td><td class="pk">+0.0003</td></tr>
+      <tr><td>10,000</td><td>eˣ</td><td>−0.6897</td><td class="hi">−0.9123</td><td class="warn">0.2226</td><td class="warn">0.2235</td><td class="sm">−0.000070</td><td class="dim">−0.000075</td><td class="pk">−0.0009</td></tr>
+      <tr><td>100,000</td><td>eˣ</td><td>−0.6897</td><td class="hi">−0.9114</td><td class="warn">0.2217</td><td class="warn">0.2235</td><td class="sm">−3.6 × 10⁻⁶</td><td class="dim">−4.2 × 10⁻⁶</td><td class="pk">−0.0018</td></tr>
+      <tr><td>1,000,000</td><td>eˣ</td><td>−0.6897</td><td class="hi">−0.9128</td><td class="warn">0.2231</td><td class="warn">0.2235</td><td class="sm">−4.3 × 10⁻⁷</td><td class="dim">−4.9 × 10⁻⁷</td><td class="pk">−0.0004</td></tr>
+      <tr><td>100</td><td>x³</td><td>−1.6025</td><td class="hi">1.3047</td><td class="warn">−2.8488</td><td class="warn">−2.6240</td><td class="sm">−0.0584</td><td class="dim">−0.0584</td><td class="pk">−0.2832</td></tr>
+      <tr><td>1,000</td><td>x³</td><td>−1.6025</td><td class="hi">0.9832</td><td class="warn">−2.5798</td><td class="warn">−2.6239</td><td class="sm">−0.0060</td><td class="dim">−0.0060</td><td class="pk">+0.0382</td></tr>
+      <tr><td>10,000</td><td>x³</td><td>−1.6025</td><td class="hi">1.0188</td><td class="warn">−2.6206</td><td class="warn">−2.6257</td><td class="sm">−0.00067</td><td class="dim">−0.00067</td><td class="pk">+0.0044</td></tr>
+      <tr><td>100,000</td><td>x³</td><td>−1.6025</td><td class="hi">1.0098</td><td class="warn">−2.6123</td><td class="warn">−2.6258</td><td class="sm">−0.000019</td><td class="dim">−0.000019</td><td class="pk">+0.0135</td></tr>
+      <tr><td>1,000,000</td><td>x³</td><td>−1.6025</td><td class="hi">1.0190</td><td class="warn">−2.6215</td><td class="warn">−2.6258</td><td class="sm">−3.4 × 10⁻⁶</td><td class="dim">−3.4 × 10⁻⁶</td><td class="pk">+0.0043</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="note"><code>results.grids[*].functions.{exp, x^3}.first_paths.{lhs, ito_sum, qv_term, dt_term, r_qv, cubic_term, r_dt}[0]</code>. Left side for eˣ is e^(W_T) − 1 = e^(−1.1702) − 1; for x³ it is W_T³. Read the green column down: it shrinks tenfold per row — 1/n. Read the red column down: it shrinks about threefold per row — 1/√n — and it is much bigger. For x³ the green and grey columns are the same number to every digit, because the expansion stops at third order (checked as an identity, 10⁻¹⁵: <code>x^3.r_qv.identity_max_abs_residual</code>; the fourth-order residual <code>r_3.max_abs</code> is 8 × 10⁻¹⁵ across all paths and grids). For eˣ they differ by the fourth-order term and beyond, which is the same order of size again smaller.</p>
+  <p>Three things are happening in that table, and the page should keep them apart:</p>
+  <div class="identity">
+    <div class="line"><span class="s">(ΔW)²-form residual</span> = ⅙Σ g‴(Wᵢ)(ΔWᵢ)³ + … &nbsp;→ 0 like <strong>1/n</strong></div>
+    <div class="why">the Taylor remainder. Root-mean-square over 400 paths for eˣ: 0.0105, 0.00096, 0.000105, 0.0000103, 0.0000010 at n = 10² … 10⁶ — slope −1.001 (<code>slopes.rms_r_qv_exp</code>). For x³: 0.0388, 0.00357, 0.000379, 0.0000383, 0.0000038 — slope −0.998, and the closed form √15·T^(3/2)/n = 0.0387, 0.00387, … to within the 400-path noise</div>
+    <div class="line"><span class="r">dt-form residual</span> = the line above + ½Σ g″(Wᵢ)·((ΔWᵢ)² − dt) &nbsp;→ 0 like <strong>1/√n</strong></div>
+    <div class="why">the Taylor remainder plus the grid's (ΔW)²-vs-dt noise, and the noise dominates at every n. Rms for eˣ: 0.120, 0.035, 0.010, 0.0045, 0.0013 — slope −0.481; for x³: 0.271, 0.090, 0.030, 0.0095, 0.0029 — slope −0.491 (<code>slopes.sd_r_dt_*</code>). For x² it was §3's Σ(ΔW)² − T. The noise has mean 0 at every n (within 5 s.e., all three g) and its predicted size √(½dt·Σ g″(Wᵢ)² dt) — for x³, 3T^(3/2)/√n = 0.300, 0.095, 0.030, 0.0095, 0.0030 — matches to 2 % from n = 10⁴</div>
+    <div class="line">on a grid, the lemma's error is the <span class="r">grid's</span>, not <span class="s">Taylor's</span></div>
+    <div class="why">at n = 100 for eˣ the remainder is 0.01 and the noise 0.12; at n = 10⁶, 10⁻⁶ against 10⁻³. Replacing (ΔW)² by dt is the step that costs; dropping third order and beyond is nearly free. That is the answer to P5 with numbers on it</div>
+  </div>
+  <div class="aside">
+    <div class="eyebrow">Aside — P5: the third-order term dies faster than 2.3's bound says</div>
+    <p>2.3 measured Σ|ΔW|³ → 0 like 1/√n: this run has it at 0.162, 0.050, 0.016, 0.0050, 0.0016 for n = 10² … 10⁶, against 2√(2/π)·T^(3/2)/√n = 0.160, 0.050, … (<code>sum_abs_dW_cubed.mean</code>, slope −0.501). That is a <em>bound</em>: the third-order term is at most (max|g‴|/6) × that, so it certainly vanishes. But the term itself is Σ g‴(Wᵢ)(ΔWᵢ)³ with the signs kept, and (ΔWᵢ)³ is an odd moment — as often negative as positive, mean zero (2.3's ledger row). The cubes cancel. Σ(ΔW)³ with signs has sd √15·T^(3/2)/n: 0.0388, 0.0036, 0.00038, 0.000038, 0.0000038 measured (<code>sum_dW_cubed.sd</code>, slope −0.998), a factor √n smaller than the bound at every n. So your reason was right and the effect is even stronger than the reason: 2.3's Σ|ΔW|³ → 0 guarantees the remainder dies; the cancellation makes it die like 1/n.</p>
+    <p>Check on the coin walk (§7): every (ΔW)³ is ±dt^(3/2), so Σ(ΔW)³ = dt^(3/2) × (number of ups − number of downs) = dt^(3/2)·W_T/√dt = dt·W_T. The signed sum is 1/n exactly; the unsigned Σ|ΔW|³ = n·dt^(3/2) = √dt is 1/√n exactly. Same walk, two rates, and the difference is the signs.</p>
+  </div>
+  <div class="aside">
+    <div class="eyebrow">Aside — why the eˣ levels are only good to ±20 %, and the x³ ones to 2 %</div>
+    <p>The predicted size of both residuals has g″(Wᵢ)² or g‴(Wᵢ)² inside a sum: for x³ that is 36Wᵢ² and 36, tame; for eˣ it is e^(2Wᵢ), which on the paths that wander up to W ≈ 3 is e⁶ ≈ 400 against a typical e^(2·0.7) ≈ 4. A handful of paths, and a handful of steps near their peaks, carry the whole mean-square. 400 paths pin that down to tens of percent, no more: the eˣ third-order rms measures 0.77–0.84 of its closed form across the five grids (0.0097 vs 0.0115 at n = 100, 0.00094 vs 0.00115 at n = 10⁶). The JSON checks the eˣ <em>levels</em> to 30 % and the <em>rates</em> — the slopes — to 0.05, and reports the closed forms as limits. This is the first appearance of a fact 2.6 lives on: anything with e^W in it has a mean that is set by its rare large paths. The x³ levels are checked to 15 % and land within 2 % from n = 10⁴.</p>
+  </div>
+  <p>P3, measured: for x³ the orange dt-column is ½Σ 6Wᵢ·dt = 3Σ Wᵢ·dt, three times the area under the path, which is your 3W dt integrated. On path 1 it settles at −2.6258 (the path spends most of its time below zero). Add it to the blue Itô sum, 1.0190 at n = 10⁶, and you get −1.6068, against the left side W_T³ = −1.6025: off by the red 0.0043, the grid's noise. Drop it — the chain rule — and you are off by 2.62, the whole dt term. There is no path on which d(W³) = 3W² dW alone comes close.</p>
+</section>
+
+<!-- ============ 5 · E[e^W] ============ -->
+<section>
+  <div class="eyebrow">What the JSON says — the index's check</div>
+  <h2><span class="stepno">5</span>E[e^(W_t)] = e^(t/2): the whole growth is the dt term</h2>
+  <p>Apply the rule you used for P3 to g = eˣ: g′ = g″ = eˣ, so</p>
+  <div class="identity">
+    <div class="line">d(e^(W_t)) = <span class="m">½e^(W_t) dt</span> + <span class="l">e^(W_t) dW_t</span></div>
+    <div class="why">the chain rule would give the blue term alone, and the blue term is an Itô integral — mean zero (2.4). If that were all, E[e^(W_t)] would be constant at e⁰ = 1: the "constant" answer P1 was listening for. The orange term is where the growth is: on average e^(W_t) grows by half of itself per unit time — a constant rate ½, compounding, so E[e^(W_t)] = e^(t/2)</div>
+  </div>
+  <p>20,000 paths at n = 10⁴, read at five times. Your P1 and P2 candidates are in the table beside the right ones:</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>t</th><th>E[e^(W_t)] ± s.e.</th><th>e^(t/2)</th><th>P1: e^(√t)</th><th>E[e^(W_t − ½t)]</th><th>c = 1: E[e^(W_t − t)]</th><th>P2: E[e^(W_t − √t)]</th></tr></thead>
+    <tbody>
+      <tr><td>0.10</td><td class="hi">1.0506 ± 0.0024</td><td class="dim">1.0513</td><td class="pk">1.3719</td><td class="warn">0.9993 ± 0.0023</td><td class="dim">0.9506</td><td class="pk">0.7658</td></tr>
+      <tr><td>0.25</td><td class="hi">1.1378 ± 0.0043</td><td class="dim">1.1331</td><td class="pk">1.6487</td><td class="warn">1.0041 ± 0.0038</td><td class="dim">0.8861</td><td class="pk">0.6901</td></tr>
+      <tr><td>0.50</td><td class="hi">1.2998 ± 0.0074</td><td class="dim">1.2840</td><td class="pk">2.0281</td><td class="warn">1.0123 ± 0.0058</td><td class="dim">0.7884</td><td class="pk">0.6409</td></tr>
+      <tr><td>0.75</td><td class="hi">1.4684 ± 0.0109</td><td class="dim">1.4550</td><td class="pk">2.3774</td><td class="warn">1.0092 ± 0.0075</td><td class="dim">0.6936</td><td class="pk">0.6177</td></tr>
+      <tr><td>1.00</td><td class="hi">1.6546 ± 0.0149</td><td class="dim">1.6487</td><td class="pk">2.7183</td><td class="warn">1.0036 ± 0.0090</td><td class="dim">0.6087</td><td class="pk">0.6087</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="note"><code>results.expectations.running[*].{exp_W, exp_W_minus_half_t, exp_W_minus_t, exp_W_minus_sqrt_t}</code>. The blue column tracks e^(t/2) within 2.1 s.e. everywhere (the 2.1 is t = 0.5) and is nowhere near e^(√t): at t = 1 the gap is 1.65 against 2.72. The orange column is 1 at every t within 2.1 s.e. — that is the index's check, "e^(W_t − t/2) has constant mean", passed. c = 1 overshoots and the mean falls like e^(−t/2). Your P2 has c·t = √t, which is not a constant c at all, and its mean falls from 1 at t = 0 to 0.77 by t = 0.1 and 0.61 by t = 1 (the exact value is e^(t/2 − √t), the last two columns agreeing at t = 1 because √1 = 1).</p>
+  <p>Where the growth comes from, path by path. The dt-form of the lemma splits e^(W_t) − 1 into the Itô sum S(t) = Σ e^(Wᵢ)·ΔWᵢ over the steps before t, the dt sum D(t) = ½Σ e^(Wᵢ)·dt, and the grid's residual. Average each piece separately:</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>t</th><th>E[e^(W_t) − 1]</th><th>= E[S(t)]</th><th>+ E[D(t)]</th><th>+ residual</th><th>e^(t/2) − 1</th></tr></thead>
+    <tbody>
+      <tr><td>0.10</td><td>0.0506 ± 0.0024</td><td class="hi">−0.0007 ± 0.0024</td><td class="warn">0.0513 ± 0.0001</td><td class="dim">−0.00002</td><td class="dim">0.0513</td></tr>
+      <tr><td>0.25</td><td>0.1378 ± 0.0043</td><td class="hi">+0.0042 ± 0.0040</td><td class="warn">0.1335 ± 0.0003</td><td class="dim">−0.00001</td><td class="dim">0.1331</td></tr>
+      <tr><td>0.50</td><td>0.2998 ± 0.0074</td><td class="hi">+0.0144 ± 0.0067</td><td class="warn">0.2855 ± 0.0009</td><td class="dim">−0.00004</td><td class="dim">0.2840</td></tr>
+      <tr><td>0.75</td><td>0.4684 ± 0.0109</td><td class="hi">+0.0099 ± 0.0094</td><td class="warn">0.4586 ± 0.0019</td><td class="dim">−0.00006</td><td class="dim">0.4550</td></tr>
+      <tr><td>1.00</td><td>0.6546 ± 0.0149</td><td class="hi">+0.0014 ± 0.0122</td><td class="warn">0.6533 ± 0.0033</td><td class="dim">−0.00005</td><td class="dim">0.6487</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="note"><code>results.expectations.running[*].growth_split.{exp_W_minus_1, ito_sum_S, dt_sum_D, residual}</code>. The blue column is 0 within noise at every t (the Itô sum is a martingale, 2.4); the orange column is e^(t/2) − 1 within 5 s.e. (the check uses the grid version ½dt·Σ e^(tᵢ/2), which at n = 10⁴ is the limit to five figures). All of the growth is in the dt term; none of it is in the dW term. That is the sentence the page is for.</p>
+  <div class="aside">
+    <div class="eyebrow">Aside — P1 and P2: why ½ and not √t</div>
+    <p>"W_t is about √t in size" is true — sd(W_t) = √t — and it is the wrong thing to exponentiate. Take the one-step coin version: W_t is +√t or −√t with equal chance. Then E[e^(W_t)] = ½e^(√t) + ½e^(−√t), and Taylor each piece:</p>
+<pre><code>up:     e^(+√t) − 1  =  +√t  +  ½t  +  ⅙t^(3/2)  + …
+down:   e^(−√t) − 1  =  −√t  +  ½t  −  ⅙t^(3/2)  + …
+                       ─────────────────────────────
+average:                  0   +  ½t  +     0      + …   =  ½t + (smaller)</code></pre>
+    <p>The √t parts cancel between up and down — that is the Itô sum having mean zero. The ½t parts add — that is ½g″·(ΔW)² with g″ = 1 at W = 0 and (ΔW)² = t. So E[e^(W_t)] − 1 ≈ ½t, not √t: the up move gains more than the down move loses, by exactly the curvature of eˣ, and the excess is second order in the step. Over many small steps the ½t per step compounds to e^(t/2). The size of W_t sets the <em>spread</em> of e^(W_t); the mean is set by the curvature acting on the spread squared, which is t. This is the same fact as "mean of a lognormal = e^(μ + ½σ²)", and it is the −½σ² that 2.6 is built on.</p>
+    <p>For P2 the same arithmetic gives the constant: the mean grows by ½t per unit of Var(W_t) = t, so subtracting ½t from the exponent takes it out exactly, and e^(W_t − ½t) stays at 1. Check it with the lemma on a function of two variables — f(t, x) = e^(x − ½t), which has a t in it as well as an x. Itô for f(t, W_t) picks up the ordinary time derivative on top of the two terms above: df = (f_t + ½f_xx) dt + f_x dW. Here f_t = −½f, f_x = f, f_xx = f, so df = (−½f + ½f) dt + f dW = f dW. No dt term at all: the −½t was chosen to cancel the ½f_xx exactly, and what is left is an Itô integral — a martingale.</p>
+  </div>
+  <div class="aside">
+    <div class="eyebrow">Aside — from dg(W) to the index's general form, one addition at a time</div>
+    <p>The index writes the lemma for a function f(t, X) of <em>time</em> and of a process X that has its own <em>drift</em> and <em>volatility</em>. That is three things added to §2's line, and each is one step. Glossary first. dX = a dt + b dW means: over one step of length dt, X changes by a·dt + b·ΔW. The a·dt part happens for certain and is the same every step — a is the <strong>drift</strong>, the rate X moves at on average, per unit time (E[ΔX] = a·dt; units of X per unit time). The b·ΔW part is the random part: ΔW is the √dt-sized, mean-zero Brownian increment (the S1 ledger's "kick"), and b scales it — b is the <strong>volatility</strong>, or diffusion coefficient: the size of X's random step per √time (sd(ΔX) = b·√dt). Examples: W itself has a = 0, b = 1; 2W has a = 0, b = 2; W + 3t has a = 3, b = 1; 2.6's price has a = μS, b = σS. Also, so nothing is read as an index: f_t is the derivative of f with respect to its time slot, holding x still; f_x with respect to its x slot, holding t still; f_xx the second derivative in x. The x here is the <em>name of the slot</em>, not a thing that moves: f(t, x) is a recipe with two inputs, and f_x says how much the output changes per unit change of the second input. What we then <em>put</em> in that slot is W_t (later S_t), and what that occupant does over a step is ΔW. So f_x·ΔW is "sensitivity of f to its second input, evaluated at (t, W_t), times how much that input actually moved" — the same pairing as g′(W)·ΔW in §2, where g′ is defined against g's own argument and then evaluated at W. Naming the slot with a neutral letter lets one f take W, 2W or S without renaming its derivatives; 2.7 will name the slot after its occupant and write V(t, S) with ∂V/∂S, which is f_x with the slot called S — and is delta. A two-letter subscript is read left to right as the order of differentiation: f_tx is f_t differentiated with respect to x (t first, then x), f_xt is f_x differentiated with respect to t; for a smooth f they are the same function. Check on f = e^(x − ½t): f_t = −½f, so f_tx = −½f_x = −½f; f_x = f, so f_xt = −½f. Equal. They are what g′ and g″ were, with a second slot for time. Wᵢ and tᵢ, with a counter underneath, are indices; f_x, with a variable name underneath, is a derivative.</p>
+<pre><code>have (§2):   g depends on W only; W has drift 0 and volatility 1
+             dg = ½g″(W) dt + g′(W) dW
+
+add 1 — a clock in f.   f(t, W): over one step, t moves by dt and W by ΔW.
+             Taylor in two variables — first-order terms, then the whole second-order block with
+             ONE ½ in front of it, then higher orders:
+             f(t+dt, W+ΔW) − f(t, W) = f_t·dt + f_x·ΔW
+                                      + ½[ f_tt·dt·dt + f_tx·dt·ΔW + f_xt·ΔW·dt + f_xx·ΔW·ΔW ]
+                                      + …
+             the two cross terms are equal (f_tx = f_xt for a smooth f — the order of
+             differentiation does not matter), so ½·(f_tx + f_xt)·dt·ΔW = f_tx·dt·ΔW — the ½
+             is eaten, exactly as ½·(ab + ba) = ab makes (a + b)² = a² + 2ab + b²:
+             f(t+dt, W+ΔW) − f(t, W) = f_t·dt + f_x·ΔW + ½f_tt·dt² + f_tx·dt·ΔW + ½f_xx·(ΔW)² + …
+             rulebook: dt² and dt·ΔW are smaller than dt → die (Σ dt·ΔW = dt·W_T, 2.3 C4: 1/n).
+             df = f_t dt + f_x·dW + ½f_xx·(dW)²              ← KEEP THIS LINE: it is true for anything
+                                                               in the slot whose dt² and dt·Δ terms die
+             then (ΔW)² → dt, for W specifically (volatility 1):
+             df = (f_t + ½f_xx) dt + f_x dW                  ← §2's line plus "the clock ticks"
+             check on f = e^(x − t/2): f_t = −½f, f_x = f, f_xx = f → df = (−½ + ½)f dt + f dW = f dW
+
+add 2 — what X does in one step.   dX = a dt + b dW: over one step ΔX = a·dt + b·ΔW.
+             Two facts about ΔX, and only these two are used later:
+             (1)  ΔX    =  a·dt + b·ΔW                                   by definition
+             (2)  (ΔX)² =  (a·dt + b·ΔW)²  =  a²·dt²  +  2ab·dt·ΔW  +  b²·(ΔW)²
+                                              ─ dies ─    ─ dies ─      →  b²·dt
+                  the volatility enters the square SQUARED; the drift does not enter it at all
+                  (a²·dt² is smaller than dt, and so is a·b·dt·ΔW — the rulebook)
+
+add 3 — both.   First, where the starting line comes from — it is add 1's FINISHED line with its last
+             substitution undone, because that substitution was about W and X needs its own:
+             (f_t + ½f_xx) dt + f_x dW                       add 1's finished line
+             = f_t dt + f_x dW + ½f_xx·dt                    the bracket opened
+             = f_t dt + f_x·dW + ½f_xx·(dW)²                 the dt that came from (dW)² put back — add 1's kept line
+             = f_t dt + f_x·dX + ½f_xx·(dX)²                 W in the slot replaced by X; nothing else changes
+             Then add 2's two facts, and collect:
+             df = f_t dt + f_x·dX + ½f_xx·(dX)²              (add 1's kept line, slot = X)
+             dX = a dt + b dW        (dX)² = b² dt            (add 2)
+             df = f_t dt + f_x·(a dt + b dW) + ½f_xx·b² dt
+                = (f_t + a·f_x + ½b²·f_xx) dt + b·f_x dW       ← the index's line
+   Why not start from add 1's FINISHED line, (f_t + ½f_xx) dt + f_x dW, and swap W for X: that line has
+   already used (dW)² = dt — it assumes the slot's occupant has volatility 1 and no drift. X's move
+   has a drift a·dt inside it and its square is b²·dt, not dt; both would be lost. Start one line earlier.
+
+   The same, unrolled, if you want to watch every term die — f(t, X), ΔX = a·dt + b·ΔW:
+   (i)   add 1's expansion again, with ΔX in the second slot where ΔW was. Taylor does not
+         care what is in the slot — it is an identity about f:
+         f(t+dt, X+ΔX) − f(t, X) = f_t·dt + f_x·ΔX + ½f_xx·(ΔX)² + f_tx·dt·ΔX + ½f_tt·dt² + …
+   (ii)  now say what ΔX is, term by term — add 2's substitution and add 2's (ΔX)² calculation:
+         f_x·ΔX        =  f_x·(a·dt + b·ΔW)                    =  a·f_x·dt  +  b·f_x·ΔW
+         ½f_xx·(ΔX)²   =  ½f_xx·(a²·dt² + 2ab·dt·ΔW + b²·(ΔW)²)  →  ½f_xx·b²·dt     (two die, (ΔW)² → dt)
+         f_tx·dt·ΔX    =  f_tx·(a·dt² + b·dt·ΔW)                →  0                (both smaller than dt)
+         ½f_tt·dt²                                             →  0
+   (iii) collect what survives, dt terms together and dW terms together:
+         df = f_t·dt + a·f_x·dt + ½b²·f_xx·dt + b·f_x·dW
+            = (f_t + a·f_x + ½b²·f_xx) dt + b·f_x dW           ← the index's line
+   checks: a = 0, b = 1, no clock → §2's line.  f = e^(x − ½t), X = W → f dW (add 1's check).
+           f = x², X = 2W (a = 0, b = 2): (0 + 0 + ½·4·2) dt + 2·2X dW = 4 dt + 4X dW:
+           twice the volatility, four times the creep.</code></pre>
+    <p>Said once in words: the whole of that last line except one term is the <em>ordinary</em> chain rule for f(t, X(t)) — df = f_t dt + f_x dX, with dX written out. The one term the ordinary rule does not have is ½b²·f_xx dt, and it is §2's ½g″ dt with the volatility b squared in front, because the correction is about the random step <em>squared</em>. That is the entire content of Itô's lemma in any dressing: chain rule, plus half the curvature times the squared volatility.</p>
+  </div>
+  <div class="identity">
+    <div class="line">df(t, X_t) = <span class="m">(f_t + a·f_x + ½b²·f_xx) dt</span> + <span class="l">b·f_x dW</span> &nbsp; for dX = a dt + b dW</div>
+    <div class="why">the index's general form, assembled above. Its three worked examples: W² is §3 (a = 0, b = 1, f = x²); e^(W − t/2) is "add 1"; log S is 2.6's opening line and needs 2.6's model dS = μS dt + σS dW — a drift a = μS and a volatility b = σS, both proportional to the price, so μ is a percentage drift and σ a percentage volatility per √time. Then, term by term, with f = log x, f_t = 0, f_x = 1/S, f_xx = −1/S²:</div>
+<pre><code>f_t          = 0                            no clock in log x
+a·f_x        = μS · (1/S)      = μ           the drift comes through the slope
+½b²·f_xx     = ½σ²S² · (−1/S²) = −½σ²        the Itô term: half the squared volatility through the curvature
+b·f_x        = σS · (1/S)      = σ           the random step comes through the slope
+d(log S)     = (μ − ½σ²) dt + σ dW</code></pre>
+    <div class="why">the −½σ² is §5's −½t with σ² in place of 1: log S, like W − t/2, drifts down relative to the naive rate by half the squared jitter. 2.6 makes that the −½σ² drag; here it is only the last worked example.</div>
+  </div>
+  <p>The martingale test, as in 2.4: split each path at T/2. corr(M(T/2) − 1, M(T) − M(T/2)) = −0.017; E[second half | M(T/2) > 1] = −0.014 ± 0.010 and E[second half | M(T/2) < 1] = −0.006 ± 0.010 (<code>results.expectations.martingale</code>). A path that is up at half-time has no tendency to come back, or to keep going: the second half does not know the first. sd of M(T) is 1.28 against the lognormal √(e − 1) = 1.31.</p>
+
+  <figure>
+    <div class="figbox">
+      <canvas id="fig1" width="1400" height="760" aria-label="Sample paths of e to the W minus t over two, flat in the mean, with the mean of e to the W rising like e to the t over two and the two wrong candidates"></canvas>
+      <div class="figbar">
+        <span class="chip"><span class="swatch" style="background:var(--theory);opacity:.45"></span>paths of e^(W_t − ½t)</span>
+        <span class="chip"><span class="swatch" style="background:var(--theory)"></span>their mean</span>
+        <span class="chip"><span class="swatch" style="background:var(--walk)"></span>mean of e^(W_t)</span>
+        <span class="chip"><span class="swatch dash" style="color:var(--muted)"></span>e^(t/2)</span>
+        <span class="chip"><span class="swatch dash" style="color:var(--peek)"></span>P1: e^(√t) · P2: e^(t/2 − √t)</span>
+      </div>
+    </div>
+    <figcaption>Click the figure to enlarge and zoom. 2,000 paths drawn in this page (seeded, n = 400 steps; not from the JSON). Thirty of them are shown as e^(W_t − ½t), drawn only where they are below 3: they spread widely, a few run away upward and off the panel, most sag below 1 — and their mean over all 2,000 sits on the line at 1. The mean of e^(W_t) over the same paths rises along e^(t/2). The two red dashed lines are P1 and P2: e^(√t) climbs far too fast, and e^(W_t − √t) has a mean that sinks. The picture to keep is the pair of orange curves: a typical path drifts down while the mean stays flat, because the mean is held up by the few paths that run away.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 6 · SMOOTH ============ -->
+<section>
+  <div class="eyebrow">The contrast</div>
+  <h2><span class="stepno">6</span>For a smooth curve there is no dt term, and adding one is an error that never shrinks</h2>
+  <p>x(t) = t² on the same five grids, the same three g. The (Δx)²-form is still an identity — Taylor does not care what the argument is. What changes is the size of Σ g″(xᵢ)(Δxᵢ)²: each (Δx)² ≈ (2t·dt)² is dt²-sized, so the sum is dt-sized and dies. The chain rule's residual, g(x_T) − g(0) − Σ g′(xᵢ)Δxᵢ, is that term: for eˣ it is 0.0125, 0.00125, 0.000125, … at n = 10² … 10⁶, n times it being the constant L = 2∫₀¹ t² e^(t²) dt = 1.2556 — 1.2523, 1.2553, 1.2556, 1.2556, 1.2556 down the grids (slope −1.000). Now do what Itô would do and add ½Σ g″(xᵢ)·dt:</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>n</th><th>g</th><th>left side g(1) − g(0)</th><th>Σ g′(xᵢ)Δxᵢ</th><th>chain-rule residual</th><th>n × residual</th><th>½Σ g″(xᵢ)·dt</th><th>residual with the dt term added</th></tr></thead>
+    <tbody>
+      <tr><td>100</td><td>eˣ</td><td>1.7183</td><td class="sm">1.7058</td><td class="sm">0.01252</td><td class="dim">1.2523</td><td class="warn">0.7271</td><td class="pk">−0.7145</td></tr>
+      <tr><td>10,000</td><td>eˣ</td><td>1.7183</td><td class="sm">1.7182</td><td class="sm">0.000126</td><td class="dim">1.2556</td><td class="warn">0.7313</td><td class="pk">−0.7312</td></tr>
+      <tr><td>1,000,000</td><td>eˣ</td><td>1.7183</td><td class="sm">1.7183</td><td class="sm">1.26 × 10⁻⁶</td><td class="dim">1.2556</td><td class="warn">0.7313</td><td class="pk">−0.7313</td></tr>
+      <tr><td>100</td><td>x²</td><td>1</td><td class="sm">0.98667</td><td class="sm">0.01333</td><td class="dim">1.3333</td><td class="warn">1</td><td class="pk">−0.9867</td></tr>
+      <tr><td>1,000,000</td><td>x²</td><td>1</td><td class="sm">0.999999</td><td class="sm">1.33 × 10⁻⁶</td><td class="dim">1.3333</td><td class="warn">1</td><td class="pk">−1.0000</td></tr>
+      <tr><td>100</td><td>x³</td><td>1</td><td class="sm">0.97610</td><td class="sm">0.02390</td><td class="dim">2.3899</td><td class="warn">0.9851</td><td class="pk">−0.9612</td></tr>
+      <tr><td>1,000,000</td><td>x³</td><td>1</td><td class="sm">0.999998</td><td class="sm">2.40 × 10⁻⁶</td><td class="dim">2.4000</td><td class="warn">1</td><td class="pk">−1.0000</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="note"><code>results.smooth.{exp, x^2, x^3}[*].{lhs, chain_sum, chain_residual, chain_residual_times_n, dt_term, residual_with_dt_term}</code>; the constants are in <code>smooth_constants</code>. The x² rows are 2.4's smooth table again: n·Σ(Δx)² = 4/3. The red column is P4 with a number on it: the dt term is worth ½∫₀¹ g″(x(t)) dt — 0.7313 for eˣ, 1 for x² and x³ — and putting it into a smooth chain rule is an error of exactly that size at n = 10⁶ as much as at n = 100. The lemma's orange term is not a general improvement to calculus; it is the price of Σ(ΔW)² = T, and where that is 0 the price is 0.</p>
+</section>
+
+<!-- ============ 7 · COIN ============ -->
+<section>
+  <div class="eyebrow">The exact case</div>
+  <h2><span class="stepno">7</span>The coin walk has both forms exactly</h2>
+  <p>For the ±√dt coin walk of 2.1, (ΔWᵢ)² = dt on <em>every step</em>, not just on average. So the (ΔW)²-form and the dt-form are the same line, and for x² both residuals are 0 at every n and on every path: the worst across five grids and five paths is 1.4 × 10⁻¹³ (<code>results.coin[*].x^2</code>). For x³ both residuals are Σ(ΔW)³ = dt·W_T exactly (the aside in §4): at n = 100 the five paths end at W_T = 0.6, 0.4, −0.4, 1.0, −0.6 and their residuals are 0.006, 0.004, −0.004, 0.010, −0.006, matching dt·W_T to 4 × 10⁻¹⁶; at n = 10⁶ they are 10⁻⁶·W_T. The remainder is not zero on the coin — it is exactly one grid step times the end value, and it is the same 1/n as the Gaussian case's rms, without the noise. Nothing in the lemma is a Gaussian artefact; it is Taylor plus √dt-sized steps.</p>
+</section>
+
+<!-- ============ 8 · CHECKS ============ -->
+<section>
+  <div class="eyebrow">For your approval</div>
+  <h2><span class="stepno">8</span>Draft check questions</h2>
+  <p class="note">Per I5: each wrong option names the misconception it encodes and the feedback says why it is wrong. Q2's "e^(√t)" and Q3's "e^(W_t − √t)" are your own pre-run predictions (P1, P2); Q4's right answer is your P3.</p>
+
+  <div class="q">
+    <div class="qno">Q1</div>
+    <p class="stem">g is smooth and W is Brownian motion. Itô's lemma says dg(W_t) equals:</p>
+    <ul>
+      <li class="ok"><strong>½g″(W_t) dt + g′(W_t) dW_t</strong> — Taylor to second order, summed; Σ(ΔW)² → T turns the second-order term into ½∫g″ dt, and everything beyond it sums to 0 like 1/n.</li>
+      <li class="no">g′(W_t) dW_t <em class="mis">— the chain rule.</em> Right for a smooth path, where Σ(Δx)² → 0. For W the second-order term is ½Σ g″(Wᵢ)(ΔWᵢ)², n terms of size dt: it sums to something of size T and never leaves. On path 1 with g = x³ it is −2.62 against a left side of −1.60.</li>
+      <li class="no">g″(W_t) dt + g′(W_t) dW_t <em class="mis">— Taylor's ½ dropped.</em> The second-order coefficient of any smooth function is g″/2!. With it, e^(W_t − ½t) has constant mean; without it you would need c = 1, and E[e^(W_t − t)] falls like e^(−t/2) — measured 0.61 at t = 1.</li>
+      <li class="no">½g″(W_t) dt + g′(W_t) dW_t, but only when g is a polynomial of degree ≤ 2 <em class="mis">— the lemma mistaken for the exact identity.</em> For x² the expansion stops and the (ΔW)²-form is exact algebra; for eˣ every order is present. The lemma is the limit, and the third-order-and-beyond remainder dies like 1/n for every smooth g — eˣ's is 10⁻⁶ at n = 10⁶.</li>
+    </ul>
+  </div>
+
+  <div class="q">
+    <div class="qno">Q2</div>
+    <p class="stem">E[e^(W_t)], the average of e^(W_t) over paths, is:</p>
+    <ul>
+      <li class="ok"><strong>e^(t/2)</strong> — d(e^W) = ½e^W dt + e^W dW; the dW term has mean zero, so the mean grows at rate ½ of itself. Measured 1.655 ± 0.015 at t = 1 against e^(½) = 1.649.</li>
+      <li class="no">1, constant <em class="mis">— the chain rule taken as the whole story.</em> d(e^W) = e^W dW alone would be an Itô integral, mean zero, and e^(W_t) would be a martingale. It is not: the ½e^W dt term is the entire growth, and the split of E[e^(W_t) − 1] into its Itô part (0.001 ± 0.012) and its dt part (0.653 ± 0.003) at t = 1 shows it.</li>
+      <li class="no">e^(√t) <em class="mis">— the typical size of W_t exponentiated.</em> sd(W_t) = √t sets how spread out e^(W_t) is, not its mean. The up and down moves of size √t cancel in the mean; what survives is the curvature of eˣ acting on the spread squared, ½t. At t = 1: 2.72 predicted, 1.65 measured.</li>
+      <li class="no">e^t <em class="mis">— the ½ dropped.</em> The dt term is ½g″ = ½e^W, so the rate is ½, not 1. e^t at t = 1 is 2.72 again, 5 s.e. would be 0.08.</li>
+    </ul>
+  </div>
+
+  <div class="q">
+    <div class="qno">Q3</div>
+    <p class="stem">Which of these has constant mean — is a martingale — for Brownian W?</p>
+    <ul>
+      <li class="ok"><strong>e^(W_t − ½t)</strong> — for f(t, x) = e^(x − ½t), f_t = −½f cancels ½f_xx = ½f exactly and df = f dW: an Itô integral, mean zero increments. Measured 0.999, 1.004, 1.012, 1.009, 1.004 (± 0.002 … 0.009) at t = 0.1 … 1.</li>
+      <li class="no">e^(W_t) <em class="mis">— the ½g″ dt term forgotten.</em> Its mean is e^(t/2), rising; a path that is up at half-time is, on average, still drifting up. Something has to be subtracted, and the lemma says what.</li>
+      <li class="no">e^(W_t − t) <em class="mis">— the ½ doubled.</em> f_t = −f against ½f_xx = ½f leaves −½f dt: a downward drift, and the mean falls like e^(−t/2) — measured 0.609 at t = 1.</li>
+      <li class="no">e^(W_t − √t) <em class="mis">— the correction sized to W's spread instead of its variance.</em> −√t is not c·t for any constant c, and the mean e^(t/2 − √t) falls from 1 at t = 0 to 0.77 by t = 0.1 and 0.61 by t = 1. The drift the lemma produces is ½Var(W_t) = ½t; subtracting the sd overshoots at small t and is the wrong shape at every t.</li>
+    </ul>
+  </div>
+
+  <div class="q">
+    <div class="qno">Q4</div>
+    <p class="stem">d(W_t³) equals:</p>
+    <ul>
+      <li class="ok"><strong>3W_t dt + 3W_t² dW_t</strong> — g′ = 3x², ½g″ = ½·6x = 3x. On path 1 at n = 10⁶ the two sums give 1.019 − 2.626 = −1.607 against W_T³ = −1.603; the chain rule alone gives 1.019.</li>
+      <li class="no">3W_t² dW_t <em class="mis">— the chain rule.</em> Off by the entire dt term: 3∫W dt, which on path 1 is −2.63. The (ΔW)² term survives summation because Σ(ΔW)² → T, whatever g is.</li>
+      <li class="no">6W_t dt + 3W_t² dW_t <em class="mis">— Taylor's ½ dropped.</em> g″ = 6x, and the coefficient of (ΔW)² is g″/2 = 3x. The −½T of 2.4 is the same ½.</li>
+      <li class="no">3W_t dt + 3W_t² dW_t + (dW_t)³ <em class="mis">— the third-order term kept.</em> For x³ the expansion does stop at Σ(ΔW)³, so this is exactly right on a grid — and Σ(ΔW)³ has sd √15/n, 4 × 10⁻⁶ at n = 10⁶, exactly dt·W_T on the coin walk. In the limit it is 0: (dW)³ = 0 is the rulebook's last line.</li>
+    </ul>
+  </div>
+
+  <div class="q">
+    <div class="qno">Q5</div>
+    <p class="stem">x(t) is a smooth curve (say t²) and g is smooth. Which rule does g(x(t)) obey?</p>
+    <ul>
+      <li class="ok"><strong>dg = g′(x) dx — the chain rule, no second-order term</strong> — each (Δx)² is dt²-sized, so ½Σ g″(xᵢ)(Δxᵢ)² is dt-sized and vanishes: 1.26/n for eˣ on t², measured to five figures.</li>
+      <li class="no">dg = ½g″(x) dt + g′(x) dx, as for W <em class="mis">— Itô's term taken as a general correction to calculus.</em> It is the price of Σ(ΔW)² = T. For x = t² that sum is 4/(3n) → 0 and the term is an error of exactly ½∫₀¹ g″(x(t)) dt — 0.7313 for eˣ — that is the same at n = 10⁶ as at n = 100.</li>
+      <li class="no">dg = g′(x) dx + ½g″(x)(dx)², and the second term matters <em class="mis">— Taylor's second-order term mistaken for a surviving one.</em> It is there on every grid, exactly, and it sums to 1.26/n: gone in the limit. The question is never whether Taylor has the term, it is whether Σ(Δ·)² survives.</li>
+      <li class="no">It depends on g: some functions pick up the dt term, some do not <em class="mis">— the path's property attributed to the function.</em> The criterion is the quadratic variation of what g is applied to. For W every g with g″ ≠ 0 gets the term (x², eˣ, x³ all did); for t² none of them does (same three, §6).</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ 9 · NOTATION ============ -->
+<section>
+  <div class="eyebrow">For the ledger</div>
+  <h2><span class="stepno">9</span>S5 notation batch — draft</h2>
+  <p class="note">Every glyph new to this page, with its birth certificate. Rows marked ↺ revisit an earlier row in its new role. Goes into <code>drafts/notation.md</code> once you approve; tell me which to cut or add.</p>
+  <div class="tablewrap">
+  <table style="white-space:normal">
+    <thead><tr><th style="text-align:left">Symbol</th><th style="text-align:left">Say it</th><th style="text-align:left">Here it means</th><th style="text-align:left">Watch out</th></tr></thead>
+    <tbody>
+      <tr><td style="text-align:left;white-space:nowrap">Itô's lemma</td><td style="text-align:left">—</td><td style="text-align:left">dg(W_t) = ½g″(W_t) dt + g′(W_t) dW_t: the chain rule plus a second-order term, for a smooth g of Brownian motion. Taylor to second order with (dW)² = dt</td><td style="text-align:left">it is a limit statement (the dt-form), not an identity; the identity behind it is Taylor summed over the grid, the (ΔW)²-form. 2.4's ∫W dW = ½W_T² − ½T is the case g = x²</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap">a dt + b dW — order of terms</td><td style="text-align:left">"drift first"</td><td style="text-align:left">every line with both a dt and a dW is written with the certain part first and the random part second: dg = ½g″ dt + g′ dW, dS = μS dt + σS dW, the index's general form</td><td style="text-align:left">the two orders say the same thing; the course fixes one so the eye can find the drift in the same place every time. 2.4's "Into 2.5" paragraph has dW first — the one committed line in the other order, yours to flip at L2 batch 4 or leave. Taylor expansions stay in power order (ΔW, (ΔW)², (ΔW)³ …): that is an expansion, not a drift-plus-noise line</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap"><code>½g″(W) dt</code></td><td style="text-align:left">"the Itô term", "the dt term", "the second-order term"</td><td style="text-align:left">half the curvature of g at the current W, times dt. The survivor of 2.3: the one Taylor term whose sum is dt-sized and does not die</td><td style="text-align:left">the ½ is Taylor's 1/2!, not a convention — drop it and e^(W − t/2) stops being a martingale. Its sign follows g″: positive for eˣ and x² (means grow), 3W for x³ (either sign)</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap">(ΔW)²-form · dt-form</td><td style="text-align:left">—</td><td style="text-align:left">the two ways of writing the second-order term on a grid: ½Σ g″(Wᵢ)(ΔWᵢ)² (exact) and ½Σ g″(Wᵢ) dt (a limit). Their difference is the (ΔW)²-vs-dt noise, sd ∝ 1/√n</td><td style="text-align:left">= vs → again (S4 ↺). On a grid the lemma is off by the noise, which comes from replacing (ΔW)² by dt, not from Taylor — the remainder is 1/n, ten to a thousand times smaller</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap">third order and beyond · remainder</td><td style="text-align:left">—</td><td style="text-align:left">⅙Σ g‴(Wᵢ)(ΔWᵢ)³ + (1/24)Σ g⁗(Wᵢ)(ΔWᵢ)⁴ + …: everything after the second-order term. For x³ it is exactly Σ(ΔW)³; for x² it is empty</td><td style="text-align:left">rms ∝ 1/n, faster than 2.3's Σ|ΔW|³ ∝ 1/√n bound, because the signed cubes cancel (odd moment ↺). "Vanishes" here means "sums to 0 in the limit", not "each term is small"</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap"><code>Σ(ΔW)³</code> vs <code>Σ|ΔW|³</code></td><td style="text-align:left">signed vs unsigned cubes</td><td style="text-align:left">Σ(ΔW)³ has mean 0 and sd √15·T^(3/2)/n; Σ|ΔW|³ has mean 2√(2/π)·T^(3/2)/√n. On the coin walk: dt·W_T exactly, and √dt exactly</td><td style="text-align:left">the bars change the rate by a factor √n. 2.3 measured the unsigned one; the lemma's remainder is the signed one</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap"><code>E[e^(W_t)] = e^(t/2)</code></td><td style="text-align:left">"the lognormal mean"</td><td style="text-align:left">the mean of the exponential of a Brownian motion grows at a constant rate ½ per unit time: all of it from the ½e^W dt term, none from e^W dW</td><td style="text-align:left">not e^(√t): W_t's size √t sets the spread of e^(W_t), and its variance t sets the mean. "Mean of the exponential ≠ exponential of the mean" — the mean is held up by rare large paths while a typical path sags (§5 figure)</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap"><code>e^(W_t − ½t)</code></td><td style="text-align:left">"the exponential martingale"</td><td style="text-align:left">the ½t in the exponent cancels the ½e^W dt term exactly, leaving df = f dW: constant mean 1, second half independent of the first</td><td style="text-align:left">c = ½ is forced, not chosen: c = 1 gives a mean falling like e^(−t/2), c·t = √t is not a constant and falls too. The first appearance of 2.6's −½σ²</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap"><code>f_t</code>, <code>f_x</code>, <code>f_xx</code></td><td style="text-align:left">"f sub t", "f sub x", "f sub x x" — partial derivatives</td><td style="text-align:left">the derivative of f(t, x) with respect to t holding x fixed; with respect to x holding t fixed; the second in x. Used when f depends on time as well as on the process</td><td style="text-align:left">a subscript that is a <em>derivative</em>, on a page full of subscripts that are <em>indices</em> (Wᵢ, tᵢ). f_x is not "f at x". Tell them apart by the letter: a variable name (t, x) is a derivative, a counter (i, n) is an index. And x names f's second <em>slot</em>, not a moving thing: W_t is what occupies the slot, so f_x·ΔW pairs "sensitivity to the slot" with "how far the occupant moved" — as g′(W)·ΔW does. 2.7 names the slot after its occupant, V(t, S), ∂V/∂S</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap"><code>dX = a dt + b dW</code></td><td style="text-align:left">"drift a, diffusion b"</td><td style="text-align:left">the general one-step recipe for a process X: a deterministic certain part a·dt (drift a) plus a random part b·dW (volatility b). W itself is a = 0, b = 1; 2.6's GBM is a = μS, b = σS</td><td style="text-align:left">the general Itô form is df = (f_t + a f_x + ½b² f_xx) dt + b f_x dW — the b² comes from (dX)² = b²(dW)² = b² dt, the rulebook applied to X. Everything else is the chain rule</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap">(dW)² = dt ↺</td><td style="text-align:left">the rulebook, as an operation</td><td style="text-align:left">S3's line, now used as a substitution inside a Taylor expansion: wherever (ΔW)² appears under a Σ, replace it by dt and let n → ∞</td><td style="text-align:left">it is licensed only under a sum: a single (ΔW)² is a χ²₁ draw, and the substitution costs the (ΔW)²-vs-dt noise on any finite grid. The same substitution on a smooth x — (Δx)² by dt — is wrong by ½∫g″ dt (§6)</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap">Taylor's ½ and ⅙</td><td style="text-align:left">"one over two factorial, one over three factorial"</td><td style="text-align:left">the coefficients of the second- and third-order terms in g(x + Δ) − g(x) = g′Δ + ½g″Δ² + ⅙g‴Δ³ + …</td><td style="text-align:left">the ½ of Itô's lemma, of 2.4's −½T, and of the lognormal's −½σ² are all this one ½. Check it on x²: (x + Δ)² − x² = 2xΔ + Δ², and ½·g″ = ½·2 = 1 is the coefficient of Δ²</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap">heavy tail · s.e. of a lognormal mean</td><td style="text-align:left">—</td><td style="text-align:left">a mean that is set by rare large values: E[e^(2W_t)] = e^(2t) is carried by paths with W ≈ 3 (e⁶ ≈ 400 against a typical 4). 400 paths give such a mean to tens of percent, 20,000 to a few</td><td style="text-align:left">"± s.e." from the sample sd undercounts when the rare values are missing from the sample. The JSON checks eˣ's levels loosely (30 %) and its rates tightly (slopes ± 0.05) for this reason; x³'s levels are tight (15 %)</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ============ 10 · SITE PROPOSAL ============ -->
+<section>
+  <div class="eyebrow">Proposal for the site — not S5's to build</div>
+  <h2><span class="stepno">10</span>The point of each Part 2 page, on the site</h2>
+  <p>The site already carries one line per page — <code>summary</code> in <code>src/data/curriculum.ts</code>, your copy from the index — and renders it twice: under the title on the index row and as the lede at the top of the page. It says what the page <em>contains</em> (2.5: "Second-order Taylor plus the rulebook: df = … Worked: W², log S, e^(W−t/2)"). What is missing is what the page is <em>for</em>. Proposal: a second field, <code>point</code>, one terse line each, rendered as the lead line of the index row with the summary beneath it, and as a one-line strip under the page title ("The point:") above the lede. Draft lines below — site copy is yours (I13), so rewrite any you don't like in your words before an L session wires them in.</p>
+  <div class="tablewrap">
+  <table style="white-space:normal">
+    <thead><tr><th style="text-align:left">Page</th><th style="text-align:left">The point — draft</th></tr></thead>
+    <tbody>
+      <tr><td style="text-align:left;white-space:nowrap">2.1 Random walks and scaling</td><td style="text-align:left">Random spread grows like √n, not n — the scaling law that sizes every step from here on.</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap">2.2 Brownian motion</td><td style="text-align:left">The limit object and the three properties — independent increments, martingale, Markov — that everything later leans on.</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap">2.3 Quadratic variation</td><td style="text-align:left">Why ordinary calculus fails on it: Σ(ΔW)² survives as T, so second-order terms never die.</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap">2.4 The Itô integral</td><td style="text-align:left">The integral finance can trade: the position is fixed before the move, so the sum reads at the left endpoint — and that choice changes the answer.</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap">2.5 Itô's lemma</td><td style="text-align:left">The chain rule for a random price: given how S moves, how anything built on S moves. Every pricing page uses it.</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap">2.6 SDEs and GBM</td><td style="text-align:left">The price model itself: solve for S, meet the −½σ² drag, simulate it correctly.</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap">2.7 Delta hedging and the PDE</td><td style="text-align:left">Where a price comes from: hedge away the randomness and what is left must earn r — the PDE, with μ gone.</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap">2.8 Risk-neutral pricing</td><td style="text-align:left">The same price as an expectation, once the drift is set to r.</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap">2.9 The Black–Scholes formula</td><td style="text-align:left">The closed form, and what each of its pieces means.</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap">2.10 Greeks</td><td style="text-align:left">The Greeks as the hedged book's P&amp;L statement: theta pays for gamma.</td></tr>
+      <tr><td style="text-align:left;white-space:nowrap">2.11 Where it breaks</td><td style="text-align:left">Where the assumptions fail, and why the formula survives as a way of quoting.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="note">Mechanics for the L session, for the record: <code>point?: string</code> on <code>Page</code>; <code>PageRow</code> in <code>src/app/page.tsx</code> prints it before <code>page-summary</code>; <code>page.route.tsx</code> prints it between <code>page-h1</code> and <code>page-lede</code>; the index file <code>quant-learn-index-v1.md</code> gets the same eleven lines so the two agree, as 2.2's summary does. Part 0 and 1 pages can carry a point too, later. The roadmap entry for it is yours (I18); S5 records the proposal in its evidence pack and stops there (P2).</p>
+</section>
+
+<!-- ============ AFTER ============ -->
+<section>
+  <h2>After the read</h2>
+  <p>Read §2–§7, ask "why" on any line that skips a step, rule on the checks in §8 and the ledger rows in §9. Then the interview for <code>drafts/2.5.md</code>: I ask, you answer in bullets, I assemble your words verbatim. The pieces the page needs in your voice are the two forms of §2 (you wrote the x² case in 2.4 already), the "grid's noise, not Taylor's" sentence of §4, the growth split of §5 with the ½-not-√t reason, and P4 as §6's red column.</p>
+</section>
+</div>
+
+<script>
+(function () {
+  // Seeded PRNG so every viewer sees the same paths (mulberry32 + Box-Muller).
+  function rng(seed) {
+    let a = seed >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function gaussians(seed, n) {
+    const u = rng(seed), out = new Float64Array(n);
+    for (let i = 0; i < n; i += 2) {
+      let u1 = u(); if (u1 < 1e-12) u1 = 1e-12;
+      const u2 = u(), r = Math.sqrt(-2 * Math.log(u1)), th = 2 * Math.PI * u2;
+      out[i] = r * Math.cos(th); if (i + 1 < n) out[i + 1] = r * Math.sin(th);
+    }
+    return out;
+  }
+  function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  const BASE = { fig1: [1400, 760] };
+  function setup(id, canvas, k) {
+    const c = canvas || document.getElementById(id); if (!c) return null;
+    const [W, H] = BASE[id]; k = k || 1;
+    c.width = Math.round(W * k); c.height = Math.round(H * k);
+    const ctx = c.getContext("2d");
+    ctx.setTransform(k, 0, 0, k, 0, 0);
+    return { c, ctx, W, H };
+  }
+  const fontSans = '"IBM Plex Sans", system-ui, sans-serif';
+
+  // ---------- the paths, computed once ----------
+  const T = 1, n = 400, dt = T / n, P = 2000, SHOW = 30;
+  const z = gaussians(20260914, P * n);
+  const meanExp = new Float64Array(n + 1), meanM = new Float64Array(n + 1), meanP2 = new Float64Array(n + 1);
+  const shown = [];
+  for (let p = 0; p < P; p++) {
+    let w = 0; const path = (p < SHOW) ? new Float64Array(n + 1) : null;
+    meanExp[0] += 1; meanM[0] += 1; meanP2[0] += 1; if (path) path[0] = 1;
+    for (let i = 1; i <= n; i++) {
+      w += Math.sqrt(dt) * z[p * n + i - 1]; const t = i * dt, e = Math.exp(w);
+      meanExp[i] += e; meanM[i] += e * Math.exp(-0.5 * t); meanP2[i] += e * Math.exp(-Math.sqrt(t));
+      if (path) path[i] = e * Math.exp(-0.5 * t);
+    }
+    if (path) shown.push(path);
+  }
+  for (let i = 0; i <= n; i++) { meanExp[i] /= P; meanM[i] /= P; meanP2[i] /= P; }
+
+  // ---------- Figure 1 ----------
+  function fig1(canvas, k) {
+    const s = setup("fig1", canvas, k); if (!s) return;
+    const { ctx, W, H } = s;
+    const muted = css("--muted"), line = css("--line"), faint = css("--line-faint");
+    const cWalk = css("--walk"), cMid = css("--theory"), cRed = css("--peek");
+    ctx.clearRect(0, 0, W, H);
+    const padL = 70, padR = 330, top = 26, bottom = 46;
+    const yLo = 0, yHi = 3.0;
+    const xOf = t => padL + (t / T) * (W - padL - padR);
+    const yOf = v => H - bottom - ((Math.min(v, yHi) - yLo) / (yHi - yLo)) * (H - bottom - top);
+    // grid
+    ctx.strokeStyle = faint; ctx.lineWidth = 1; ctx.fillStyle = muted; ctx.font = `20px ${fontSans}`; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    [0, 0.5, 1, 1.5, 2, 2.5, 3].forEach(v => { const y = yOf(v); ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke(); ctx.fillText(v.toString(), padL - 10, y); });
+    ctx.strokeStyle = line; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(padL, yOf(1)); ctx.lineTo(W - padR, yOf(1)); ctx.stroke();
+    function series(fn, color, width, dash, alpha) {
+      ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash || []); ctx.globalAlpha = alpha == null ? 1 : alpha;
+      ctx.beginPath();
+      for (let i = 0; i <= n; i++) { const x = xOf(i * dt), y = yOf(fn(i)); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+      ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+    }
+    // the shown paths of M(t); a path leaves the panel where it exceeds 3 and re-enters when it comes back
+    ctx.strokeStyle = cMid; ctx.lineWidth = 1.1; ctx.globalAlpha = 0.32;
+    shown.forEach(path => {
+      ctx.beginPath(); let pen = false;
+      for (let i = 0; i <= n; i++) {
+        if (path[i] > yHi) { pen = false; continue; }
+        const x = xOf(i * dt), y = yOf(path[i]); pen ? ctx.lineTo(x, y) : ctx.moveTo(x, y); pen = true;
+      }
+      ctx.stroke();
+    });
+    ctx.globalAlpha = 1;
+    // targets and candidates
+    series(i => Math.exp(0.5 * i * dt), muted, 1.8, [7, 6]);
+    series(i => Math.exp(Math.sqrt(i * dt)), cRed, 1.8, [7, 6]);
+    series(i => Math.exp(0.5 * i * dt - Math.sqrt(i * dt)), cRed, 1.8, [7, 6]);
+    // means
+    series(i => meanP2[i], cRed, 2.2);
+    series(i => meanExp[i], cWalk, 2.8);
+    series(i => meanM[i], cMid, 2.8);
+    // end labels, spread apart
+    ctx.font = `600 18px ${fontSans}`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    const xe = xOf(T) + 10;
+    let ys = [
+      [yOf(Math.exp(1)), cRed, "P1: e^(√t) = 2.72"],
+      [yOf(meanExp[n]), cWalk, "mean e^(W_t) = " + meanExp[n].toFixed(2)],
+      [yOf(Math.exp(0.5)) + 14, muted, "e^(t/2) = 1.65"],
+      [yOf(meanM[n]), cMid, "mean e^(W_t − ½t) = " + meanM[n].toFixed(2)],
+      [yOf(meanP2[n]), cRed, "P2: mean e^(W_t − √t) = " + meanP2[n].toFixed(2)],
+    ].sort((a, b) => a[0] - b[0]);
+    for (let i = 1; i < ys.length; i++) if (ys[i][0] - ys[i - 1][0] < 24) ys[i][0] = ys[i - 1][0] + 24;
+    ys.forEach(([y, col, txt]) => { ctx.fillStyle = col; ctx.fillText(txt, xe, y); });
+    // x axis
+    ctx.fillStyle = muted; ctx.font = `20px ${fontSans}`; ctx.textAlign = "center"; ctx.textBaseline = "top";
+    [0, 0.25, 0.5, 0.75, 1].forEach(t => ctx.fillText(t === 1 ? "T = 1" : t.toString(), xOf(t), H - bottom + 10));
+    ctx.font = `600 18px ${fontSans}`; ctx.textAlign = "left"; ctx.textBaseline = "top";
+    ctx.fillText("thin orange: 30 of the 2,000 paths of e^(W_t − ½t), drawn only where below 3; bold: means over all 2,000", padL + 8, top + 2);
+  }
+
+  const FIGS = { fig1 };
+
+  // ---------- Lightbox: click a figure to enlarge; wheel / pinch to zoom, drag to pan ----------
+  const lb = (function () {
+    const box = document.createElement("div");
+    box.className = "lightbox"; box.hidden = true; box.setAttribute("role", "dialog"); box.setAttribute("aria-label", "Enlarged figure");
+    box.innerHTML = '<div class="bar"><button type="button" data-act="out" aria-label="Zoom out">−</button>' +
+      '<button type="button" data-act="in" aria-label="Zoom in">+</button>' +
+      '<button type="button" data-act="fit">Fit</button><span class="pct">100 %</span>' +
+      '<span class="spacer"></span><span>scroll or pinch to zoom · drag to pan · double-click to fit · Esc to close</span>' +
+      '<button type="button" data-act="close" aria-label="Close">Close</button></div><div class="stage"><canvas></canvas></div>';
+    document.body.appendChild(box);
+    const stage = box.querySelector(".stage"), cv = box.querySelector("canvas"), pct = box.querySelector(".pct");
+    const K = Math.max(2, Math.min(3, window.devicePixelRatio * 2 || 2));
+    let id = null, scale = 1, tx = 0, ty = 0, base = [1, 1];
+    const pointers = new Map(); let lastDist = 0, dragging = false, lx = 0, ly = 0;
+    function apply() { cv.style.transform = `translate(${tx}px, ${ty}px) scale(${scale / K})`; pct.textContent = Math.round(100 * scale / base[0]) + " %"; }
+    function fit() {
+      const [W, H] = BASE[id], r = stage.getBoundingClientRect();
+      const s = Math.min((r.width - 24) / W, (r.height - 24) / H);
+      base = [s, s]; scale = s; tx = (r.width - W * s) / 2; ty = (r.height - H * s) / 2; apply();
+    }
+    function zoomAt(factor, cx, cy) {
+      const ns = Math.min(scale * factor, base[0] * 8), f = ns / scale;
+      if (ns < base[0] * 0.5) return;
+      tx = cx - (cx - tx) * f; ty = cy - (cy - ty) * f; scale = ns; apply();
+    }
+    function redraw() { FIGS[id](cv, K); apply(); }
+    function open(figId) { id = figId; box.hidden = false; document.body.style.overflow = "hidden"; FIGS[id](cv, K); fit(); box.querySelector('[data-act="close"]').focus(); }
+    function close() { box.hidden = true; document.body.style.overflow = ""; id = null; }
+    box.querySelector(".bar").addEventListener("click", e => {
+      const act = e.target.dataset && e.target.dataset.act; if (!act) return;
+      const r = stage.getBoundingClientRect(), cx = r.width / 2, cy = r.height / 2;
+      if (act === "in") zoomAt(1.5, cx, cy); else if (act === "out") zoomAt(1 / 1.5, cx, cy);
+      else if (act === "fit") fit(); else if (act === "close") close();
+    });
+    stage.addEventListener("wheel", e => { e.preventDefault(); const r = stage.getBoundingClientRect(); zoomAt(e.deltaY < 0 ? 1.15 : 1 / 1.15, e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+    stage.addEventListener("dblclick", fit);
+    stage.addEventListener("pointerdown", e => {
+      pointers.set(e.pointerId, [e.clientX, e.clientY]); stage.setPointerCapture(e.pointerId);
+      if (pointers.size === 1) { dragging = true; lx = e.clientX; ly = e.clientY; stage.classList.add("dragging"); }
+      if (pointers.size === 2) { const p = [...pointers.values()]; lastDist = Math.hypot(p[0][0] - p[1][0], p[0][1] - p[1][1]); }
+    });
+    stage.addEventListener("pointermove", e => {
+      if (!pointers.has(e.pointerId)) return;
+      pointers.set(e.pointerId, [e.clientX, e.clientY]);
+      if (pointers.size === 2) {
+        const p = [...pointers.values()], d = Math.hypot(p[0][0] - p[1][0], p[0][1] - p[1][1]);
+        const r = stage.getBoundingClientRect();
+        if (lastDist) zoomAt(d / lastDist, (p[0][0] + p[1][0]) / 2 - r.left, (p[0][1] + p[1][1]) / 2 - r.top);
+        lastDist = d;
+      } else if (dragging) { tx += e.clientX - lx; ty += e.clientY - ly; lx = e.clientX; ly = e.clientY; apply(); }
+    });
+    const up = e => { pointers.delete(e.pointerId); if (pointers.size < 2) lastDist = 0; if (pointers.size === 0) { dragging = false; stage.classList.remove("dragging"); } };
+    stage.addEventListener("pointerup", up); stage.addEventListener("pointercancel", up);
+    document.addEventListener("keydown", e => { if (box.hidden) return; if (e.key === "Escape") close(); if (e.key === "+" || e.key === "=") zoomAt(1.5, stage.clientWidth / 2, stage.clientHeight / 2); if (e.key === "-") zoomAt(1 / 1.5, stage.clientWidth / 2, stage.clientHeight / 2); });
+    window.addEventListener("resize", () => { if (!box.hidden) fit(); });
+    Object.keys(FIGS).forEach(f => { const c = document.getElementById(f); if (c) { c.addEventListener("click", () => open(f)); c.tabIndex = 0; c.addEventListener("keydown", e => { if (e.key === "Enter") open(f); }); } });
+    return { get open() { return !box.hidden; }, redraw };
+  })();
+
+  function draw() { fig1(); if (lb.open) lb.redraw(); }
+  draw();
+  if (window.matchMedia) {
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw);
+    new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  }
+})();
+</script>
