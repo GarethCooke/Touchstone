@@ -72,7 +72,7 @@ experiments while learning; the same invariants become library tests.
   Itô isometry; Stratonovich as an aside. *Check:* left-endpoint vs midpoint sums give
   different answers — assert which one matches ½W² − ½T.
 - **2.5 Itô's lemma.** Second-order Taylor plus the rulebook:
-  df = (f_t + a·f_x + ½b²·f_xx)dt + b·f_x dW. Worked: W², log S, e^(W−t/2).
+  df = (∂f/∂t + a·∂f/∂x + ½b²·∂²f/∂x²)dt + b·∂f/∂x dW. Worked: W², log S, e^(W−t/2).
   *Check:* simulate both sides for f = W²; assert e^(W_t − t/2) has constant mean.
 - **2.6 SDEs and geometric Brownian motion.** dS = μS dt + σS dW; solve via log S; the
   −½σ² correction (mean vs median, volatility drag); exact sampling vs Euler–Maruyama; where
