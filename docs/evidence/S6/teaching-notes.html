@@ -1,0 +1,574 @@
+<title>S6 · SDEs and GBM</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Study-track notes: the S1–S5 identity — one serif column, sans for apparatus, mono for the grid lines. */
+  :root {
+    --ground: #F4F6F9; --card: #FCFCFD; --ink: #1B2330; --muted: #59657A;
+    --line: #DEE3EC; --line-faint: #E9EDF3;
+    --walk: #2E59C7; --walk-soft: rgba(46, 89, 199, 0.13);
+    --theory: #B07818; --theory-soft: rgba(176, 120, 24, 0.12);
+    --smooth: #1E7A46; --smooth-soft: rgba(30, 122, 70, 0.12);
+    --peek: #B4413A; --peek-soft: rgba(180, 65, 58, 0.12);
+    --code-bg: #EEF1F6; --good: #1E7A46; --bad: #B4413A;
+    --shadow: 0 1px 2px rgba(27, 35, 48, 0.05), 0 4px 16px rgba(27, 35, 48, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0F141D; --card: #161C27; --ink: #E6EAF2; --muted: #97A2B5;
+      --line: #29323F; --line-faint: #1F2733;
+      --walk: #5B7FE3; --walk-soft: rgba(91, 127, 227, 0.16);
+      --theory: #B08422; --theory-soft: rgba(176, 132, 34, 0.16);
+      --smooth: #4CAF79; --smooth-soft: rgba(76, 175, 121, 0.16);
+      --peek: #D9736B; --peek-soft: rgba(217, 115, 107, 0.16);
+      --code-bg: #1B2230; --good: #4CAF79; --bad: #D9736B;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0F141D; --card: #161C27; --ink: #E6EAF2; --muted: #97A2B5;
+    --line: #29323F; --line-faint: #1F2733;
+    --walk: #5B7FE3; --walk-soft: rgba(91, 127, 227, 0.16);
+    --theory: #B08422; --theory-soft: rgba(176, 132, 34, 0.16);
+    --smooth: #4CAF79; --smooth-soft: rgba(76, 175, 121, 0.16);
+    --peek: #D9736B; --peek-soft: rgba(217, 115, 107, 0.16);
+    --code-bg: #1B2230; --good: #4CAF79; --bad: #D9736B;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ground); color: var(--ink);
+    font-family: "Source Serif 4", Georgia, "Times New Roman", serif; font-size: 17px; line-height: 1.68;
+    -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 760px; margin: 0 auto; padding-block: 40px 80px; padding-inline: 20px; }
+  .eyebrow { font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 11.5px; font-weight: 600;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  header.top { padding: 28px 0 8px; border-bottom: 1px solid var(--line); margin-bottom: 36px; }
+  header.top .eyebrow .sess { color: var(--walk); }
+  h1 { font-family: "Source Serif 4", Georgia, serif; font-size: clamp(30px, 6vw, 42px); font-weight: 700;
+    line-height: 1.12; letter-spacing: -0.01em; margin: 10px 0 12px; text-wrap: balance; }
+  .standfirst { color: var(--muted); font-size: 16px; margin: 0 0 18px; max-width: 62ch; }
+  .standfirst strong { color: var(--ink); font-weight: 600; }
+  section { margin: 44px 0; }
+  h2 { font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 21px; font-weight: 600;
+    letter-spacing: -0.005em; margin: 6px 0 14px; text-wrap: balance; }
+  h2 .stepno { color: var(--walk); font-variant-numeric: tabular-nums; margin-right: 6px; }
+  h3 { font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 15.5px; font-weight: 600; margin: 22px 0 8px; }
+  p { margin: 0 0 14px; max-width: 66ch; }
+  .note { color: var(--muted); font-size: 15px; max-width: 66ch; }
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, Consolas, monospace; font-size: 0.86em; }
+  code { background: var(--code-bg); border-radius: 4px; padding: 0.1em 0.35em; }
+  pre { background: var(--code-bg); border: 1px solid var(--line-faint); border-radius: 8px; padding: 14px 16px;
+    overflow-x: auto; font-size: 14px; line-height: 1.55; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+  .predictions { display: flex; flex-direction: column; gap: 12px; }
+  .prediction { display: flex; gap: 14px; align-items: baseline; }
+  .prediction .tag { flex: none; font-family: "IBM Plex Sans", sans-serif; font-size: 11px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--walk); border: 1px solid var(--walk);
+    border-radius: 99px; padding: 2px 10px; white-space: nowrap; }
+  .prediction q { font-style: italic; }
+  .prediction .asked { font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 14.5px; color: var(--muted); }
+  .prediction > div { min-width: 0; }
+  .verdict { font-family: "IBM Plex Sans", sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+  .verdict.ok { color: var(--good); } .verdict.no { color: var(--bad); } .verdict.half { color: var(--theory); }
+  ul.steps { margin: 6px 0 16px; padding-left: 22px; max-width: 66ch; }
+  ul.steps li { margin: 0 0 6px; }
+  figure { margin: 26px 0; }
+  .figbox { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; box-shadow: var(--shadow); }
+  canvas { display: block; width: 100%; height: auto; max-width: 100%; }
+  .figbox canvas { cursor: zoom-in; }
+  .lightbox { position: fixed; inset: 0; z-index: 50; background: var(--ground); display: flex; flex-direction: column; }
+  .lightbox[hidden] { display: none; }
+  .lightbox .bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line);
+    font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 13px; color: var(--muted); flex: none; }
+  .lightbox .bar button { font: inherit; font-weight: 600; color: var(--ink); background: var(--card); border: 1px solid var(--line);
+    border-radius: 6px; padding: 4px 12px; cursor: pointer; min-width: 36px; }
+  .lightbox .bar button:focus-visible { outline: 2px solid var(--walk); outline-offset: 2px; }
+  .lightbox .bar .spacer { flex: 1; }
+  .lightbox .stage { flex: 1; overflow: hidden; position: relative; touch-action: none; cursor: grab; }
+  .lightbox .stage.dragging { cursor: grabbing; }
+  .lightbox .stage canvas { position: absolute; left: 0; top: 0; width: auto; height: auto; transform-origin: 0 0; }
+  figcaption { font-size: 14px; color: var(--muted); margin-top: 10px; max-width: 76ch; }
+  .figbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; font-family: "IBM Plex Sans", sans-serif; font-size: 12.5px; color: var(--muted); }
+  .swatch { width: 14px; height: 3px; border-radius: 2px; }
+  .swatch.dash { background: repeating-linear-gradient(90deg, currentColor 0 4px, transparent 4px 7px); height: 2px; }
+  .tablewrap { overflow-x: auto; margin: 14px 0; }
+  table { border-collapse: collapse; width: 100%; font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 14px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--line-faint); text-align: right; white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; }
+  td.hi { color: var(--walk); font-weight: 600; }
+  td.warn { color: var(--theory); font-weight: 600; }
+  td.pk { color: var(--peek); font-weight: 600; }
+  td.sm { color: var(--smooth); font-weight: 600; }
+  td.dim { color: var(--muted); }
+  .aside { border-left: 3px solid var(--theory); background: var(--theory-soft); padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 18px 0; }
+  .aside .eyebrow { color: var(--theory); margin-bottom: 4px; }
+  .aside p { font-size: 15.5px; }
+  .aside.flag { border-left-color: var(--peek); background: var(--peek-soft); }
+  .aside.flag .eyebrow { color: var(--peek); }
+  .identity { margin: 16px 0; padding: 16px 20px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); }
+  .identity .line { font-family: "Source Serif 4", Georgia, serif; font-size: 19px; font-weight: 600; margin: 4px 0; overflow-x: auto; white-space: nowrap; }
+  .identity .line .l { color: var(--walk); } .identity .line .m { color: var(--theory); } .identity .line .r { color: var(--peek); } .identity .line .s { color: var(--smooth); }
+  .identity .why { font-size: 14.5px; color: var(--muted); font-family: "IBM Plex Sans", system-ui, sans-serif; margin: 2px 0 10px; }
+  .q { margin: 18px 0; padding: 16px 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+  .q .qno { font-family: "IBM Plex Sans", sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: var(--walk); text-transform: uppercase; }
+  .q p.stem { font-weight: 600; margin: 6px 0 10px; }
+  .q ul { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .q li { padding-left: 26px; position: relative; font-size: 15.5px; }
+  .q li::before { position: absolute; left: 0; top: 0; font-family: "IBM Plex Sans", sans-serif; font-weight: 600; }
+  .q li.ok::before { content: "✓"; color: var(--good); }
+  .q li.no::before { content: "✗"; color: var(--bad); }
+  .q li em.mis { color: var(--muted); font-style: italic; }
+  .map { display: grid; grid-template-columns: auto 1fr; gap: 0; margin: 0 0 8px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; box-shadow: var(--shadow);
+    font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 14.5px; line-height: 1.5; }
+  .map > div { padding: 9px 14px; border-bottom: 1px solid var(--line-faint); min-width: 0; }
+  .map > div:nth-last-child(-n+2) { border-bottom: none; }
+  .map .no { color: var(--walk); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .map .no.p { color: var(--muted); }
+  .map .what strong { font-weight: 600; }
+  .map .what .why { color: var(--muted); }
+  .ladder { counter-reset: rung; margin: 12px 0 18px; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .ladder li { position: relative; padding: 10px 14px 10px 54px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; font-size: 15.5px; }
+  .ladder li::before { counter-increment: rung; content: counter(rung); position: absolute; left: 14px; top: 9px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--walk-soft); color: var(--walk); font-family: "IBM Plex Sans", sans-serif; font-weight: 600; font-size: 13px; display: flex; align-items: center; justify-content: center; }
+  .ladder li .src { font-family: "IBM Plex Sans", sans-serif; font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 2px; }
+  .ladder li .eq { font-family: "Source Serif 4", Georgia, serif; font-weight: 600; font-size: 17px; display: block; overflow-x: auto; white-space: nowrap; margin: 2px 0 4px; }
+  .ladder li .new { color: var(--peek); }
+  :focus-visible { outline: 2px solid var(--walk); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Touchstone · study track · <span class="sess">Session S6</span> — teaching notes · v5 — final</div>
+  <h1>SDEs and geometric Brownian motion</h1>
+  <p class="standfirst">Working material for <strong>page 2.6</strong>, which you write in your own words (I2 — none of this is page prose). The experiment has already run on your workstation; every number below is in <code>2_6_sdes_and_gbm.json</code> (seed 20261001, T = 1, S₀ = 100, μ = 0.1, σ = 0.4, 121 checks, all pass). v2 re-cuts the page around the three decisions a developer makes with the model — draw or step; if step, how many; how to know it is right — after your "so what" on v1's §3 onward. Same experiment, same numbers; OU parked. v4 (2026-10-31, after your two questions): the stepping rule is now <strong>means ignore the error, spreads keep it</strong>, and the page says plainly that GBM itself never needs Euler — it steps exactly.</p>
+</header>
+
+<!-- ============ MAP ============ -->
+<section style="margin-top:0">
+  <div class="eyebrow">The notes in one card — v4, re-cut around what a developer decides</div>
+  <h2>What each section shows, and why it is there</h2>
+  <div class="map">
+    <div class="no p">P</div><div class="what"><strong>Your five predictions, verbatim, scored.</strong> <span class="why">— P1 and P4 you had; P2 (gap size and rate) and P3 (direction) are the page's target misconceptions; P5 is parked with OU.</span></div>
+    <div class="no">§1</div><div class="what"><strong>What ran: five claims, 121 checks, 89 s, and where every number lives in the JSON.</strong> <span class="why">— I1: nothing below is claimed that the file does not show.</span></div>
+    <div class="no p">→</div><div class="what"><strong>The bridge: from 2.5's d(log S) line to a formula for S_T, one addition at a time, six rungs.</strong> <span class="why">— where the page comes from; the only new move is "the right side has no S in it, so add the steps".</span></div>
+    <div class="no">§2</div><div class="what"><strong>The three decisions a developer makes with this model — and that is the whole page.</strong> <span class="why">— the "so what": draw or step; if step, how many; how to know it is right.</span></div>
+    <div class="no">§3</div><div class="what"><strong>Decision 1 — draw S_T directly: one normal per path, exact. The one way to get it wrong is to forget the −½σ², and then every price is 8 % high.</strong> <span class="why">— P1 and P4; the mean/median gap is the symptom you would see.</span></div>
+    <div class="no">§4</div><div class="what"><strong>Decision 2 — if the payoff looks at the path, step. GBM steps exactly; Euler is for models with no solution, and its cost, measured here, is 1 % per path at 100 steps, 10× closer for 100× the steps. Means ignore that error; spreads keep it.</strong> <span class="why">— P2 corrected; the rule a Monte Carlo price and a P&amp;L distribution both rest on, with its three-line why.</span></div>
+    <div class="no">§5</div><div class="what"><strong>Decision 3 — test the simulator: realised vol = σ, mean = S₀e^(μT), median = S₀e^((μ − ½σ²)T). The σZ·dt bug is what those tests catch.</strong> <span class="why">— P3; the index's spot-the-bug as a unit test.</span></div>
+    <div class="no">§6</div><div class="what"><strong>Parked: OU ran (C5, in the JSON) and is not on the page.</strong> <span class="why">— Decision, owner may overrule: nothing in v1 uses it.</span></div>
+    <div class="no">§7</div><div class="what"><strong>Five draft check questions, one per decision plus the −½σ² twice.</strong> <span class="why">— for your approval (I5).</span></div>
+    <div class="no">§8</div><div class="what"><strong>Eleven ledger rows born on this page.</strong> <span class="why">— for your approval, then into <code>drafts/notation.md</code>.</span></div>
+    <div class="no">§9</div><div class="what"><strong>The interview plan: nine questions for <code>drafts/2.6.md</code>, in page order.</strong> <span class="why">— so you can see the shape before I ask the first one.</span></div>
+  </div>
+</section>
+
+<!-- ============ 0 · PREDICTIONS ============ -->
+<section>
+  <div class="eyebrow">On the record</div>
+  <h2>Your predictions, before any code ran</h2>
+  <p class="note" style="margin-bottom:12px"><strong>Setup as posed:</strong> the price model is dS = μS dt + σS dW (drift first, as 2.5 fixed it): over one step the price changes by μS·dt for certain plus σS·ΔW at random, ΔW the √dt-sized Brownian increment. μ is the drift rate, σ the volatility. The Euler step is that line read literally, S_{i+1} = S_i·(1 + μ dt + σ√dt·Zᵢ) with Zᵢ a standard normal; the exact sample is S_T = S₀·e^((μ − ½σ²)T + σW_T), 2.5's log S line integrated. E[·] is the average over paths; the median is the middle path. Gut answers, not derivations.</p>
+  <div class="card predictions">
+    <div class="prediction"><span class="tag">P1</span><div><span class="asked">μ = 0, σ = 0.4, T = 1: is E[S_T] equal to S₀, above, or below? And the median of S_T?</span><br>You: <q>equal to S₀; median of S_T = T</q>, clarified on F1 as <q>median is below</q> &nbsp;<span class="verdict ok">E[S_T] = S₀ — right</span>; <span class="verdict ok">median below S₀ — right</span>: it is S₀e^(−½σ²T) = 0.92 S₀, measured 92.30 ± 0.05 — §3.</div></div>
+    <div class="prediction"><span class="tag">P2</span><div><span class="asked">Euler and exact on the same Zᵢ: how far apart at n = 100 — 10 %, 1 %, 0.1 %? And 100 → 10,000 steps: 10×, 100×, or no change?</span><br>You: <q>about 0.1 %?, the gap shrinks 100x</q> &nbsp;<span class="verdict no">1.2 % rms at n = 100 (3.5 % on path 1)</span>; <span class="verdict no">10× for 100× the steps</span> — §4. The gap shrinks like 1/√n, and §4 says why: it is Σ(ΔW)² − T in disguise.</div></div>
+    <div class="prediction"><span class="tag">P3</span><div><span class="asked">σZ·dt instead of σZ·√dt. At n = 10⁴, is the simulated volatility right, too big, or too small — by what factor?</span><br>You: <q>too big by 100 times</q> &nbsp;<span class="verdict half">100× — right factor</span>; <span class="verdict no">too small, not too big</span> — §5. dt = 10⁻⁴ is smaller than √dt = 10⁻², so each kick is 100× too short.</div></div>
+    <div class="prediction"><span class="tag">P4</span><div><span class="asked">log(S_T/S₀): Gaussian, lognormal, or neither? Its mean?</span><br>You: <q>Gaussian, mean (μ − ½σ²)T</q> &nbsp;<span class="verdict ok">right, both</span> — §3 measures skewness −0.005 ± 0.002 and excess kurtosis 0.001 ± 0.005 on 10⁶ paths.</div></div>
+    <div class="prediction"><span class="tag">P5</span><div><span class="asked">dX = −θX dt + σ dW: does Var(X_t) keep growing like t, or stop? If it stops, at what?</span><br>You: <q>stops at sqrt(t) - a guess</q> &nbsp;<span class="verdict half">stops — right</span>; <span class="verdict no">at σ²/(2θ), a constant: 0.04 here</span> — §6 (parked). "√t" grows without bound, so it cannot be where something stops.</div></div>
+  </div>
+  <p class="note" style="margin-top:14px">P1 and P4 are the page's mechanics and you had both: the −½σ² and the fact that it moves the median, not the mean. P2 is the thing the page exists to show — stepping is not free, and the cost is √dt, not dt. P3 and P5 are each half right. F1 resolved 2026-10-30: "= T" was a paste slip for "below".</p>
+</section>
+
+<!-- ============ 1 · WHAT RAN ============ -->
+<section>
+  <div class="eyebrow">Numbers first</div>
+  <h2><span class="stepno">1</span>The experiment on your disk</h2>
+  <p><code>experiments/2_6_sdes_and_gbm.py</code> wrote <code>2_6_sdes_and_gbm.json</code> in 89 s on your workstation (numpy 2.5.2, via <code>uv run --frozen</code>); <code>--quick</code> runs in about 9 s. The container run (numpy 2.4.4) agrees to every printed digit; the largest difference is 7 parts in 10⁸ of a residual that is itself 10⁻⁹. Five claims, 121 checks, all measured:</p>
+  <ul class="steps">
+    <li><strong>C1</strong> — exact sampling at T, one normal per path, 10⁶ paths, for μ = 0.1 and for your P1 case μ = 0: the log-return's four moments, E[S_T], the median, the drag, the fraction of paths below the mean (§3). <code>results.exact</code>, <code>results.exact_p1</code>.</li>
+    <li><strong>C2</strong> — 1,000 Brownian paths drawn once at 10⁶ steps and read on n = 10², 10³, 10⁴, 10⁵, 10⁶ (2.5's nested grids). On each grid the Euler path and the exact solution from the same increments, and their gap in S_T and in log S_T (§4). Then 20,000 fresh Euler paths at n = 10⁴, μ = 0.1 and μ = 0, with no closed form anywhere in the simulation (§4). <code>results.grids[*]</code>, <code>results.euler_many</code>, <code>results.euler_many_p1</code>.</li>
+    <li><strong>C3</strong> — on the same grids, the buggy step σZ·dt: its realised volatility and the spread of its S_T (§5). <code>results.grids[*].realised_vol_bug</code>, <code>.log_bug</code>.</li>
+    <li><strong>C4</strong> — on the same grids, the Euler gap in log S split into its leading term −½σ²(Σ(ΔW)² − T) and a remainder; Taylor's sums for log along the Euler path (§4). <code>results.grids[*].lead</code> (first paths), <code>.resid_lead</code>, <code>.r_qv</code>, <code>.cubic</code>.</li>
+    <li><strong>C5</strong> — Ornstein–Uhlenbeck, 20,000 paths at n = 10⁴, θ = 2, σ = 0.4, X₀ = 1: mean and variance at t = 0.1, 0.25, 0.5, 0.75, 1 against the closed forms, Var(W_t) on the same normals, Euler against the exact OU step (§6, parked). <code>results.ou</code>.</li>
+  </ul>
+  <p class="note">Notation for everything below. The grid is t₀ = 0, …, tₙ = T with dt = T/n; ΔWᵢ = Wᵢ₊₁ − Wᵢ is the Brownian increment on step i, equal to √dt·Zᵢ with Zᵢ a standard normal; W_T = Wₙ; Σ with no limits adds over the n steps. S^E means the Euler path, S^exact the closed form; both are built from the same ΔWᵢ, so a gap between them is the method's, not the dice's. "Log-return" means log(S_T/S₀). Every drift-plus-noise line is written drift first: a dt + b dW. Derivatives: primes for a function of one variable (g′, g″), ∂ once t enters (∂f/∂t, ∂f/∂x, ∂²f/∂x²), per your ruling of 2026-09-29.</p>
+</section>
+
+<!-- ============ BRIDGE ============ -->
+<section>
+  <div class="eyebrow">The bridge — from 2.5's last line to 2.6's first</div>
+  <h2>From d(log S) to a formula for S_T, one addition at a time</h2>
+  <p>2.5 ended on log S. Every rung below adds one thing to the rung before it and names where that thing was already shown. Say which rung is the first you do not recognise.</p>
+  <ol class="ladder">
+    <li><span class="src">2.5 — the general form on f(S) = log S, a = μS, b = σS</span><span class="eq">d(log S) = (μ − ½σ²) dt + σ dW</span>The −½σ² is ½b²·∂²f/∂x² with b = σS and ∂²f/∂x² = −1/S²: the S² cancels. This is the line 2.5 stopped on.</li>
+    <li><span class="src">New — look at what is <em>not</em> on the right side</span><span class="eq">(μ − ½σ²) dt + σ dW <span class="new">— no S anywhere</span></span>The price model's right side has S in it twice (μS, σS), so each step depends on where you are. log S's right side has a constant drift and a constant volatility: it is W scaled by σ, shifted by a straight line. That is the whole reason for taking the log.</li>
+    <li><span class="src">2.5 — the telescoping, and Σ ΔWᵢ = W_T (S4 ledger)</span><span class="eq">log S_T − log S₀ = Σ [(μ − ½σ²) dt + σ ΔWᵢ] = (μ − ½σ²)T + σW_T</span>Add the n steps. The left side telescopes, as g(W_T) − g(0) did on 2.5. The right side's n copies of (μ − ½σ²) dt make (μ − ½σ²)T, and Σ ΔWᵢ is W_T on every grid. No limit was needed: with no S on the right, the sum is exact.</li>
+    <li><span class="src">New — exponentiate</span><span class="eq">S_T = S₀ · e^((μ − ½σ²)T + σW_T)</span>The <strong>solution</strong> of the SDE: S_T as a formula in one random number, W_T. 2.6's "closed-form sample". Nothing was stepped.</li>
+    <li><span class="src">2.2 — W_T is Gaussian, variance T</span><span class="eq">W_T = √T · Z,  so  log(S_T/S₀) = (μ − ½σ²)T + σ√T·Z</span>One standard normal per path. The log-return is Gaussian with mean (μ − ½σ²)T and variance σ²T — your P4 — and S_T itself is lognormal. §3 measures all four moments.</li>
+    <li><span class="src">2.5 — E[e^(W_t)] = e^(t/2), with W → σW</span><span class="eq">E[S_T] = S₀e^((μ − ½σ²)T) · E[e^(σW_T)] = S₀e^((μ − ½σ²)T) · e^(½σ²T) = S₀e^(μT)</span>σW_T is a Brownian motion run to time σ²T, so 2.5's e^(t/2) becomes e^(½σ²T) and cancels the −½σ²T exactly. The mean is S₀e^(μT), with no drag. The <em>median</em> is different: the median of a Gaussian is its mean, so the median log-return is (μ − ½σ²)T, and because exp preserves order the median of S_T is S₀e^((μ − ½σ²)T). The drag lives in the median, and the mean is held up by the tail — 2.5's "mean of the exponential ≠ exponential of the mean", with a price on it.</li>
+  </ol>
+  <p>Rung 6 is the answer to P1: E[S_T] = S₀ (right, μ = 0) and median = S₀e^(−½σ²T) = S₀e^(−0.08) = 0.923 S₀. The −½σ² you wrote in P4 and the "median" you were asked about in P1 are the same number.</p>
+  <p>The Euler path is a <em>seventh</em> rung that goes the other way: instead of solving, step the price model literally — S_{i+1} = S_i(1 + xᵢ) with xᵢ = μ dt + σΔWᵢ. Its log is Σ log(1 + xᵢ), and log(1 + x) = x − ½x² + ⅓x³ − … is 2.5's Taylor for g = log. Summed: μT + σW_T − ½σ²Σ(ΔW)² + (smaller). The exact solution has −½σ²T in that slot. The difference between them is −½σ²(Σ(ΔW)² − T): 2.5's (ΔW)²-vs-dt noise. §4 measures that identity path by path.</p>
+</section>
+
+<!-- ============ 2 · THE THREE DECISIONS ============ -->
+<section>
+  <div class="eyebrow">The so what</div>
+  <h2><span class="stepno">2</span>Three decisions a developer makes with this model</h2>
+  <p>dS = μS dt + σS dW is a recipe for one step: how far S moves over the next dt, given where it is now. Every later page needs prices that move — to hedge against (2.7), to average over (2.8), to integrate against a payoff (2.9) — and a recipe per step is not yet a price. The person who turns the recipe into prices is a developer writing a simulator, and they make three decisions. Each has a wrong answer that produces a plausible-looking number, and the page exists to make the right answer obvious.</p>
+  <div class="identity">
+    <div class="line"><span class="l">1 · Draw or step?</span></div>
+    <div class="why">If the payoff only looks at S_T (a European option, 2.9), draw S_T directly from the solution S_T = S₀e^((μ − ½σ²)T + σW_T): one normal per path, exact, no grid. The wrong answer is to leave out the −½σ². §3.</div>
+    <div class="line"><span class="m">2 · If you step, how many steps?</span></div>
+    <div class="why">If the payoff looks at the path — a barrier, an average, or 2.7's hedging simulator, which rebalances on a grid — you cannot draw S_T alone, you step. For GBM you step <em>exactly</em>: the solution holds between any two grid points. Euler, S_{i+1} = S_i(1 + μ dt + σ√dt·Zᵢ), is what you are left with when the model has no solution, and GBM is where its cost can be measured: about 1 % per path at 100 steps, shrinking like 1/√n, mean zero. Averages ignore it; spreads keep it. §4.</div>
+    <div class="line"><span class="r">3 · How do you know it is right?</span></div>
+    <div class="why">Three tests on the simulated paths: realised volatility = σ, mean S_T = S₀e^(μT), median S_T = S₀e^((μ − ½σ²)T). The bug they catch is σZ·dt in the step, which everyone writes once. §5.</div>
+  </div>
+  <p>The maths the page needs is already done: 2.5's lemma on log S gave d(log S) = (μ − ½σ²) dt + σ dW, and the bridge above turned that into the solution in six rungs. What is new on this page is not a theorem but the three numbers that let a developer act: the −½σ² (decision 1), the √dt error of stepping (decision 2), and the σ√dt signature of the bug (decision 3).</p>
+</section>
+
+<!-- ============ 3 · DECISION 1 ============ -->
+<section>
+  <div class="eyebrow">Decision 1 — C1, 10⁶ paths, one normal each</div>
+  <h2><span class="stepno">3</span>Draw S_T directly — and do not forget the −½σ²</h2>
+  <p><strong>What this decides.</strong> For any payoff that depends only on S_T, you never need a grid: W_T = √T·Z, so S_T = S₀e^((μ − ½σ²)T + σ√T·Z) with one standard normal per path. That is the fast path of every Monte Carlo pricer and the distribution 2.9 integrates in closed form. The only thing to get wrong is the exponent, and the table shows what right looks like.</p>
+  <div class="tablewrap"><table>
+    <tr><th>10⁶ exact draws</th><th>μ = 0.1</th><th>expected</th><th>μ = 0 (your P1)</th><th>expected</th></tr>
+    <tr><td>log(S_T/S₀): mean</td><td class="hi">0.0198 ± 0.0004</td><td class="dim">(μ − ½σ²)T = 0.0200</td><td class="hi">−0.0800 ± 0.0004</td><td class="dim">−0.0800</td></tr>
+    <tr><td>log(S_T/S₀): variance</td><td>0.1596 ± 0.0002</td><td class="dim">σ²T = 0.1600</td><td>0.1603 ± 0.0002</td><td class="dim">0.1600</td></tr>
+    <tr><td>log(S_T/S₀): skewness, excess kurtosis</td><td>−0.005 ± 0.002, +0.001 ± 0.005</td><td class="dim">0, 0 — Gaussian</td><td>+0.002, +0.002</td><td class="dim">0, 0</td></tr>
+    <tr><td>mean S_T</td><td class="hi">110.47 ± 0.05</td><td class="dim">S₀e^(μT) = 110.52</td><td class="hi">100.02 ± 0.04</td><td class="dim">100.00</td></tr>
+    <tr><td>median S_T</td><td class="warn">102.05 ± 0.05</td><td class="dim">S₀e^((μ − ½σ²)T) = 102.02</td><td class="warn">92.30 ± 0.05</td><td class="dim">92.31</td></tr>
+    <tr><td>paths ending below the mean</td><td class="warn">57.9 %</td><td class="dim">Φ(½σ√T) = 57.9 %</td><td class="warn">57.9 %</td><td class="dim">57.9 %</td></tr>
+  </table></div>
+  <p class="note"><code>results.exact.log_return.*</code>, <code>.S_T.*</code>; <code>results.exact_p1.*</code>. All within 2.1 s.e. of the closed forms.</p>
+  <p><strong>The wrong answer, and its symptom.</strong> Write the exponent as μT + σ√T·Z — the chain rule's answer, no drag — and every S_T you draw is multiplied by e^(½σ²T) = e^0.08 = 1.083. The mean comes back at 1.083·S₀e^(μT) instead of S₀e^(μT): with μ = 0, at 108.3 instead of 100. Every price you then compute from those draws is 8 % high, and more paths make it more precisely wrong. The test is the mean row: it must land on S₀e^(μT), and it does here to 0.05 %.</p>
+  <p><strong>Why the median is a second number.</strong> Your P1 asked for both because they differ, and a developer who prints "the expected price is 100" when the median is 92.3 will be asked why most paths lost money. The log-return is Gaussian with mean (μ − ½σ²)T — your P4 — and the median of a Gaussian is its mean, so the median price is S₀e^((μ − ½σ²)T). The mean price is held up by the right tail: 57.9 % of paths end below it, and that fraction is Φ(½σ√T) = Φ(0.2), independent of μ. The expected price and the odds for a single path are different things, and the gap between their centres is the drag: nobody "sees" the median, but a single path is as likely to finish below 102 as above it, and 57.9 % likely to finish below the mean.</p>
+  <figure>
+    <div class="figbox">
+      <canvas id="fig2" width="1400" height="640" aria-label="Histogram of S at T over one million exact samples, with the mean at 110.5 and the median at 102.0 marked"></canvas>
+      <div class="figbar">
+        <span class="chip"><span class="swatch" style="background:var(--walk);opacity:.55"></span>S_T, 10⁶ exact samples, μ = 0.1</span>
+        <span class="chip"><span class="swatch" style="background:var(--walk)"></span>mean 110.5</span>
+        <span class="chip"><span class="swatch" style="background:var(--theory)"></span>median 102.0</span>
+        <span class="chip"><span class="swatch dash" style="color:var(--muted)"></span>S₀ = 100</span>
+      </div>
+    </div>
+    <figcaption>Click to enlarge. <code>results.exact.S_T.histogram</code>, 80 bins of width 5; 297 of the 10⁶ paths lie above 400 and are not drawn. The peak is near 90, the median 102, the mean 110.5: the long right tail drags the mean past the typical path. 57.9 % of the area is left of the mean line.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 4 · DECISION 2 ============ -->
+<section>
+  <div class="eyebrow">Decision 2 — C2 and C4, the same normals, two methods</div>
+  <h2><span class="stepno">4</span>If you step, know what it costs: 1 % per path at 100 steps</h2>
+  <p><strong>What this decides.</strong> A barrier option, an average-price option, and 2.7's hedging simulator all look at S along the way, so S_T alone is not enough: you step, and you choose n. Two things to know before you do. First, GBM never needs an approximate step: rung 4 holds between any two grid points, so S_{i+1} = S_i·e^((μ − ½σ²)dt + σΔWᵢ) is exact, one normal per step, and 2.7 should step that way. Second, the models that come later (local vol, Heston — Part 4) have no such line, and there you step the recipe literally: Euler, S_{i+1} = S_i(1 + μ dt + σ√dt·Zᵢ). That is an approximation, and GBM is the one model where its error can be measured against the truth — which is what this section does. The question is how big the error is, how it shrinks with n, and — the part that matters most — whether it is a bias (which survives averaging) or a noise (which does not).</p>
+  <div class="tablewrap"><table>
+    <tr><th>n</th><th>rms gap, Euler vs exact S_T, 1,000 paths</th><th>½σ²T√(2/n)</th><th>path 1: Σ(ΔW)²</th><th>path 1: gap in S_T</th><th>mean of the gap ± s.e.</th></tr>
+    <tr><td>100</td><td class="hi">1.15 %</td><td class="dim">1.13 %</td><td class="dim">1.438</td><td class="pk">−3.42 %</td><td class="dim">−0.02 % ± 0.04 %</td></tr>
+    <tr><td>1,000</td><td class="hi">0.361 %</td><td class="dim">0.358 %</td><td class="dim">1.041</td><td class="pk">−0.32 %</td><td class="dim">−0.01 % ± 0.01 %</td></tr>
+    <tr><td>10,000</td><td class="hi">0.109 %</td><td class="dim">0.113 %</td><td class="dim">1.002</td><td class="pk">−0.014 %</td><td class="dim">0.002 % ± 0.004 %</td></tr>
+    <tr><td>100,000</td><td class="hi">0.034 %</td><td class="dim">0.036 %</td><td class="dim">0.9975</td><td class="pk">+0.020 %</td><td class="dim">−0.0002 % ± 0.001 %</td></tr>
+    <tr><td>1,000,000</td><td class="hi">0.012 %</td><td class="dim">0.011 %</td><td class="dim">0.9994</td><td class="pk">+0.005 %</td><td class="dim">−0.0003 % ± 0.0004 %</td></tr>
+  </table></div>
+  <p class="note"><code>results.grids[*].gap_rel.rms</code>, <code>.gap_log.{rms_expected, mean, se_of_mean}</code>, <code>.first_paths.{sum_dW_sq, gap_rel}[0]</code>. Slope of the rms gap against n: −0.501 (<code>results.slopes.rms_gap_rel</code>). Path 1 ends at W_T = 1.2880; its exact S_T is 170.78 on every grid.</p>
+  <p><strong>The number.</strong> At 100 steps the Euler price is 1.15 % off the exact one on the same normals, rms over paths, and 3.4 % off on path 1. Each 100× more steps buys 10×: 1.15 %, 0.36 %, 0.11 %, 0.034 %, 0.012 %. That is √dt — Euler–Maruyama's strong order ½ — and it is why your P2's 100× was a square root too optimistic. To bring a per-path quantity to 0.1 % you need 10⁴ steps; to 0.01 %, 10⁶.</p>
+  <p><strong>The rule: means ignore it, spreads keep it.</strong> The last column is the one to remember: the gap's <em>mean</em> is zero on every grid, within its standard error. The stepping error is a zero-mean noise, not a bias. Anything that is a mean over paths — a price — is nearly indifferent to it, because the noise averages out: the 20,000-path Euler run at n = 10⁴ returns a mean of 110.62 ± 0.32 against 110.52 and a median of 101.99 ± 0.36 against 102.02, with the −½σ² emerging on its own though no step contains it. Anything that is a spread over paths — a P&amp;L distribution, a hit-rate on a barrier, the width of anything — keeps it, because a zero-mean noise adds to a variance instead of cancelling out of it. 2.7's simulator looks at the P&amp;L spread across many hedged paths; that spread is where a path-level noise would show up, which is one more reason 2.7 steps GBM exactly.</p>
+  <h3>Why — in three lines, from 2.5</h3>
+  <div class="identity">
+    <div class="line">log S^E_T − log S₀ = Σ log(1 + xᵢ) = <span class="l">Σ xᵢ</span> − <span class="m">½Σ xᵢ²</span> + … ,   xᵢ = μ dt + σΔWᵢ</div>
+    <div class="why">Taylor for log along the Euler path — 2.5's (ΔX)²-form with g = log. Σ xᵢ = μT + σW_T exactly; the second term is −½σ²Σ(ΔW)² plus dt-sized pieces</div>
+    <div class="line">log S^exact_T − log S₀ = μT + σW_T − <span class="m">½σ²T</span></div>
+    <div class="why">the solution: the same line with Σ(ΔW)² replaced by T — 2.3's rulebook, 2.5's dt-form</div>
+    <div class="line">gap = <span class="m">−½σ²(Σ(ΔW)² − T)</span> + (1/n)</div>
+    <div class="why">2.5's (ΔW)²-vs-dt noise, with g″b² = (−1/S²)(σS)² = −σ². Σ(ΔW)² − T has mean 0 and sd T√(2/n): hence a noise, hence √dt. Path 1 at n = 100: Σ(ΔW)² = 1.438, −0.08 × 0.438 = −0.0350 against the measured gap −0.0348</div>
+  </div>
+  <p>Euler is not "approximately the SDE": it is 2.5's lemma with Σ(ΔW)² left as the dice rolled it instead of replaced by T. That is the whole error, and the JSON checks it path by path: the gap minus that one term has rms 20× smaller at n = 100 and 2,000× smaller at n = 10⁶, shrinking like 1/n (<code>results.grids[*].resid_lead</code>, slope −1.001). It is also why the error is √dt for any SDE whose volatility depends on X — the b² in ½b²·∂²f/∂x² multiplies a Σ(ΔW)² that does not know it should be T — and dt-sized when b is a constant.</p>
+  <figure>
+    <div class="figbox">
+      <canvas id="fig1" width="1400" height="640" aria-label="Path 1 at n equals 100 as the exact solution, the Euler path and the buggy path, from S zero equals 100"></canvas>
+      <div class="figbar">
+        <span class="chip"><span class="swatch" style="background:var(--walk)"></span>exact S(t) from the closed form</span>
+        <span class="chip"><span class="swatch" style="background:var(--theory)"></span>Euler, same ΔWᵢ</span>
+        <span class="chip"><span class="swatch" style="background:var(--peek)"></span>σZ·dt bug, same ΔWᵢ (§5)</span>
+      </div>
+    </div>
+    <figcaption>Click to enlarge. Path 1 at n = 100 from <code>results.first_paths_n100.paths[0]</code>, scaled to S₀ = 100. Exact and Euler share every turn and drift apart by a few percent — the Euler path sits below because this path's Σ(ΔW)² is 1.44, so its −½σ²Σ(ΔW)² is more negative than the exact −½σ²T. The red path is §5's bug: same shape at a tenth of the amplitude.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 5 · DECISION 3 ============ -->
+<section>
+  <div class="eyebrow">Decision 3 — C3, the index's spot-the-bug as a unit test</div>
+  <h2><span class="stepno">5</span>Test the simulator — three numbers it must reproduce</h2>
+  <p><strong>What this decides.</strong> Whether to trust the paths. Three properties of GBM are cheap to measure on simulated paths and sharp enough to fail on the common bugs: the realised volatility of each path must be σ; the mean of S_T must be S₀e^(μT); the median of S_T must be S₀e^((μ − ½σ²)T). The mean and median tests are §3's table, and they catch a missing −½σ² (mean 8 % high) or a −½σ² applied to the mean. The realised-volatility test catches the step itself.</p>
+  <div class="tablewrap"><table>
+    <tr><th>n</th><th>realised vol, correct step</th><th>realised vol, σZ·dt step</th><th>σ√dt</th><th>factor too small</th><th>sd of log S_T across paths, bug</th><th>correct: σ√T</th></tr>
+    <tr><td>100</td><td class="sm">0.3997</td><td class="pk">0.0399</td><td class="dim">0.0400</td><td class="hi">10</td><td>0.0385</td><td class="dim">0.400</td></tr>
+    <tr><td>10,000</td><td class="sm">0.3999</td><td class="pk">0.0040</td><td class="dim">0.0040</td><td class="hi">100</td><td>0.00385</td><td class="dim">0.400</td></tr>
+    <tr><td>1,000,000</td><td class="sm">0.4000</td><td class="pk">0.00040</td><td class="dim">0.00040</td><td class="hi">1,000</td><td>0.000385</td><td class="dim">0.400</td></tr>
+  </table></div>
+  <p class="note"><code>results.grids[*].realised_vol.mean</code>, <code>.realised_vol_bug.{demeaned_mean, demeaned_expected, factor_too_small}</code>, <code>.log_bug.sd</code>; the 10³ and 10⁵ grids are in the JSON and follow the same line. Realised volatility = √(n/T) × sd of a path's per-step log-returns. Slope of the buggy value against n: −0.500.</p>
+  <p><strong>The bug.</strong> Write σZ·dt for the kick instead of σZ·√dt. Nothing crashes; the paths look like prices; the mean is still S₀e^(μT). But every kick is √dt times too short — dt is <em>smaller</em> than √dt for every dt below 1, which is where your P3 went the wrong way — so the realised volatility is σ√dt: 0.004 at n = 10⁴ against 0.4, a hundred times too small, and the finer the grid the worse it gets. The spread of S_T collapses by the same factor. A test that asserts realised vol within a few percent of σ fails instantly; nothing else on the page would.</p>
+  <p><strong>Why √dt is right.</strong> 2.1's √dt: n kicks of size σ√dt have total variance n·σ²dt = σ²T whatever n is, because variances add and standard deviations do not. n kicks of size σdt have total variance σ²T·dt, which vanishes as the grid is refined. The correct column reading 0.400 on every grid is the √dt doing exactly that job.</p>
+  <div class="aside">
+    <div class="eyebrow">A second tell — the drift stops being negligible</div>
+    <p>On the correct path the drift per step, μ dt, is tiny next to the kick σ√dt (10⁻⁵ against 4 × 10⁻³ at n = 10⁴). On the buggy path both are dt-sized, so the drift is a quarter of the kick on every step and the path climbs with almost no jitter — the red line in §4's figure. The √dt is what keeps drift and noise on different scales; take it away and they land on the same one. (<code>realised_vol_bug.mean</code>, the sum-of-squares version, reads √(σ² + μ²)·√dt for exactly this reason: 0.0410 against 0.0412 at n = 100.)</p>
+  </div>
+</section>
+
+<!-- ============ 6 · PARKED ============ -->
+<section>
+  <div class="eyebrow">Parked — Decision, owner may overrule</div>
+  <h2><span class="stepno">6</span>Mean reversion ran, and stays off the page</h2>
+  <p>The index lists "mean reversion (OU) as a second example" for 2.6 and your P5 was about it. C5 ran — 20,000 paths of dX = −θX dt + σ dW, θ = 2, σ = 0.4, X₀ = 1 — and the JSON has the answer to P5: Var(X_t) rises 0.0132, 0.0252, 0.0343, 0.0377, 0.0395 at t = 0.1 … 1 and stops at σ²/(2θ) = 0.04, while Var(W_t) on the same normals is 0.10, 0.25, 0.49, 0.75, 1.00 and does not stop (<code>results.ou.checkpoints</code>). "Stops" was right; "√t" is a growing quantity and cannot be a limit; the constant is σ²/(2θ).</p>
+  <p>It stays off the page because nothing in v1 uses it: the course is European vanillas under GBM, and OU belongs to rates and stochastic vol, which are Part 4 (I21). Keeping it would be a fourth section with no decision attached. The JSON keeps C5 so the index line can be honoured later without a rerun; the index edit — dropping "mean reversion (OU) as a second example" from §2.6 — is yours (I18). If you would rather keep it, it goes back as one paragraph after §4 with the two-line derivation (f = e^(θt)x has no curvature term, then 2.4's isometry).</p>
+</section>
+
+<!-- ============ 7 · CHECKS ============ -->
+<section>
+  <div class="eyebrow">For your approval — I5</div>
+  <h2><span class="stepno">7</span>Draft check questions</h2>
+  <p class="note">Approved by the owner 2026-11-01; in <code>drafts/2.6-checks.md</code>. One per decision, plus the −½σ² from both sides. Every wrong option names its misconception; the feedback says why with a number from the JSON. Q3's "0.1 % and 100×" and Q5's "too big" are your own pre-run predictions; Q1's "median is S₀" is the miss you avoided. Drift first throughout.</p>
+  <div class="q"><div class="qno">Q1</div><p class="stem">dS = μS dt + σS dW with μ = 0, σ = 0.4, T = 1. Which is true of S_T?</p><ul>
+    <li class="ok"><strong>E[S_T] = S₀ and the median of S_T is S₀e^(−½σ²T) ≈ 0.92 S₀</strong> — the mean is held up by the tail; the typical path sags by the drag. Measured on 10⁶ paths: mean 100.02 ± 0.04, median 92.30 ± 0.05; 57.9 % of paths end below the mean.</li>
+    <li class="no">E[S_T] = S₀ and the median is S₀ too <em class="mis">— the drag forgotten.</em> log(S_T/S₀) is Gaussian with mean −½σ²T, not 0, and the median of S_T is the exponential of that: 92.3, not 100.</li>
+    <li class="no">E[S_T] = S₀e^(−½σ²T), below S₀ <em class="mis">— the drag applied to the mean.</em> The −½σ² is cancelled in the mean by E[e^(σW_T)] = e^(½σ²T) (2.5's E[e^W] = e^(t/2) with W → σW). It survives only in the median.</li>
+    <li class="no">E[S_T] &gt; S₀ because volatility adds value <em class="mis">— the lognormal factor counted twice.</em> With μ = 0 the mean is exactly S₀: 100.02 ± 0.04. Volatility spreads the distribution and lowers its median; it does not raise its mean.</li>
+  </ul></div>
+  <div class="q"><div class="qno">Q2</div><p class="stem">You simulate S_T = S₀e^(μT + σ√T·Z) — the chain rule's exponent, no −½σ² — and price a European option from 10⁶ draws. The price is:</p><ul>
+    <li class="ok"><strong>Too high, by about e^(½σ²T) on the underlying — 8 % at σ = 0.4, T = 1 — and more draws make it more precisely wrong</strong> — every S_T is multiplied by e^(½σ²T); the mean comes back at 1.083·S₀e^(μT). The drag is not a sampling effect, it is in the exponent.</li>
+    <li class="no">Right: the −½σ² is a correction to the log, not to the price <em class="mis">— the log and the price treated as separate.</em> S_T is the exponential of the log-return, so a mean that is ½σ²T too high in the log is e^(½σ²T) too high in the price. Measured: mean log-return 0.0198 against the chain rule's 0.1.</li>
+    <li class="no">Too low, because the drag was left out <em class="mis">— the drag's sign read from the median.</em> Leaving out −½σ² makes the exponent bigger, not smaller; the median rises from 102.0 to 110.5 and the mean from 110.5 to 119.7.</li>
+    <li class="no">Right on average, noisy per path <em class="mis">— a bias mistaken for a noise.</em> A per-path noise has mean zero and shrinks with more draws; a wrong exponent shifts every draw the same way and 10⁶ draws pin the wrong mean to ±0.05.</li>
+  </ul></div>
+  <div class="q"><div class="qno">Q3</div><p class="stem">Euler steps and the exact solution are built from the same normals. At n = 100 steps, and then at n = 10,000, how far apart are the two S_T?</p><ul>
+    <li class="ok"><strong>About 1 % at n = 100, about 0.1 % at n = 10,000 — ten times closer for a hundred times the steps</strong> — rms 1.15 % and 0.11 % on 1,000 paths; the gap is ½σ²(Σ(ΔW)² − T) to leading order and shrinks like 1/√n (slope −0.501).</li>
+    <li class="no">They match: same normals, same price <em class="mis">— "the SDE is the recipe" taken literally.</em> Euler leaves Σ(ΔW)² as the dice rolled it; the solution has replaced it by T. On path 1 at n = 100, Σ(ΔW)² = 1.44 and the prices differ by 3.4 %.</li>
+    <li class="no">About 0.1 % at n = 100, and a hundred times closer at n = 10,000 <em class="mis">— the error assumed to be dt-sized.</em> It is √dt-sized: n terms (ΔW)² − dt, each of sd √2·dt, add to √(2/n)·T. That is 2.3's Σ(ΔW)² noise, and it is 1/√n.</li>
+    <li class="no">About 1 % at both: more steps do not help <em class="mis">— Euler mistaken for a biased method.</em> The gap's mean is 0 within s.e. on every grid; it is a noise, and the noise shrinks: 1.15 %, 0.36 %, 0.11 %, 0.034 %, 0.012 % down the five grids.</li>
+  </ul></div>
+  <div class="q"><div class="qno">Q4</div><p class="stem">Same Euler simulator, n = 100, 10⁵ paths. You read off (a) the mean of S_T — a price — and (b) the spread of S_T across paths. The 1 % per-path stepping error shows up:</p><ul>
+    <li class="ok"><strong>In (b), hardly at all in (a)</strong> — the per-path gap has mean zero on every grid (−0.02 % ± 0.04 % at n = 100), so it cancels out of a mean; a zero-mean noise adds to a variance, so it stays in a spread. 20,000 Euler paths at n = 10⁴ return a mean of 110.62 ± 0.32 against 110.52.</li>
+    <li class="no">In both equally: 1 % is 1 % <em class="mis">— a noise mistaken for a bias.</em> A bias survives averaging; this gap changes sign from path to path (the first five paths at n = 100: −3.4 %, −1.5 %, +0.6 %, +1.2 %, −0.02 %) and its mean is zero within s.e.</li>
+    <li class="no">In (a) in full, hardly at all in (b) <em class="mis">— mean and spread swapped.</em> An expectation does not see a zero-mean noise; a variance does — it adds the noise's variance to its own. A P&amp;L distribution is a spread, which is why 2.7 steps GBM exactly rather than by Euler.</li>
+    <li class="no">In neither: the same normals give the same answer <em class="mis">— the recipe taken for the solution.</em> Same normals, different arithmetic: Euler keeps −½σ²Σ(ΔW)², the solution has −½σ²T, and Σ(ΔW)² ≠ T on a grid (1.44 on path 1 at n = 100).</li>
+  </ul></div>
+  <div class="q"><div class="qno">Q5</div><p class="stem">A simulator writes the step as S_{i+1} = S_i(1 + μ dt + σZ·dt). At n = 10⁴, which test fails, and how?</p><ul>
+    <li class="ok"><strong>Realised volatility comes out at σ√dt = 0.004 instead of σ = 0.4 — 100× too small</strong> — the kick is σ dt instead of σ√dt, and dt/√dt = √dt = 0.01. The mean of S_T still passes (it is set by μ dt, which is right), so the volatility test is the one that catches it.</li>
+    <li class="no">Realised volatility comes out 100× too big <em class="mis">— √dt read as larger than dt.</em> For dt &lt; 1, √dt &gt; dt: √(10⁻⁴) = 10⁻², a hundred times larger. The buggy kick is the smaller one.</li>
+    <li class="no">No test fails: dt and √dt differ only in how the limit is written <em class="mis">— the √dt taken as notation.</em> It is the size of a Brownian increment (2.1): n kicks of σ√dt have total variance σ²T whatever n is; n kicks of σ dt have total variance σ²T·dt, which vanishes as n grows.</li>
+    <li class="no">The mean of S_T fails: it comes out far below S₀e^(μT) <em class="mis">— volatility and drift confused.</em> The mean is S₀(1 + μ dt)ⁿ either way; the bug leaves it alone and removes the spread. Only the volatility test and the median test (which rises toward the mean as the spread collapses) see it.</li>
+  </ul></div>
+</section>
+
+<!-- ============ 8 · LEDGER ============ -->
+<section>
+  <div class="eyebrow">For your approval — then into drafts/notation.md</div>
+  <h2><span class="stepno">8</span>The S6 batch — eleven rows</h2>
+  <p class="note">Rows born from this session: the SDE as a recipe, the two ways to get a price from it, the drag, the means-vs-spreads rule, the √dt bug and its test. Approved 2026-11-01 and appended to <code>drafts/notation.md</code>. Rows marked ↺ revisit an earlier row in its new role. OU's rows are parked with §6.</p>
+  <div class="tablewrap"><table style="white-space:normal">
+    <tr><th>Symbol</th><th>Say it</th><th>Here it means</th><th>Watch out</th></tr>
+    <tr><td style="white-space:nowrap">SDE · dX = a(t, X) dt + b(t, X) dW</td><td>"stochastic differential equation"</td><td style="white-space:normal;text-align:left">2.5's one-step recipe dX = a dt + b dW, with the drift a and the volatility b now allowed to depend on where X is and on the time. It says what happens over the next dt; it is not yet a formula for X_T</td><td style="white-space:normal;text-align:left">the d's are increments, not derivatives: W has none (2.2). Read it as "ΔX = a Δt + b ΔW for a small step", which is exactly the Euler step</td></tr>
+    <tr><td style="white-space:nowrap">dS = μS dt + σS dW · GBM</td><td>"geometric Brownian motion"</td><td style="white-space:normal;text-align:left">the price model: drift μS and volatility σS, both proportional to the price, so the percentage step is the same whatever the price. μ is the drift rate (per year), σ the volatility (per √year)</td><td style="white-space:normal;text-align:left">"geometric" = multiplicative: S can never cross zero, and log S is the natural variable. Not "Brownian motion of the price" — W is the driver, S is the exponential of a Brownian motion with drift</td></tr>
+    <tr><td style="white-space:nowrap">solve (an SDE)</td><td>—</td><td style="white-space:normal;text-align:left">write X_T as a formula in W (no stepping). The route: find a function of X whose SDE has no X on the right, sum the steps exactly, invert. log S for GBM</td><td style="white-space:normal;text-align:left">most SDEs cannot be solved; GBM can, which is why 2.9 has a closed form at all. "Solve" never means "simulate"</td></tr>
+    <tr><td style="white-space:nowrap">S_T = S₀e^((μ − ½σ²)T + σ√T·Z)</td><td>"the closed-form sample", "exact sampling", "draw S_T directly"</td><td style="white-space:normal;text-align:left">the solution of GBM with W_T = √T·Z. One standard normal per path gives S_T exactly, with no grid and no error. Decision 1: use it whenever the payoff only looks at S_T</td><td style="white-space:normal;text-align:left">one draw gives S_T only, nothing in between; but the same line holds between any two grid points, S_{i+1} = S_i·e^((μ − ½σ²)dt + σΔWᵢ), so a path-dependent payoff on GBM steps exactly too. Forget the −½σ² and every draw is e^(½σ²T) too high — 8 % at σ = 0.4, T = 1</td></tr>
+    <tr><td style="white-space:nowrap">Euler–Maruyama · S_{i+1} = S_i(1 + μ dt + σ√dt·Zᵢ)</td><td>"Euler step", "Euler"</td><td style="white-space:normal;text-align:left">the SDE read literally, one step at a time, ΔWᵢ = √dt·Zᵢ. n steps, n normals per path. Decision 2: the fallback when the model has no solution (Part 4); GBM itself steps exactly, and is where Euler's cost can be measured</td><td style="white-space:normal;text-align:left">its S_T differs from the exact one on the same normals by ½σ²(Σ(ΔW)² − T) to leading order: 1 % rms at n = 100, shrinking like 1/√n. The error is 2.5's (ΔW)²-vs-dt noise, not a bias — its mean is 0</td></tr>
+    <tr><td style="white-space:nowrap">the stepping error · means ignore it, spreads keep it</td><td>"strong order ½"</td><td style="white-space:normal;text-align:left">the pathwise gap |S^E_T − S^exact_T| shrinks like √dt (measured slope −0.501) and has mean zero. A mean over paths — a price — hardly feels it; a spread over paths — a P&amp;L distribution, a hit-rate — keeps it, because a zero-mean noise adds to a variance</td><td style="white-space:normal;text-align:left">the convergence of E[S_T] is a different, faster rate ("weak order", dt; E[S^E_T] = S₀(1 + μ dt)ⁿ exactly). Not "a hedge follows one path": a hedging simulator follows many and reads their spread, which is a spread</td></tr>
+    <tr><td style="white-space:nowrap">−½σ² · volatility drag</td><td>"the drag", "the Itô correction"</td><td style="white-space:normal;text-align:left">the lemma's ½b²·∂²f/∂x² on f = log S with b = σS: ½σ²S²·(−1/S²). The mean log-return is (μ − ½σ²)T, not μT; the median price is S₀e^((μ − ½σ²)T) while the mean price is S₀e^(μT)</td><td style="white-space:normal;text-align:left">it moves the median, not the mean. With μ = 0 and σ = 0.4 the mean price stays at S₀ and the median falls to 0.92 S₀; 58 % of paths end below the mean. 2.5's E[e^W] = e^(t/2) is the same fact from the mean's side</td></tr>
+    <tr><td style="white-space:nowrap">mean vs median (lognormal)</td><td>—</td><td style="white-space:normal;text-align:left">for S_T = S₀e^(m + sZ): median S₀e^m, mean S₀e^(m + ½s²). The ratio e^(½s²) is the lognormal's mean-over-median; here e^0.08 = 1.083</td><td style="white-space:normal;text-align:left">the mean is held up by the tail — the 99th percentile is 2.3 S₀ for μ = 0 — and the fraction of paths below the mean is Φ(½σ√T) = 0.579, not ½. Nobody "sees" the median: it is the point a single path is as likely to finish above as below. The expected price and the odds for one path are different things</td></tr>
+    <tr><td style="white-space:nowrap">log-return · log(S_T/S₀)</td><td>—</td><td style="white-space:normal;text-align:left">the Gaussian one: mean (μ − ½σ²)T, variance σ²T, skewness and excess kurtosis 0. S_T is lognormal <em>because</em> its log is normal</td><td style="white-space:normal;text-align:left">the simple return S_T/S₀ − 1 is not Gaussian and its mean is e^(μT) − 1. The course's σ is the sd of the log-return per √year, and 2.11's "returns are not lognormal" is a statement about this quantity</td></tr>
+    <tr><td style="white-space:nowrap">√dt in the step ↺</td><td>—</td><td style="white-space:normal;text-align:left">S1's √dt-sized kick, now inside the Euler step: ΔWᵢ = √dt·Zᵢ, so n kicks have total variance σ²T whatever n is</td><td style="white-space:normal;text-align:left">σZ·dt instead of σZ·√dt gives a volatility of σ√dt — too small by √n, 100× at n = 10⁴, and worse the finer the grid. The tell: the drift μ dt becomes the same size as the kick</td></tr>
+    <tr><td style="white-space:nowrap">realised volatility · the three tests</td><td>—</td><td style="white-space:normal;text-align:left">√(n/T) × sd of a path's per-step log-returns — the σ you would measure from the path; 0.400 on every grid for the correct step. With mean S_T = S₀e^(μT) and median S_T = S₀e^((μ − ½σ²)T), the three assertions a GBM simulator must pass (Decision 3)</td><td style="white-space:normal;text-align:left">a per-path number with its own noise (±0.001 at n = 10⁴), so assert to a few percent. The mean test catches a missing −½σ²; the volatility test catches σZ·dt; the mean passes the bug, so it is not enough on its own. 2.10 compares realised with implied σ; 2.11 asks whether it is constant at all</td></tr>
+  </table></div>
+</section>
+
+<!-- ============ 9 · INTERVIEW PLAN ============ -->
+<section>
+  <div class="eyebrow">Next — the draft, in your words</div>
+  <h2><span class="stepno">9</span>The interview plan for drafts/2.6.md</h2>
+  <p>Done 2026-11-01: nine questions answered, seventeen flags ruled, <code>drafts/2.6.md</code> approved. Nine questions, one at a time in the chat, in page order. You answer in paragraphs; I transcribe, re-set any notation the paste loses, and number-check every claim against the JSON with a flag you rule on in one line. The page's shape: hook, the three decisions as the plan, what was done, one section per decision with its table, then why, then "Into 2.7".</p>
+  <ul class="steps">
+    <li><strong>Hook.</strong> What problem the page solves, in your words — a recipe per step is not a price; three decisions turn it into one.</li>
+    <li><strong>What this page shows, and how.</strong> The three decisions as the plan section (the F35 pattern: I can draft it at your request, marked).</li>
+    <li><strong>The experiment — what was done.</strong> §1 in page prose; C5 named as run and not used.</li>
+    <li><strong>Decision 1 — draw S_T directly.</strong> §3: the table; the forgotten −½σ² and its 8 %; mean vs median and the 58 %.</li>
+    <li><strong>Decision 2 — stepping and its cost.</strong> §4: GBM steps exactly; Euler for models without a solution; 1 % at n = 100, 1/√n; means ignore it, spreads keep it; the three-line why.</li>
+    <li><strong>Decision 3 — the three tests.</strong> §5: realised vol = σ; the σZ·dt bug and its signature.</li>
+    <li><strong>Why — solving the SDE.</strong> The bridge's six rungs in your words: no S on the right, add the steps, exponentiate.</li>
+    <li><strong>Why the mean and the median differ.</strong> Rung 6; E[e^(σW_T)] = e^(½σ²T) from 2.5; Φ(½σ√T).</li>
+    <li><strong>Into 2.7.</strong> V(t, S) with a = μS, b = σS in the general form: dV = (∂V/∂t + μS·∂V/∂S + ½σ²S²·∂²V/∂S²) dt + σS·∂V/∂S dW, and the hedge that kills the dW term — previewed, not claimed.</li>
+  </ul>
+  <p class="note">No open flags. Decisions you may overrule: OU off the page (§6); μ = 0.1 for the page's working case, with your μ = 0 case run beside it; S₀ = 100.</p>
+</section>
+</div>
+
+<script>
+(function () {
+  function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  const BASE = { fig1: [1400, 640], fig2: [1400, 640] };
+  function setup(id, canvas, k) {
+    const c = canvas || document.getElementById(id); if (!c) return null;
+    const [W, H] = BASE[id]; k = k || 1;
+    c.width = Math.round(W * k); c.height = Math.round(H * k);
+    const ctx = c.getContext("2d");
+    ctx.setTransform(k, 0, 0, k, 0, 0);
+    return { c, ctx, W, H };
+  }
+  const fontSans = '"IBM Plex Sans", system-ui, sans-serif';
+
+  // ---------- data from 2_6_sdes_and_gbm.json (seed 20261001) ----------
+  // results.first_paths_n100.paths[0]: path 1 at n = 100, S0 = 1
+  const S_EXACT = [1.0,1.043,1.191,1.2781,1.304,1.4225,1.3168,1.35,1.3618,1.4066,1.3182,1.3094,1.3153,1.3651,1.3738,1.4986,1.5555,1.623,1.6261,1.6141,1.6735,1.6778,1.545,1.7526,1.6389,1.5279,1.5168,1.4237,1.4698,1.5096,1.436,1.4542,1.3332,1.2815,1.2657,1.1817,1.2207,1.1553,1.2048,1.2318,1.3275,1.3682,1.4104,1.4437,1.5094,1.5241,1.4898,1.503,1.6099,1.6957,1.729,1.7994,1.6938,1.6253,1.705,1.8016,1.5925,1.5349,1.4618,1.423,1.4472,1.4504,1.4212,1.4841,1.556,1.553,1.5716,1.6159,1.6287,1.7677,1.8349,1.7571,1.7872,1.8918,1.922,1.8473,1.8758,1.7674,1.7091,1.771,1.7252,1.6683,1.6086,1.6274,1.5911,1.6314,1.5876,1.587,1.4754,1.5392,1.5417,1.6427,1.6012,1.6824,1.667,1.5834,1.5272,1.5394,1.6596,1.7631,1.7078];
+  const S_EULER = [1.0,1.0429,1.1821,1.2665,1.2929,1.4064,1.299,1.3324,1.345,1.3896,1.3005,1.2929,1.2997,1.3491,1.3587,1.4779,1.5342,1.6006,1.6049,1.5943,1.6532,1.6588,1.5233,1.7166,1.6029,1.4917,1.482,1.3893,1.4347,1.4742,1.4017,1.4204,1.2982,1.2479,1.2334,1.1496,1.188,1.1235,1.1715,1.1984,1.289,1.329,1.3704,1.4035,1.467,1.4825,1.4499,1.4638,1.5656,1.6482,1.6815,1.75,1.6456,1.5789,1.6558,1.7483,1.5341,1.4788,1.4078,1.371,1.3953,1.3995,1.3721,1.4327,1.5016,1.4998,1.5189,1.5624,1.576,1.7063,1.7713,1.696,1.7261,1.8257,1.8561,1.784,1.8127,1.7063,1.6503,1.7104,1.6669,1.6124,1.5549,1.5742,1.54,1.5797,1.5381,1.5387,1.4277,1.4893,1.4929,1.5889,1.5495,1.6273,1.6137,1.532,1.4778,1.4908,1.604,1.7024,1.6494];
+  const S_BUG = [1.0,1.0052,1.0195,1.0277,1.0308,1.0408,1.0337,1.0373,1.0392,1.0436,1.0379,1.0382,1.0397,1.0446,1.0463,1.0564,1.0613,1.0669,1.0681,1.0684,1.0733,1.0746,1.0668,1.0813,1.0751,1.0686,1.0689,1.0632,1.0676,1.0715,1.0672,1.0696,1.0614,1.0582,1.0579,1.0517,1.0561,1.0514,1.0568,1.0602,1.0691,1.0734,1.0777,1.0813,1.0872,1.0893,1.0879,1.0899,1.0985,1.1053,1.1085,1.114,1.1084,1.1049,1.1112,1.1184,1.1057,1.1028,1.0985,1.0966,1.0995,1.1008,1.0997,1.1055,1.1118,1.1127,1.1151,1.1193,1.1213,1.1316,1.1369,1.1331,1.1361,1.1437,1.1466,1.1432,1.1461,1.1404,1.1377,1.1428,1.1409,1.1382,1.1352,1.1376,1.1362,1.1401,1.1382,1.1392,1.132,1.1379,1.1392,1.1476,1.1458,1.1526,1.1526,1.1478,1.1448,1.1468,1.1566,1.1647,1.1621];
+  // results.exact.S_T.histogram: 80 bins, width 5, from 0 to 400; 297 paths above 400
+  const HIST = [0,0,0,33,195,903,2637,5798,10786,17167,23695,30967,37720,43233,47676,50458,52349,52714,52618,50777,48965,45986,43257,39982,36545,33586,30118,27451,24775,22199,20007,17440,15830,13935,12381,10766,9426,8301,7228,6343,5646,4876,4345,3820,3341,2897,2511,2288,1954,1690,1476,1303,1196,1041,898,788,713,561,545,425,398,361,327,272,240,197,197,155,143,132,111,102,106,89,66,54,54,63,36,39];
+  const MEAN_ST = 110.47, MEDIAN_ST = 102.05;
+
+  function axes(ctx, W, H, padL, padR, top, bottom) {
+    const faint = css("--line-faint");
+    ctx.strokeStyle = faint; ctx.lineWidth = 1;
+    return { x0: padL, x1: W - padR, y0: H - bottom, y1: top };
+  }
+
+  // ---------- Figure 1: path 1 at n = 100 ----------
+  function fig1(canvas, k) {
+    const s = setup("fig1", canvas, k); if (!s) return;
+    const { ctx, W, H } = s;
+    const muted = css("--muted"), line = css("--line"), faint = css("--line-faint");
+    const cWalk = css("--walk"), cMid = css("--theory"), cRed = css("--peek");
+    ctx.clearRect(0, 0, W, H);
+    const padL = 80, padR = 250, top = 30, bottom = 50;
+    const S0 = 100, yLo = 90, yHi = 200, n = 100;
+    const xOf = i => padL + (i / n) * (W - padL - padR);
+    const yOf = v => H - bottom - ((v - yLo) / (yHi - yLo)) * (H - bottom - top);
+    ctx.strokeStyle = faint; ctx.lineWidth = 1; ctx.fillStyle = muted; ctx.font = `20px ${fontSans}`; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    for (let v = 100; v <= 200; v += 20) { const y = yOf(v); ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke(); ctx.fillText(v.toString(), padL - 10, y); }
+    ctx.strokeStyle = line; ctx.lineWidth = 1.2; ctx.setLineDash([7, 6]); ctx.beginPath(); ctx.moveTo(padL, yOf(100)); ctx.lineTo(W - padR, yOf(100)); ctx.stroke(); ctx.setLineDash([]);
+    function series(arr, color, width) {
+      ctx.strokeStyle = color; ctx.lineWidth = width; ctx.beginPath();
+      for (let i = 0; i <= n; i++) { const x = xOf(i), y = yOf(S0 * arr[i]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+      ctx.stroke();
+    }
+    series(S_BUG, cRed, 2.2);
+    series(S_EULER, cMid, 2.4);
+    series(S_EXACT, cWalk, 2.6);
+    ctx.font = `600 18px ${fontSans}`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    const xe = xOf(n) + 10;
+    let ys = [
+      [yOf(S0 * S_EXACT[n]), cWalk, "exact S_T = " + (S0 * S_EXACT[n]).toFixed(1)],
+      [yOf(S0 * S_EULER[n]), cMid, "Euler S_T = " + (S0 * S_EULER[n]).toFixed(1) + " (−3.4 %)"],
+      [yOf(S0 * S_BUG[n]), cRed, "σZ·dt bug: " + (S0 * S_BUG[n]).toFixed(1)],
+    ].sort((a, b) => a[0] - b[0]);
+    for (let i = 1; i < ys.length; i++) if (ys[i][0] - ys[i - 1][0] < 24) ys[i][0] = ys[i - 1][0] + 24;
+    ys.forEach(([y, col, txt]) => { ctx.fillStyle = col; ctx.fillText(txt, xe, y); });
+    ctx.fillStyle = muted; ctx.font = `20px ${fontSans}`; ctx.textAlign = "center"; ctx.textBaseline = "top";
+    [0, 25, 50, 75, 100].forEach(i => ctx.fillText(i === 100 ? "T = 1" : (i / 100).toString(), xOf(i), H - bottom + 10));
+    ctx.font = `600 18px ${fontSans}`; ctx.textAlign = "left"; ctx.textBaseline = "top";
+    ctx.fillText("path 1, n = 100, S₀ = 100, μ = 0.1, σ = 0.4 — three methods on the same 100 normals; this path's Σ(ΔW)² = 1.44", padL + 8, top + 2);
+  }
+
+  // ---------- Figure 2: the distribution at T ----------
+  function fig2(canvas, k) {
+    const s = setup("fig2", canvas, k); if (!s) return;
+    const { ctx, W, H } = s;
+    const muted = css("--muted"), line = css("--line"), faint = css("--line-faint");
+    const cWalk = css("--walk"), cMid = css("--theory");
+    ctx.clearRect(0, 0, W, H);
+    const padL = 80, padR = 40, top = 34, bottom = 50;
+    const xLo = 0, xHi = 320, binW = 5, yMax = 56000;
+    const xOf = v => padL + ((v - xLo) / (xHi - xLo)) * (W - padL - padR);
+    const yOf = c => H - bottom - (c / yMax) * (H - bottom - top);
+    ctx.strokeStyle = faint; ctx.lineWidth = 1; ctx.fillStyle = muted; ctx.font = `20px ${fontSans}`; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    [0, 10000, 20000, 30000, 40000, 50000].forEach(c => { const y = yOf(c); ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke(); ctx.fillText((c / 1000) + "k", padL - 10, y); });
+    ctx.fillStyle = cWalk; ctx.globalAlpha = 0.55;
+    HIST.forEach((c, i) => { const x0 = xOf(i * binW), x1 = xOf((i + 1) * binW); if (x0 >= W - padR) return; ctx.fillRect(x0 + 0.5, yOf(c), Math.max(1, Math.min(x1, W - padR) - x0 - 1), yOf(0) - yOf(c)); });
+    ctx.globalAlpha = 1;
+    function vline(v, color, dash, label, side) {
+      ctx.strokeStyle = color; ctx.lineWidth = 2.2; ctx.setLineDash(dash || []); ctx.beginPath(); ctx.moveTo(xOf(v), yOf(0)); ctx.lineTo(xOf(v), top); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = color; ctx.font = `600 18px ${fontSans}`; ctx.textAlign = side; ctx.textBaseline = "top"; ctx.fillText(label, xOf(v) + (side === "left" ? 8 : -8), top + 2);
+    }
+    vline(100, muted, [7, 6], "S₀ = 100", "right");
+    vline(MEDIAN_ST, cMid, [], "median 102.0", "left");
+    vline(MEAN_ST, cWalk, [], "mean 110.5", "left");
+    ctx.fillStyle = cMid; ctx.font = `600 18px ${fontSans}`; ctx.textAlign = "left"; ctx.textBaseline = "top";
+    ctx.fillText("57.9 % of paths end left of the mean", xOf(MEAN_ST) + 8, top + 28);
+    ctx.fillStyle = muted; ctx.font = `20px ${fontSans}`; ctx.textAlign = "center"; ctx.textBaseline = "top";
+    [0, 50, 100, 150, 200, 250, 300].forEach(v => ctx.fillText(v.toString(), xOf(v), H - bottom + 10));
+    ctx.textAlign = "right"; ctx.fillText("S_T →", W - padR, H - bottom + 10);
+  }
+
+  const FIGS = { fig1, fig2 };
+
+  // ---------- Lightbox: click a figure to enlarge; wheel / pinch to zoom, drag to pan ----------
+  const lb = (function () {
+    const box = document.createElement("div");
+    box.className = "lightbox"; box.hidden = true; box.setAttribute("role", "dialog"); box.setAttribute("aria-label", "Enlarged figure");
+    box.innerHTML = '<div class="bar"><button type="button" data-act="out" aria-label="Zoom out">−</button>' +
+      '<button type="button" data-act="in" aria-label="Zoom in">+</button>' +
+      '<button type="button" data-act="fit">Fit</button><span class="pct">100 %</span>' +
+      '<span class="spacer"></span><span>scroll or pinch to zoom · drag to pan · double-click to fit · Esc to close</span>' +
+      '<button type="button" data-act="close" aria-label="Close">Close</button></div><div class="stage"><canvas></canvas></div>';
+    document.body.appendChild(box);
+    const stage = box.querySelector(".stage"), cv = box.querySelector("canvas"), pct = box.querySelector(".pct");
+    const K = Math.max(2, Math.min(3, window.devicePixelRatio * 2 || 2));
+    let id = null, scale = 1, tx = 0, ty = 0, base = [1, 1];
+    const pointers = new Map(); let lastDist = 0, dragging = false, lx = 0, ly = 0;
+    function apply() { cv.style.transform = `translate(${tx}px, ${ty}px) scale(${scale / K})`; pct.textContent = Math.round(100 * scale / base[0]) + " %"; }
+    function fit() {
+      const [W, H] = BASE[id], r = stage.getBoundingClientRect();
+      const s = Math.min((r.width - 24) / W, (r.height - 24) / H);
+      base = [s, s]; scale = s; tx = (r.width - W * s) / 2; ty = (r.height - H * s) / 2; apply();
+    }
+    function zoomAt(factor, cx, cy) {
+      const ns = Math.min(scale * factor, base[0] * 8), f = ns / scale;
+      if (ns < base[0] * 0.5) return;
+      tx = cx - (cx - tx) * f; ty = cy - (cy - ty) * f; scale = ns; apply();
+    }
+    function redraw() { FIGS[id](cv, K); apply(); }
+    function open(figId) { id = figId; box.hidden = false; document.body.style.overflow = "hidden"; FIGS[id](cv, K); fit(); box.querySelector('[data-act="close"]').focus(); }
+    function close() { box.hidden = true; document.body.style.overflow = ""; id = null; }
+    box.querySelector(".bar").addEventListener("click", e => {
+      const act = e.target.dataset && e.target.dataset.act; if (!act) return;
+      const r = stage.getBoundingClientRect(), cx = r.width / 2, cy = r.height / 2;
+      if (act === "in") zoomAt(1.5, cx, cy); else if (act === "out") zoomAt(1 / 1.5, cx, cy);
+      else if (act === "fit") fit(); else if (act === "close") close();
+    });
+    stage.addEventListener("wheel", e => { e.preventDefault(); const r = stage.getBoundingClientRect(); zoomAt(e.deltaY < 0 ? 1.15 : 1 / 1.15, e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+    stage.addEventListener("dblclick", fit);
+    stage.addEventListener("pointerdown", e => {
+      pointers.set(e.pointerId, [e.clientX, e.clientY]); stage.setPointerCapture(e.pointerId);
+      if (pointers.size === 1) { dragging = true; lx = e.clientX; ly = e.clientY; stage.classList.add("dragging"); }
+      if (pointers.size === 2) { const p = [...pointers.values()]; lastDist = Math.hypot(p[0][0] - p[1][0], p[0][1] - p[1][1]); }
+    });
+    stage.addEventListener("pointermove", e => {
+      if (!pointers.has(e.pointerId)) return;
+      pointers.set(e.pointerId, [e.clientX, e.clientY]);
+      if (pointers.size === 2) {
+        const p = [...pointers.values()], d = Math.hypot(p[0][0] - p[1][0], p[0][1] - p[1][1]);
+        const r = stage.getBoundingClientRect();
+        if (lastDist) zoomAt(d / lastDist, (p[0][0] + p[1][0]) / 2 - r.left, (p[0][1] + p[1][1]) / 2 - r.top);
+        lastDist = d;
+      } else if (dragging) { tx += e.clientX - lx; ty += e.clientY - ly; lx = e.clientX; ly = e.clientY; apply(); }
+    });
+    const up = e => { pointers.delete(e.pointerId); if (pointers.size < 2) lastDist = 0; if (pointers.size === 0) { dragging = false; stage.classList.remove("dragging"); } };
+    stage.addEventListener("pointerup", up); stage.addEventListener("pointercancel", up);
+    document.addEventListener("keydown", e => { if (box.hidden) return; if (e.key === "Escape") close(); if (e.key === "+" || e.key === "=") zoomAt(1.5, stage.clientWidth / 2, stage.clientHeight / 2); if (e.key === "-") zoomAt(1 / 1.5, stage.clientWidth / 2, stage.clientHeight / 2); });
+    window.addEventListener("resize", () => { if (!box.hidden) fit(); });
+    Object.keys(FIGS).forEach(f => { const c = document.getElementById(f); if (c) { c.addEventListener("click", () => open(f)); c.tabIndex = 0; c.addEventListener("keydown", e => { if (e.key === "Enter") open(f); }); } });
+    return { get open() { return !box.hidden; }, redraw };
+  })();
+
+  function draw() { fig1(); fig2(); if (lb.open) lb.redraw(); }
+  draw();
+  if (window.matchMedia) {
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw);
+    new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  }
+})();
+</script>
+
