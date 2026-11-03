@@ -1,0 +1,649 @@
+<title>S7 · Delta hedging and the PDE</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Study-track notes: the S1–S6 identity — one serif column, sans for apparatus, mono for the grid lines. */
+  :root {
+    --ground: #F4F6F9; --card: #FCFCFD; --ink: #1B2330; --muted: #59657A;
+    --line: #DEE3EC; --line-faint: #E9EDF3;
+    --walk: #2E59C7; --walk-soft: rgba(46, 89, 199, 0.13);
+    --theory: #B07818; --theory-soft: rgba(176, 120, 24, 0.12);
+    --smooth: #1E7A46; --smooth-soft: rgba(30, 122, 70, 0.12);
+    --peek: #B4413A; --peek-soft: rgba(180, 65, 58, 0.12);
+    --code-bg: #EEF1F6; --good: #1E7A46; --bad: #B4413A;
+    --shadow: 0 1px 2px rgba(27, 35, 48, 0.05), 0 4px 16px rgba(27, 35, 48, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0F141D; --card: #161C27; --ink: #E6EAF2; --muted: #97A2B5;
+      --line: #29323F; --line-faint: #1F2733;
+      --walk: #5B7FE3; --walk-soft: rgba(91, 127, 227, 0.16);
+      --theory: #B08422; --theory-soft: rgba(176, 132, 34, 0.16);
+      --smooth: #4CAF79; --smooth-soft: rgba(76, 175, 121, 0.16);
+      --peek: #D9736B; --peek-soft: rgba(217, 115, 107, 0.16);
+      --code-bg: #1B2230; --good: #4CAF79; --bad: #D9736B;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0F141D; --card: #161C27; --ink: #E6EAF2; --muted: #97A2B5;
+    --line: #29323F; --line-faint: #1F2733;
+    --walk: #5B7FE3; --walk-soft: rgba(91, 127, 227, 0.16);
+    --theory: #B08422; --theory-soft: rgba(176, 132, 34, 0.16);
+    --smooth: #4CAF79; --smooth-soft: rgba(76, 175, 121, 0.16);
+    --peek: #D9736B; --peek-soft: rgba(217, 115, 107, 0.16);
+    --code-bg: #1B2230; --good: #4CAF79; --bad: #D9736B;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ground); color: var(--ink);
+    font-family: "Source Serif 4", Georgia, "Times New Roman", serif; font-size: 17px; line-height: 1.68;
+    -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 760px; margin: 0 auto; padding-block: 40px 80px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .eyebrow { font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 11.5px; font-weight: 600;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  header.top { padding: 28px 0 8px; border-bottom: 1px solid var(--line); margin-bottom: 36px; }
+  header.top .eyebrow .sess { color: var(--walk); }
+  h1 { font-family: "Source Serif 4", Georgia, serif; font-size: clamp(30px, 6vw, 42px); font-weight: 700;
+    line-height: 1.12; letter-spacing: -0.01em; margin: 10px 0 12px; text-wrap: balance; }
+  .standfirst { color: var(--muted); font-size: 16px; margin: 0 0 18px; max-width: 62ch; }
+  .standfirst strong { color: var(--ink); font-weight: 600; }
+  section { margin: 44px 0; }
+  h2 { font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 21px; font-weight: 600;
+    letter-spacing: -0.005em; margin: 6px 0 14px; text-wrap: balance; }
+  h2 .stepno { color: var(--walk); font-variant-numeric: tabular-nums; margin-right: 6px; }
+  h3 { font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 15.5px; font-weight: 600; margin: 22px 0 8px; }
+  p { margin: 0 0 14px; max-width: 66ch; }
+  .note { color: var(--muted); font-size: 15px; max-width: 66ch; }
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, Consolas, monospace; font-size: 0.86em; }
+  code { background: var(--code-bg); border-radius: 4px; padding: 0.1em 0.35em; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+  .predictions { display: flex; flex-direction: column; gap: 12px; }
+  .prediction { display: flex; gap: 14px; align-items: baseline; }
+  .prediction .tag { flex: none; font-family: "IBM Plex Sans", sans-serif; font-size: 11px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--walk); border: 1px solid var(--walk);
+    border-radius: 99px; padding: 2px 10px; white-space: nowrap; }
+  .prediction q { font-style: italic; }
+  .prediction .asked { font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 14.5px; color: var(--muted); }
+  .prediction > div { min-width: 0; }
+  .verdict { font-family: "IBM Plex Sans", sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+  .verdict.ok { color: var(--good); } .verdict.no { color: var(--bad); } .verdict.half { color: var(--theory); }
+  ul.steps { margin: 6px 0 16px; padding-left: 22px; max-width: 66ch; }
+  ul.steps li { margin: 0 0 6px; }
+  figure { margin: 26px 0; }
+  .figbox { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; box-shadow: var(--shadow); }
+  canvas { display: block; width: 100%; height: auto; max-width: 100%; }
+  .figbox canvas { cursor: zoom-in; }
+  .lightbox { position: fixed; inset: 0; z-index: 50; background: var(--ground); display: flex; flex-direction: column; }
+  .lightbox[hidden] { display: none; }
+  .lightbox .bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line);
+    font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 13px; color: var(--muted); flex: none; }
+  .lightbox .bar button { font: inherit; font-weight: 600; color: var(--ink); background: var(--card); border: 1px solid var(--line);
+    border-radius: 6px; padding: 4px 12px; cursor: pointer; min-width: 36px; }
+  .lightbox .bar button:focus-visible { outline: 2px solid var(--walk); outline-offset: 2px; }
+  .lightbox .bar .spacer { flex: 1; }
+  .lightbox .stage { flex: 1; overflow: hidden; position: relative; touch-action: none; cursor: grab; }
+  .lightbox .stage.dragging { cursor: grabbing; }
+  .lightbox .stage canvas { position: absolute; left: 0; top: 0; width: auto; height: auto; transform-origin: 0 0; }
+  figcaption { font-size: 14px; color: var(--muted); margin-top: 10px; max-width: 76ch; }
+  .figbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; font-family: "IBM Plex Sans", sans-serif; font-size: 12.5px; color: var(--muted); }
+  .swatch { width: 14px; height: 3px; border-radius: 2px; }
+  .swatch.dash { background: repeating-linear-gradient(90deg, currentColor 0 4px, transparent 4px 7px); height: 2px; }
+  .tablewrap { overflow-x: auto; margin: 14px 0; }
+  table { border-collapse: collapse; width: 100%; font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 14px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--line-faint); text-align: right; white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; }
+  td.hi { color: var(--walk); font-weight: 600; }
+  td.warn { color: var(--theory); font-weight: 600; }
+  td.pk { color: var(--peek); font-weight: 600; }
+  td.sm { color: var(--smooth); font-weight: 600; }
+  td.dim { color: var(--muted); }
+  .aside { border-left: 3px solid var(--theory); background: var(--theory-soft); padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 18px 0; }
+  .aside .eyebrow { color: var(--theory); margin-bottom: 4px; }
+  .aside p { font-size: 15.5px; }
+  .aside.flag { border-left-color: var(--peek); background: var(--peek-soft); }
+  .aside.flag .eyebrow { color: var(--peek); }
+  .identity { margin: 16px 0; padding: 16px 20px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); }
+  .identity .line { font-family: "Source Serif 4", Georgia, serif; font-size: 19px; font-weight: 600; margin: 4px 0; overflow-x: auto; white-space: nowrap; }
+  .identity .line .l { color: var(--walk); } .identity .line .m { color: var(--theory); } .identity .line .r { color: var(--peek); } .identity .line .s { color: var(--smooth); }
+  .identity .why { font-size: 14.5px; color: var(--muted); font-family: "IBM Plex Sans", system-ui, sans-serif; margin: 2px 0 10px; }
+  .q { margin: 18px 0; padding: 16px 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+  .q .qno { font-family: "IBM Plex Sans", sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: var(--walk); text-transform: uppercase; }
+  .q p.stem { font-weight: 600; margin: 6px 0 10px; }
+  .q ul { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .q li { padding-left: 26px; position: relative; font-size: 15.5px; }
+  .q li::before { position: absolute; left: 0; top: 0; font-family: "IBM Plex Sans", sans-serif; font-weight: 600; }
+  .q li.ok::before { content: "✓"; color: var(--good); }
+  .q li.no::before { content: "✗"; color: var(--bad); }
+  .q li em.mis { color: var(--muted); font-style: italic; }
+  .map { display: grid; grid-template-columns: auto 1fr; gap: 0; margin: 0 0 8px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; box-shadow: var(--shadow);
+    font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 14.5px; line-height: 1.5; }
+  .map > div { padding: 9px 14px; border-bottom: 1px solid var(--line-faint); min-width: 0; }
+  .map > div:nth-last-child(-n+2) { border-bottom: none; }
+  .map .no { color: var(--walk); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .map .no.p { color: var(--muted); }
+  .map .what strong { font-weight: 600; }
+  .map .what .why { color: var(--muted); }
+  .ladder { counter-reset: rung; margin: 12px 0 18px; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .ladder li { position: relative; padding: 10px 14px 10px 54px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; font-size: 15.5px; }
+  .ladder li::before { counter-increment: rung; content: counter(rung); position: absolute; left: 14px; top: 9px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--walk-soft); color: var(--walk); font-family: "IBM Plex Sans", sans-serif; font-weight: 600; font-size: 13px; display: flex; align-items: center; justify-content: center; }
+  .ladder li .src { font-family: "IBM Plex Sans", sans-serif; font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 2px; }
+  .ladder li .eq { font-family: "Source Serif 4", Georgia, serif; font-weight: 600; font-size: 17px; display: block; overflow-x: auto; white-space: nowrap; margin: 2px 0 4px; }
+  .ladder li .new { color: var(--peek); }
+  a { color: var(--walk); text-decoration: none; border-bottom: 1px solid var(--walk-soft); }
+  a:hover { border-bottom-color: var(--walk); }
+  .map .no a, .ladder .src a { border-bottom: none; }
+  :target { scroll-margin-top: 16px; }
+  li:target { outline: 2px solid var(--walk); outline-offset: 2px; }
+  :focus-visible { outline: 2px solid var(--walk); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Touchstone · study track · <span class="sess">Session S7</span> — teaching notes · v8</div>
+  <h1>Delta hedging and the Black–Scholes PDE</h1>
+  <p class="standfirst">Working material for <strong>page 2.7</strong>, which you write in your own words (I2 — none of this is page prose). The experiment has run on your workstation; every number below is in <code>2_7_delta_hedging.json</code> (seed 20261101, S₀ = K = 100, r = 0.05, σ = 0.4, T = 1, 4,000 paths hedged at N = 1 … 4096 rebalances — N = 1 the static hedge — 204 checks, all pass). Setup as you ruled it: the call's price and delta come from the closed form as a black box (<strong>the formula 2.9 derives</strong>); the forward is hedged the same way as the control. Cut from v1 around the three decisions a hedger makes: how often to rebalance, what to do about the drift, which volatility to hedge at. v2: the derivation moved below the measurements (theory after numbers), per the handover. v3: every rung and section mention is a link. v7 (2026-11-03): N = 1 and 2 added to the grid after your "why isn't N = 4 half the unhedged spread" — the static hedge is on the record, and it is not drift-blind.</p>
+</header>
+
+<!-- ============ MAP ============ -->
+<section style="margin-top:0">
+  <div class="eyebrow">The notes in one card</div>
+  <h2>What each section shows, and why it is there</h2>
+  <div class="map">
+    <div class="no p"><a href="#predictions">P</a></div><div class="what"><strong>Your five predictions, verbatim, scored.</strong> <span class="why">— P1 and P4 you had; P2 (the hedged mean follows the drift), P3 (zero, ∝ implied vol) and P5 (dΠ = 0) are the page's target misconceptions.</span></div>
+    <div class="no"><a href="#s1">§1</a></div><div class="what"><strong>What ran: five claims, 204 checks, 68 s, and where every number lives in the JSON.</strong> <span class="why">— I1: nothing below is claimed that the file does not show.</span></div>
+    <div class="no"><a href="#s2">§2</a></div><div class="what"><strong>The three decisions a hedger makes — and that is the whole page.</strong> <span class="why">— the "so what": how often to rebalance; what to do about μ; which σ to hedge at.</span></div>
+    <div class="no"><a href="#s3">§3</a></div><div class="what"><strong>Decision 1 — rebalance count: a static hedge (N = 1) already takes the spread from 29.6 to 11.8, the linear exposure removed once; from there the P&amp;L spread falls like 1/√N — 4× the rebalances halves it — to 0.22 at N = 4096, while the unhedged spread never moves. The forward's is zero at every N.</strong> <span class="why">— P1 and P4; the index's check; the course's thesis in one row.</span></div>
+    <div class="no"><a href="#s4">§4</a></div><div class="what"><strong>Decision 2 — the drift: do nothing — once you rebalance. μ = −0.2, 0, +0.3 leave the hedged book alone from 64 rebalances on, and move the unhedged mean from −11.7 to +22.1; the static hedge at N = 1 is not drift-blind (sd 17.6 at μ = 0.3 against 11.8 at μ = 0).</strong> <span class="why">— P2 corrected; the trace a coarse hedge keeps, measured.</span></div>
+    <div class="no"><a href="#s5">§5</a></div><div class="what"><strong>Decision 3 — which vol: realised 0.5 hedged at 0.4 earns +3.74 on an 18.02 option, and the number is (σ²_r − σ²_i) × Σ e^(−rt)·½ΓS²dt to 3 s.e.</strong> <span class="why">— P3 corrected; 2.10's line, measured not assumed; the spread this P&amp;L keeps however often you hedge.</span></div>
+    <div class="no p"><a href="#bridge">→</a></div><div class="what"><strong>Then the why — the bridge from 2.6's "Into 2.7" to the PDE in six rungs, and a seventh for what the hedger actually earns.</strong> <span class="why">— theory after the numbers; the only new moves are "hold Δ fixed over the step" and "riskless must earn r".</span></div>
+    <div class="no"><a href="#s6">§6</a></div><div class="what"><strong>The PDE on the numbers: residual 10⁻¹⁵ on the closed form, finite differences converge at h²; the hedge's P&amp;L is the lemma's remainder, which is 1/N where V is smooth and shallower near the kink.</strong> <span class="why">— P5; C5; ties to 3.3.</span></div>
+    <div class="no"><a href="#s7">§7</a></div><div class="what"><strong>Five draft check questions, one per decision plus the PDE from both sides.</strong> <span class="why">— for your approval (I5).</span></div>
+    <div class="no"><a href="#s8">§8</a></div><div class="what"><strong>Thirteen ledger rows born on this page.</strong> <span class="why">— for your approval, then into <code>drafts/notation.md</code>.</span></div>
+    <div class="no"><a href="#s9">§9</a></div><div class="what"><strong>The interview plan: nine questions for <code>drafts/2.7.md</code>, in page order.</strong> <span class="why">— so you can see the shape before I ask the first one.</span></div>
+  </div>
+</section>
+
+<!-- ============ 0 · PREDICTIONS ============ -->
+<section id="predictions">
+  <div class="eyebrow">On the record</div>
+  <h2>Your predictions, before any code ran</h2>
+  <p class="note" style="margin-bottom:12px"><strong>Setup as posed:</strong> you hold one European call on a stock that follows 2.6's Geometric Brownian motion (GBM), dS = μS dt + σS dW, and you short Δ = ∂V/∂S shares against it, resetting the share position N times over the option's life; the cash difference sits in an account at the riskless rate r. V(t, S) is the option's value, taken from the closed form as a black box. "Realised vol" is the σ the stock actually moves with; "implied vol" is the σ the hedger prices and hedges at. The forward, hedged the same way with Δ = 1, is the control (your setup ruling: the call's V and Δ from the formula 2.9 derives). Gut answers, not derivations.</p>
+  <div class="card predictions">
+    <div class="prediction"><span class="tag">P1</span><div><span class="asked">Hold one call, short Δ = ∂V/∂S shares, rebalance N times, realised vol = implied vol. Is the final P&amp;L exactly zero, zero on average with a spread, or biased? If a spread, how does it shrink with N — 1/N, 1/√N, not at all?</span><br>You: <q>0 on average with a spread which shrinks like 1/√N</q> &nbsp;<span class="verdict ok">right, both</span> — §3: mean 0 within s.e. from N = 64, sd 6.50 → 0.22 over N = 4 → 4096, slope −0.49.</div></div>
+    <div class="prediction"><span class="tag">P2</span><div><span class="asked">Same hedge, but the stock drifts up strongly (μ = 0.3) instead of μ = 0. Does the hedged P&amp;L's mean change? Does the unhedged option's P&amp;L mean change?</span><br>You: <q>yes and yes</q> &nbsp;<span class="verdict no">hedged: no</span> — within s.e. from N = 64 on (at N = 4 a trace of +0.7 on a spread of 7, gone by N = 64); <span class="verdict ok">unhedged: yes</span> — the mean moves from −3.1 to +22.1 — §4. μ vanishes from the hedged book, not from the stock.</div></div>
+    <div class="prediction"><span class="tag">P3</span><div><span class="asked">Realised vol 0.5 against an implied 0.4, hedged at the implied delta. Is the hedger's P&amp;L positive, negative or zero on average? What quantity is it proportional to?</span><br>You: <q>zero, proportional to implied vol</q> &nbsp;<span class="verdict no">positive: +3.74 ± 0.03 on an 18.02 option</span>; <span class="verdict no">∝ (σ²_realised − σ²_implied) × Σ ½ΓS² dt, not the implied vol</span> — §5. The hedger is paid for the gamma the stock delivers above what the price assumed.</div></div>
+    <div class="prediction"><span class="tag">P4</span><div><span class="asked">The forward (linear payoff) hedged the same way: what is its P&amp;L spread, and does it depend on N?</span><br>You: <q>spread 0, does not depend on N</q> &nbsp;<span class="verdict ok">right, both</span> — §3: |P&amp;L| ≤ 4 × 10⁻¹¹ on every path at every N, for every μ and σ. Δ = 1 is exact for a linear payoff.</div></div>
+    <div class="prediction"><span class="tag">P5</span><div><span class="asked">In dΠ = dV − Δ dS, which term cancels when Δ = ∂V/∂S, and what is left — write it, drift first.</span><br>You: <q>dS cancels, leaving dV − dV = 0</q> &nbsp;<span class="verdict half">the ∂V/∂S·dS term cancels — right, and the dW and μ go with it</span>; <span class="verdict no">what is left is not 0</span>: (∂V/∂t + ½σ²S²·∂²V/∂S²) dt, and the PDE is the statement that this equals r(V − ΔS) dt — bridge <a href="#rung-5">rung 5</a>, §6. If dΠ were 0 identically, P1's spread would be zero at N = 1.</div></div>
+  </div>
+  <p class="note" style="margin-top:14px">P1 and P4 are the page's mechanics and you had both. P2, P3 and P5 are the three things the page exists to show, and they are one fact seen three ways: the hedge removes the dW term and μ with it (P2), what remains is the gamma term and it is not zero (P5), and when the stock's σ is not the price's σ that remainder is what the hedger earns (P3). P5's "dV − dV" and P1's "spread" contradict each other, which is the fastest way to see why dΠ ≠ 0.</p>
+</section>
+
+<!-- ============ 1 · WHAT RAN ============ -->
+<section id="s1">
+  <div class="eyebrow">Numbers first</div>
+  <h2><span class="stepno">1</span>The experiment on your disk</h2>
+  <p><code>experiments/2_7_delta_hedging.py</code> wrote <code>2_7_delta_hedging.json</code> in 68 s on your workstation (numpy 2.5.2, via <code>uv run --frozen</code>); <code>--quick</code> runs in about 7 s. The container run (numpy 2.5.3) agrees to every printed digit; the largest difference among non-rounding values is 3 parts in 10¹⁰. The stock is stepped <em>exactly</em> — S_{i+1} = S_i·e^((μ − ½σ²)dt + σΔWᵢ), 2.6's closed-form step, never Euler — and the same 4,000 paths, drawn once at 4,096 steps, are hedged at N = 1, 2, 4, 16, 64, 256, 1024, 4096 by reading every 4096th, 2048th, 1024th, … point (2.6's nested grids): the same Brownian path, hedged more or less often. N = 1 is the static hedge — Δ₀ shares held to expiry — and N = 2 the once-reset one; the 1/√N law and every slope are fitted over the rebalanced hedges, N ≥ 4. Five claims, 204 checks, all measured:</p>
+  <ul class="steps">
+    <li><strong>C1</strong> — realised = implied, μ = 0: the hedged call's P&amp;L at every N (mean, sd, histograms), the unhedged call's P&amp;L against the closed form under the real-world drift, the forward on the same paths (<a href="#s3">§3</a>). <code>results.scenarios.base.per_N[*].call.hedged_pnl_T</code>, <code>.unhedged_pnl_T</code>, <code>.unhedged_closed_form</code>, <code>…forward.pnl_T_max_abs</code>.</li>
+    <li><strong>C2</strong> — the drift test: μ = −0.2 and +0.3 on fresh paths, same N grid, hedged and unhedged against the μ = 0 run (<a href="#s4">§4</a>). <code>results.scenarios.{drift_down, drift_up}</code>.</li>
+    <li><strong>C3</strong> — realised ≠ implied: the stock stepped at σ = 0.3 and at 0.5, the hedge priced and rebalanced at 0.4; the mean P&amp;L against (σ²_r − σ²_i) × E[Σ e^(−rt)·½ΓS²dt] on the same paths, and path by path against the gamma P&amp;L Σ e^(−rt)·½ΓS²((δS/S)² − σ²_i dt) (<a href="#s5">§5</a>). <code>results.scenarios.{vol_low, vol_high}.per_N[*].call.{hedged_pnl_discounted, mean_predicted_by_vol_gap, gamma_pnl_residual}</code>.</li>
+    <li><strong>C4</strong> — the forward, V = S − Ke^(−rτ), Δ = 1, hedged on every path at every N in every scenario (<a href="#s3">§3</a>). <code>…per_N[*].forward</code>.</li>
+    <li><strong>C5</strong> — the PDE: the closed form's Θ, Δ, Γ substituted at every (t, S) the hedges visited and on a (t, S) grid; the Greeks taken by finite differences from V alone, residual against step size; the discrete hedge's P&amp;L as an exact bookkeeping sum, and that sum with dV replaced by Itô's lemma, residual against N, split by half-life (<a href="#s6">§6</a>). <code>results.pde</code>, <code>…call.{pde_residual_max_abs_at_visited_points, bookkeeping_identity_max_abs, ito_residual, ito_residual_first_half, ito_residual_second_half}</code>, <code>…slopes</code>.</li>
+  </ul>
+  <p class="note">Notation for everything below. V(t, S) is the call's value; Δ = ∂V/∂S, Γ = ∂²V/∂S², Θ = ∂V/∂t (named here because the P&amp;L needs them; 2.10 does the rest of the Greeks); Π = V − ΔS is the hedged portfolio; K = 100 the strike, τ = T − t the time to expiry, r = 0.05 the riskless rate. The formula's derivation is 2.9's; on this page it is only a candidate function, and the check that it satisfies the PDE at every point the hedge visits (<a href="#s6">§6</a>) is what entitles the hedge to use it — the PDE with its payoff condition has one solution, so a function that passes the check is the price whatever 2.9 later says about how to find it. The hedge is self-financing: buy the call at V₀ = 18.02, short Δ₀ = 0.63 shares, the balance in cash at r; at each of the N grid times the cash accrues, the share position is reset to the new Δ and the difference paid from or into cash; at T the call pays off, the shares are bought back, and what is left is the P&amp;L, quoted at T unless marked "discounted". Every drift-plus-noise line is written drift first. "s.e." is the standard error of the quantity beside it; 4,000 paths give a mean to ±sd/63 and an sd to ±1.1 %.</p>
+</section>
+
+<!-- ============ 2 · THE THREE DECISIONS ============ -->
+<section id="s2">
+  <div class="eyebrow">The so what</div>
+  <h2><span class="stepno">2</span>Three decisions a hedger makes with this page</h2>
+  <p>A desk that sells an option does not want its P&amp;L to depend on where the stock goes; it holds shares against the option so that it does not. The PDE is the statement that this can be done perfectly in the limit; the simulator is what tells a developer how close a real hedge gets and what the gaps cost. Three decisions, each with a wrong answer that produces a plausible-looking number.</p>
+  <p class="note"><strong>"Rung" below means a step of the derivation</strong>, laid out as a seven-rung ladder in <a href="#bridge">the bridge</a> after <a href="#s5">§5</a> (theory after numbers). In one line each: <a href="#rung-1">1</a> 2.6's dV line; <a href="#rung-2">2</a> the portfolio Π = V − ΔS, Δ held fixed over a step; <a href="#rung-3">3</a> substitute dS and collect; <a href="#rung-4">4</a> choose Δ = ∂V/∂S, which removes dW and μ together; <a href="#rung-5">5</a> riskless must earn r; <a href="#rung-6">6</a> the PDE; <a href="#rung-7">7</a> what a discrete hedge is left with per step, ½ΓS²((δS/S)² − σ²dt). Every "rung n" in the notes is a link to it.</p>
+  <div class="identity">
+    <div class="line"><span class="l">1 · How often do you rebalance?</span></div>
+    <div class="why">Every rebalance costs something; what does it buy? One static hedge takes the unhedged spread of 29.6 to 11.8 — the linear exposure, removed once. From there the P&amp;L spread falls like 1/√N: 4× the rebalances halves it, 6.50 at N = 4, 0.22 at N = 4096 on an 18.02 option. The wrong answers are "hedging makes the P&amp;L zero" and "the spread is 1/N". §3.</div>
+    <div class="line"><span class="m">2 · What do you do about the drift?</span></div>
+    <div class="why">Nothing — once you rebalance. μ cancels with the dW term, so a hedger does not need a view on it and does not get paid for one: μ = −0.2, 0, +0.3 give the same hedged mean and spread within s.e. from 64 rebalances on, while the unhedged mean swings from −11.7 to +22.1. The wrong answer is "a short share position bleeds when the stock rallies". §4.</div>
+    <div class="line"><span class="r">3 · Which volatility do you hedge at — and what happens if it is wrong?</span></div>
+    <div class="why">The price and the delta are built from one σ; the stock moves with another. Hedged at 0.4 while the stock moves at 0.5, the hedger earns +3.74 on average, at 0.3 loses 3.76, and the number is (σ²_r − σ²_i) times the gamma the path delivered. That P&amp;L keeps a spread of 1.3–1.7 however often you hedge, because the gamma integral is path-dependent. The wrong answers are "zero — the hedge removes all risk" and "proportional to the vol itself". §5.</div>
+  </div>
+  <p>The maths the page needs is six rungs long (the bridge, after <a href="#s5">§5</a>) and 2.5 did five of them; what is new is "hold Δ fixed over the step" and "riskless earns r". What is new in the numbers is <a href="#rung-7">rung 7</a>: the hedger's P&amp;L is 2.5's (dW)² − dt noise with a price on it, and the three decisions are three readings of that one line — its spread (decision 1), the terms it does not contain (decision 2), and its mean (decision 3).</p>
+</section>
+
+<!-- ============ 3 · DECISION 1 ============ -->
+<section id="s3">
+  <div class="eyebrow">Decision 1 — C1 and C4, 4,000 paths, six rebalance counts</div>
+  <h2><span class="stepno">3</span>Rebalance count: the spread falls like 1/√N, and the forward's is zero</h2>
+  <p><strong>What this decides.</strong> How finely a hedge is run, and what to expect from it: not a zero P&amp;L but a distribution whose centre is zero and whose width you buy down with rebalances, slowly. The table is the same 4,000 Brownian paths hedged at six grids; the unhedged column is the same paths with no hedge at all (buy the call at V₀, fund it at r, hold to expiry).</p>
+  <div class="tablewrap"><table>
+    <tr><th>N rebalances</th><th>hedged P&amp;L: sd</th><th>sd × √N</th><th>hedged mean ± s.e.</th><th>unhedged P&amp;L: sd</th><th>forward: max |P&amp;L|</th></tr>
+    <tr><td>1 (static)</td><td class="warn">11.8</td><td class="dim">11.8</td><td class="dim">+0.30 ± 0.19</td><td class="dim">29.6</td><td class="sm">3 × 10⁻¹⁴</td></tr>
+    <tr><td>2</td><td class="warn">8.86</td><td class="dim">12.5</td><td class="dim">+0.25 ± 0.14</td><td class="dim">29.6</td><td class="sm">3 × 10⁻¹⁴</td></tr>
+    <tr><td>4</td><td class="hi">6.50</td><td class="dim">13.0</td><td class="warn">+0.19 ± 0.10</td><td class="dim">29.6</td><td class="sm">3 × 10⁻¹⁴</td></tr>
+    <tr><td>16</td><td class="hi">3.41</td><td class="dim">13.6</td><td class="warn">+0.05 ± 0.05</td><td class="dim">29.6</td><td class="sm">2 × 10⁻¹³</td></tr>
+    <tr><td>64</td><td class="hi">1.72</td><td class="dim">13.8</td><td class="dim">+0.00 ± 0.03</td><td class="dim">29.6</td><td class="sm">3 × 10⁻¹³</td></tr>
+    <tr><td>256</td><td class="hi">0.874</td><td class="dim">14.0</td><td class="dim">−0.01 ± 0.01</td><td class="dim">29.6</td><td class="sm">2 × 10⁻¹²</td></tr>
+    <tr><td>1,024</td><td class="hi">0.440</td><td class="dim">14.1</td><td class="dim">−0.002 ± 0.007</td><td class="dim">29.6</td><td class="sm">7 × 10⁻¹²</td></tr>
+    <tr><td>4,096</td><td class="hi">0.223</td><td class="dim">14.2</td><td class="dim">−0.002 ± 0.004</td><td class="dim">29.6</td><td class="sm">4 × 10⁻¹¹</td></tr>
+  </table></div>
+  <p class="note"><code>results.scenarios.base.per_N[*].call.{hedged_pnl_T, sd_times_sqrtN, unhedged_pnl_T}</code>, <code>…forward.pnl_T_max_abs</code>. Slope of the hedged sd against N, fitted over N ≥ 4: −0.488 (<code>…base.slopes.hedged_sd</code>, <code>…slopes_fitted_over_N</code>); of the unhedged sd: 0.000. Unhedged mean −3.11 ± 0.47 against the closed form −3.10, sd 29.6 against 29.8; 2,394 of the 4,000 unhedged paths (59.9 %) lose the whole premium, −18.95 = −V₀e^(rT).</p>
+  <p><strong>The unhedged number is not a point on the curve.</strong> From no hedge to one static hedge — short Δ₀ = 0.63 shares at inception and never touch them — the spread goes 29.6 → 11.8. That step removes the option's <em>linear</em> exposure, the part of its P&amp;L that moves one-for-one with the stock, and it is removed once. Rebalancing works on what is left, the curvature, and that is the part the 1/√N law describes: 11.8, 8.9, 6.5, 3.4, 1.7, 0.87, 0.44, 0.22. "Unhedged" would be N = 0, where 1/√N is infinite — the law does not reach it.</p>
+  <p><strong>The number.</strong> Each 4× more rebalances halves the spread: 6.50, 3.41, 1.72, 0.87, 0.44, 0.22. That is 1/√N, the index's check and your P1. The product sd × √N is nearly constant at 13–14 (it creeps up by 9 % across the grid, which the s.e. of ±1.1 % resolves; the constant is measured, not claimed). Against it the unhedged option's P&amp;L has sd 29.6 at every N — it cannot depend on N, since nothing is done along the path — so at 4,096 rebalances the hedge has removed 99.2 % of the spread and at 4 it has removed 78 %.</p>
+  <p><strong>Zero on average — from 64 rebalances on.</strong> The hedged mean is within s.e. of zero at N ≥ 64. Below that it is small but positive (+0.30 ± 0.19 at N = 1 down to +0.05 ± 0.05 at N = 16): a hedge reset a few times a year is coarse enough that the dt-sized terms <a href="#rung-7">rung 7</a> drops are visible. <a href="#s4">§4</a> shows the same trace grow with μ. The page's claim is the one the checks assert: |mean| under 17 % of the spread at every N, and zero within s.e. once N ≥ 64.</p>
+  <p><strong>The forward, P4.</strong> On the same paths, the forward V = S − Ke^(−rτ) hedged with Δ = 1 has |P&amp;L| ≤ 4 × 10⁻¹¹ on every path at every N — rounding — and the same in the drift and vol scenarios. Its Γ is zero, so <a href="#rung-7">rung 7</a> is identically zero and no rebalancing was ever needed: a linear payoff is hedged once, at inception, exactly. This is the sentence the course is built on, in one table column.</p>
+  <figure>
+    <div class="figbox">
+      <canvas id="fig1" width="1400" height="640" aria-label="Log-log chart of hedged P and L standard deviation against rebalance count for three scenarios, falling with slope one half, against the flat unhedged standard deviation"></canvas>
+      <div class="figbar">
+        <span class="chip"><span class="swatch" style="background:var(--walk)"></span>hedged, μ = 0, σ_r = σ_i = 0.4</span>
+        <span class="chip"><span class="swatch" style="background:var(--theory)"></span>hedged, μ = +0.3</span>
+        <span class="chip"><span class="swatch" style="background:var(--peek)"></span>hedged, σ_r = 0.5 (implied 0.4)</span>
+        <span class="chip"><span class="swatch dash" style="color:var(--muted)"></span>unhedged, 29.6 · and the 1/√N reference (fitted over N ≥ 4)</span>
+      </div>
+    </div>
+    <figcaption>Click to enlarge. sd of the P&amp;L at T against N, both axes logarithmic; N = 1 is the static hedge. The μ = 0 and μ = 0.3 lines start 50 % apart at N = 1 and lie on each other from N = 64 (<a href="#s4">§4</a>). The σ_r = 0.5 line leaves the 1/√N reference and flattens at 1.7 (<a href="#s5">§5</a>): that spread is the path-dependence of the gamma integral, not the hedging error, and rebalancing cannot remove it.</figcaption>
+  </figure>
+  <figure>
+    <div class="figbox">
+      <canvas id="fig2" width="1400" height="640" aria-label="Histograms of hedged P and L at 4, 256 and 4096 rebalances, narrowing around zero, beside the unhedged P and L histogram with its spike at minus nineteen"></canvas>
+      <div class="figbar">
+        <span class="chip"><span class="swatch" style="background:var(--walk);opacity:.35"></span>hedged, N = 4</span>
+        <span class="chip"><span class="swatch" style="background:var(--walk);opacity:.6"></span>N = 256</span>
+        <span class="chip"><span class="swatch" style="background:var(--walk)"></span>N = 4096</span>
+        <span class="chip"><span class="swatch" style="background:var(--peek);opacity:.6"></span>unhedged (right panel)</span>
+      </div>
+    </div>
+    <figcaption>Click to enlarge. Left: the hedged P&amp;L across 4,000 paths at three rebalance counts, bins of 0.5 (<code>…base.histograms.hedged_N{4,256,4096}</code>). Right: the same paths unhedged, bins of 2 (<code>…histograms.unhedged</code>): 2,394 paths at −18.95, the premium lost, and a tail to +120. Same stock, same paths; the difference is Δ shares.</figcaption>
+  </figure>
+  <figure>
+    <div class="figbox">
+      <canvas id="fig3" width="1400" height="640" aria-label="Path one at 256 rebalances: the stock price from 100 to 75 on the left axis and the running hedged P and L between minus one and plus two on the right axis"></canvas>
+      <div class="figbar">
+        <span class="chip"><span class="swatch" style="background:var(--walk)"></span>S(t), path 1, left axis</span>
+        <span class="chip"><span class="swatch" style="background:var(--theory)"></span>running hedged P&amp;L, right axis</span>
+        <span class="chip"><span class="swatch dash" style="color:var(--muted)"></span>K = 100 · P&amp;L = 0</span>
+      </div>
+    </div>
+    <figcaption>Click to enlarge. <code>…base.first_paths</code>: path 1 at N = 256. The stock falls from 100 to 75.11 and the call expires worthless; the hedged book finishes at +1.38, having never been outside [−0.1, +1.7]. The first five paths finish at +1.38, +0.14, +1.07, −0.46, −0.74 — the N = 256 spread of 0.87 seen path by path.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 4 · DECISION 2 ============ -->
+<section id="s4">
+  <div class="eyebrow">Decision 2 — C2, three drifts, the same grids</div>
+  <h2><span class="stepno">4</span>The drift: do nothing, because it is not there</h2>
+  <p><strong>What this decides.</strong> Whether a hedger needs a view on where the stock is going. <a href="#rung-4">Rung 4</a> says the μ term left with the dW term; the table says what that looks like on 4,000 paths. Three fresh path sets, μ = −0.2, 0, +0.3, all at σ = 0.4, hedged at 0.4.</p>
+  <div class="tablewrap"><table>
+    <tr><th>μ</th><th>hedged mean, N = 4</th><th>N = 64</th><th>N = 4096</th><th>hedged sd, N = 64 / 4096</th><th>unhedged mean (closed form)</th><th>unhedged sd</th></tr>
+    <tr><td>−0.2</td><td class="warn">+0.69 ± 0.09</td><td class="dim">+0.02 ± 0.03</td><td class="dim">−0.004 ± 0.003</td><td class="hi">1.63 / 0.208</td><td class="pk">−11.67 (−11.86)</td><td class="dim">19.6</td></tr>
+    <tr><td>0</td><td class="warn">+0.19 ± 0.10</td><td class="dim">+0.00 ± 0.03</td><td class="dim">−0.002 ± 0.004</td><td class="hi">1.72 / 0.223</td><td class="pk">−3.11 (−3.10)</td><td class="dim">29.6</td></tr>
+    <tr><td>+0.3</td><td class="warn">+0.72 ± 0.11</td><td class="dim">+0.07 ± 0.03</td><td class="dim">−0.002 ± 0.003</td><td class="hi">1.69 / 0.209</td><td class="pk">+22.07 (+22.07)</td><td class="dim">51.5</td></tr>
+  </table></div>
+  <p class="note"><code>results.scenarios.{drift_down, base, drift_up}.per_N[*].call.{hedged_pnl_T, unhedged_pnl_T, unhedged_closed_form}</code>. The closed form for the unhedged mean is the lognormal integrated against the payoff under μ — the same integral 2.9 does with r — minus V₀e^(rT).</p>
+  <p><strong>The number.</strong> The unhedged holder's expected P&amp;L moves by 34 on an 18 option as μ goes from −0.2 to +0.3, and its spread nearly triples; the hedged book's mean stays at zero within s.e. from N = 64 and its spread at 1.6–1.7 and 0.21–0.22, the same across all three drifts. A short share position does not "bleed when the stock rallies", because the option it is held against gains exactly what the shares lose, to first order in δS; what is left is <a href="#rung-7">rung 7</a>, which has no μ in it.</p>
+  <p><strong>The static hedge is not drift-blind.</strong> At N = 1 — Δ₀ shares held for the year — the spread at μ = +0.3 is 17.6 against 11.8 at μ = 0, and the mean is +3.5 ± 0.3 (<code>…drift_up.per_N[0]</code>). A Δ set once goes stale as the drift carries S away from where it was right, and the book is left with the exposure Δ was meant to remove. Drift-blindness is not a property of holding shares against an option; it is bought by rebalancing, and the table shows the price: 17.6 → 10.7 → 7.1 at N = 1, 2, 4, then level with μ = 0 from N = 64.</p>
+  <p><strong>The trace, measured.</strong> At N = 4 a strong drift does leave something: +0.72 ± 0.11 at μ = 0.3 against +0.19 ± 0.10 at μ = 0, and a spread 9 % wider. It fades roughly like 1/N — +0.72, +0.19, +0.07, +0.03, +0.01, −0.002 down the grids — because over a step of a quarter-year (δS/S)² carries a (μ dt)² and a 2μσ²dt² that <a href="#rung-7">rung 7</a> drops. The page can say "μ vanishes" with the number that shows when: by 64 rebalances a year it is below the s.e., and the checks assert that; at 4 it is a visible but small bias, under 17 % of the spread.</p>
+</section>
+
+<!-- ============ 5 · DECISION 3 ============ -->
+<section id="s5">
+  <div class="eyebrow">Decision 3 — C3, two realised vols against one implied</div>
+  <h2><span class="stepno">5</span>Which vol: the hedger earns the gamma the stock delivers above the price's σ</h2>
+  <p><strong>What this decides.</strong> What a hedger is exposed to once the drift is gone: the one parameter the price assumed. The price and the delta are built from σ_implied = 0.4; the stock in these runs moves at σ_realised = 0.3 or 0.5. <a href="#rung-7">Rung 7</a> says the mean P&amp;L per step is ½ΓS²(σ²_r − σ²_i)dt; the table checks the sum of that over the path, measured on the same paths, against the P&amp;L.</p>
+  <div class="tablewrap"><table>
+    <tr><th>σ_realised (implied 0.4)</th><th>hedged P&amp;L mean, discounted, N = 4096</th><th>(σ²_r − σ²_i) × E[Σ e^(−rt)·½ΓS²dt]</th><th>at T</th><th>hedged sd: N = 4 → 4096</th><th>realised vol measured</th></tr>
+    <tr><td>0.3</td><td class="pk">−3.76 ± 0.02</td><td class="dim">−0.07 × 53.71 = −3.76</td><td class="dim">−3.95</td><td class="warn">4.97 → 1.31</td><td class="dim">0.3000</td></tr>
+    <tr><td>0.4</td><td class="hi">0.00 ± 0.004</td><td class="dim">0 × 46.82 = 0</td><td class="dim">−0.002</td><td class="hi">6.50 → 0.22</td><td class="dim">0.3999</td></tr>
+    <tr><td>0.5</td><td class="pk">+3.74 ± 0.03</td><td class="dim">+0.09 × 41.57 = +3.74</td><td class="dim">+3.93</td><td class="warn">8.37 → 1.70</td><td class="dim">0.5000</td></tr>
+  </table></div>
+  <p class="note"><code>results.scenarios.{vol_low, base, vol_high}.per_N[5].call.{hedged_pnl_discounted, mean_predicted_by_vol_gap, gamma_dt_mean, hedged_pnl_T}</code>, <code>…realised_vol</code>. The prediction and the measurement agree within 1 s.e. at N = 4096 and within 5 s.e. at every N ≥ 16. Path by path, P&amp;L minus the gamma P&amp;L Σ e^(−rt)·½ΓS²((δS/S)² − σ²_i dt) has rms 0.54, 0.31, 0.21, 0.13, 0.10, 0.06 of the P&amp;L's own spread down the grids (<code>…gamma_pnl_residual_over_sd</code>).</p>
+  <p><strong>The number.</strong> Hedged at 0.4 while the stock moves at 0.5, the hedger makes +3.74 on average on an option bought for 18.02 — a fifth of the premium — and the number is exactly the gap in variances, 0.25 − 0.16 = 0.09, times the gamma the path delivered, 41.57. At 0.3 the sign flips and the gamma integral is larger (53.71: a calmer stock stays near the strike, where Γ is largest), so the loss is slightly bigger than the gain. Your P3 had "zero, proportional to implied vol": the hedge removes the <em>direction</em> of the stock, not its <em>activity</em>, and the activity is what the price paid for. 2.10 will write this as "theta pays for gamma" and read the PDE as a P&amp;L statement; here it is previewed with its number.</p>
+  <p><strong>The spread that stays.</strong> When σ_r = σ_i the spread goes to zero like 1/√N. When they differ it does not: 1.31 at σ_r = 0.3 and 1.70 at 0.5 at N = 4096, flattening from N = 256 (slopes −0.19 and −0.23 across the grid against −0.49 for the base case; fig. 1). The gamma integral Σ e^(−rt)·½ΓS²dt is a different number on every path, because Γ is large near the strike and nearly zero far from it: a path that runs to 150 in the second month collects almost no gamma for the other ten. Across the 4,000 paths at σ_r = 0.5 it has mean 41.6 and sd 17.7 (<code>…gamma_dt_mean</code>, <code>…gamma_dt_se</code> × √4000); times the variance gap 0.09 that is a spread of 1.60, against the measured 1.62 at N = 4096 — and at σ_r = 0.3, 17.6 × 0.07 = 1.23 against 1.25. The spread that stays is the gamma integral's spread, in full. Rebalancing shrinks the gap between a discrete hedge and a continuous one (the 0.22) and does nothing to the gamma the stock chose to deliver. The hedger's bet on σ is a bet on a mean — right on average at +3.74, but 0.09 × whatever this path delivered — with a spread no rebalancing removes.</p>
+</section>
+
+<!-- ============ BRIDGE ============ -->
+<section id="bridge">
+  <div class="eyebrow">The bridge — from 2.6's last paragraph to 2.7's result</div>
+  <h2>From dV to the PDE, one move at a time</h2>
+  <p>§3–<a href="#s5">§5</a> measured three readings of one line; this is where the line comes from. 2.6 ended by applying the general form to V(t, S) and promising that choosing Δ kills the dW term. Every rung below adds one thing to the rung before it and names where that thing was already shown. Say which rung is the first you do not recognise.</p>
+  <ol class="ladder">
+    <li id="rung-1"><span class="src">2.6 "Into 2.7" — 2.5's general form on V(t, S), a = μS, b = σS</span><span class="eq">dV = (∂V/∂t + μS·∂V/∂S + ½σ²S²·∂²V/∂S²) dt + σS·∂V/∂S dW</span>The first function of both t and S. ∂V/∂t is new: the option loses or gains value as time passes with S fixed. The ½σ²S²·∂²V/∂S² is 2.5's ½b²·∂²f/∂x² with b = σS, as on 2.6's log S, but now ∂²V/∂S² is not −1/S² and nothing cancels.</li>
+    <li id="rung-2"><span class="src">New — the portfolio, and the one rule about it</span><span class="eq">Π = V − ΔS,   dΠ = dV − Δ dS <span class="new">— Δ held fixed over the step</span></span>Hold the option and short Δ shares. Over one step the shares are whatever you held at its start, so their P&amp;L is Δ times the price move and nothing else — there is no dΔ·S term. That is what "rebalance" means: Δ changes <em>between</em> steps, at prices you pay. <a href="#s6">§6</a> checks this bookkeeping to 10⁻¹² per path.</li>
+    <li id="rung-3"><span class="src"><a href="#rung-1">Rung 1</a> and <a href="#rung-2">2</a>, with 2.6's dS = μS dt + σS dW substituted</span><span class="eq">dΠ = (∂V/∂t + ½σ²S²·∂²V/∂S²) dt + <span class="m">(∂V/∂S − Δ)·μS dt</span> + <span class="r">(∂V/∂S − Δ)·σS dW</span></span>Collect the dt terms and the dW terms. Both the drift and the noise of the stock enter only through the same factor, (∂V/∂S − Δ).</li>
+    <li id="rung-4"><span class="src">New — the choice</span><span class="eq">Δ = ∂V/∂S  ⇒  dΠ = (∂V/∂t + ½σ²S²·∂²V/∂S²) dt</span>One choice removes the dW term <em>and</em> the μ term, because they shared a factor. What is left has no dW, so over the next instant Π moves by a known amount: the portfolio is locally riskless. This is P5's answer, and it is not zero.</li>
+    <li id="rung-5"><span class="src">New — a riskless portfolio must earn the riskless rate</span><span class="eq">dΠ = rΠ dt = r(V − ΔS) dt</span>Money tied up in Π is V − ΔS (you paid V for the option and received ΔS for the shares). If a riskless position earned more than r you would borrow at r and hold it; if less, you would short it and lend. So its drift is r, whatever μ is. That is the only place r enters, and the only place "no arbitrage" is used.</li>
+    <li id="rung-6"><span class="src"><a href="#rung-4">Rung 4</a> and <a href="#rung-5">5</a> equated — the Black–Scholes PDE</span><span class="eq">∂V/∂t + ½σ²S²·∂²V/∂S² + rS·∂V/∂S − rV = 0</span>Divide nothing, just move everything to one side. A PDE in (t, S) with the payoff max(S_T − K, 0) as its condition at t = T. μ is not in it; r and σ are. 2.9 writes down the function that solves it; <a href="#s6">§6</a> checks that function against this line to 10⁻¹⁵.</li>
+    <li id="rung-7"><span class="src">New — what the hedger is actually left with, step by step</span><span class="eq">P&amp;L per step ≈ ½ΓS²·((δS/S)² − σ²dt) <span class="new">— 2.5's (dW)² − dt noise, scaled</span></span>On a grid, dS is not infinitesimal: Taylor to second order gives δV ≈ Θ dt + Δ δS + ½Γ(δS)², and the PDE says Θ + ½σ²S²Γ = r(V − ΔS), so the hedged step is ½Γ[(δS)² − σ²S²dt] plus cash. (δS/S)² averages σ²_realised dt, so the step has mean ½ΓS²(σ²_r − σ²_i)dt — zero when the stock moves at the price's σ (P1, P2), positive when it moves more (P3) — and a spread ∝ ½ΓS²σ²dt·√2 per step, which summed over N steps is ∝ 1/√N (P1). The whole page's numbers are this one line; <a href="#s3">§3</a>–<a href="#s5">§5</a> measure it.</li>
+  </ol>
+  <p><a href="#rung-1">Rungs 1–6</a> are the derivation 2.6 promised and the page's "why". <a href="#rung-7">Rung 7</a> is what the page is <em>for</em>: it is the line a developer writing a hedging simulator is testing, and it is 2.5's "the chain rule is short by ½g″·(kick)²" turned into money. The forward has Γ = 0, so <a href="#rung-7">rung 7</a> is identically zero for it: a linear payoff needs none of this, which is the course's thesis.</p>
+</section>
+
+<!-- ============ 6 · THE PDE ============ -->
+<section id="s6">
+  <div class="eyebrow">C5 — the PDE itself, and the hedge as its remainder</div>
+  <h2><span class="stepno">6</span>The PDE on the numbers: 10⁻¹⁵ on the closed form, h² by finite differences, and what the lemma leaves over</h2>
+  <p><strong>What this decides.</strong> That the PDE is a testable property of a pricing function, not a derivation to admire: 3.3 will solve it on a grid, and this is the check that grid code is checked against. Two measurements on the formula, two on the hedge.</p>
+  <div class="tablewrap"><table>
+    <tr><th>Greeks by finite differences, step h as a fraction of S and of τ</th><th>PDE residual, rms over the grid</th><th>max</th></tr>
+    <tr><td>4 %</td><td class="hi">0.0286</td><td class="dim">0.208</td></tr>
+    <tr><td>2 %</td><td class="hi">0.00718</td><td class="dim">0.0523</td></tr>
+    <tr><td>1 %</td><td class="hi">0.00180</td><td class="dim">0.0131</td></tr>
+    <tr><td>0.5 %</td><td class="hi">0.000449</td><td class="dim">0.00328</td></tr>
+  </table></div>
+  <p class="note"><code>results.pde.finite_differences</code>, slope 1.998 (<code>…slope_rms_vs_h</code>); grid S ∈ [50, 200] × t ∈ [0, 0.9]. With the closed form's own Θ, Δ, Γ substituted the residual is 6.6 × 10⁻¹⁵ on that grid and ≤ 1.4 × 10⁻¹³ at every (t, S) the 24,000 hedges visited (<code>…analytic_greeks_residual_max_abs</code>, <code>…pde_residual_max_abs_at_visited_points</code>).</p>
+  <p><strong>On the formula.</strong> Take 2.9's function as given, differentiate it, substitute into <a href="#rung-6">rung 6</a>: zero to rounding, everywhere. Take only its <em>values</em>, difference them with central differences, substitute: a residual that falls by 4× for every halving of h — second order, the textbook rate — so a finite-difference pricer (3.3) can assert "my Greeks satisfy the PDE to h²" and mean it.</p>
+  <p><strong>On the hedge.</strong> Path by path, the discounted P&amp;L equals Σ e^(−rt)[δV − Δ δS − (V − ΔS)(e^(r dt) − 1)] to 10⁻¹² — that is <a href="#rung-2">rung 2</a> with the cash leg written out, an accounting identity, not a model. Replace δV in it by Itô's lemma to second order, Θ dt + Δ δS + ½Γ(δS)², and the sum reproduces the P&amp;L with a residual that falls faster than the P&amp;L itself (rms 0.54 of the spread at N = 4, 0.06 at N = 4096). Since the PDE makes the dt-form of that sum zero, the whole hedged P&amp;L is the (δS)² − σ²S²dt part: <a href="#rung-7">rung 7</a>, checked.</p>
+  <div class="tablewrap"><table>
+    <tr><th>N</th><th>Itô remainder, rms, first half of the life (τ ≥ ½)</th><th>second half (towards expiry)</th><th>hedged P&amp;L sd</th></tr>
+    <tr><td>4</td><td class="sm">1.83</td><td class="warn">2.81</td><td class="dim">6.50</td></tr>
+    <tr><td>64</td><td class="sm">0.110</td><td class="warn">0.318</td><td class="dim">1.72</td></tr>
+    <tr><td>1,024</td><td class="sm">0.0068</td><td class="warn">0.0405</td><td class="dim">0.440</td></tr>
+    <tr><td>4,096</td><td class="sm">0.0017</td><td class="warn">0.0129</td><td class="dim">0.223</td></tr>
+    <tr><td>slope</td><td class="sm">−1.005</td><td class="warn">−0.770</td><td class="dim">−0.488</td></tr>
+  </table></div>
+  <p class="note"><code>…base.per_N[*].call.{ito_residual_first_half, ito_residual_second_half}</code>, <code>…base.slopes</code>. Checked: first-half slope −1 ± 0.1; whole-life slope between −1 and −0.65; the second half carries more of the remainder than the first at every N.</p>
+  <p><strong>Where the lemma wears thin.</strong> Over the first half of the option's life the remainder falls like 1/N — 2.6's C4 again, Taylor's third-order terms summed with random signs — while the P&amp;L falls like 1/√N, so the lemma's description of the hedge gets better faster than the hedge does. Over the second half the slope is −0.77: the call's higher derivatives grow like 1/τ as expiry approaches, and in the last few steps, for paths near the strike, V is barely smooth enough for a second-order expansion. 2.5's lemma asks for a twice-differentiable f; max(S − K, 0) is not, and the hedge feels that in its last steps. Measured and bounded, not claimed as a rate: the page can say "faster than the P&amp;L" and "smooth is 1/N".</p>
+</section>
+
+<!-- ============ 7 · CHECKS ============ -->
+<section id="s7">
+  <div class="eyebrow">For your approval — I5</div>
+  <h2><span class="stepno">7</span>Draft check questions</h2>
+  <p class="note">One per decision, plus the PDE from both sides. Every wrong option names its misconception; the feedback says why with a number from the JSON. Q2's "yes, the hedged mean rises", Q3's "zero" and Q5's "dΠ = 0" are your own pre-run predictions. Drift first throughout.</p>
+  <div class="q"><div class="qno">Q1</div><p class="stem">You hold a call and short Δ = ∂V/∂S shares, rebalancing N times; the stock moves at the σ the price assumed. The final P&amp;L is:</p><ul>
+    <li class="ok"><strong>Zero on average, with a spread that falls like 1/√N</strong> — sd 6.50, 3.41, 1.72, 0.87, 0.44, 0.22 at N = 4 … 4096 (slope −0.49); 4× the rebalances halves it. The spread is Σ ½ΓS²((δS/S)² − σ²dt), 2.5's (dW)² − dt noise.</li>
+    <li class="no">Exactly zero: the hedge removes all risk <em class="mis">— continuous hedging assumed on a discrete grid.</em> dΠ = 0 holds only in the limit; on a grid (δS)² is not σ²S²dt step by step. At N = 4 the sd is 6.50 on an 18.02 option.</li>
+    <li class="no">Zero on average, with a spread that falls like 1/N <em class="mis">— the error assumed dt-sized.</em> N terms of mean zero and sd ∝ dt add to √N·dt = 1/√N. Measured: 64× the rebalances cuts the spread 8×, not 64×.</li>
+    <li class="no">Biased, because the short shares lose when the stock rises <em class="mis">— the hedge mistaken for a bet on direction.</em> The option gains what the shares lose to first order; the mean is 0 within s.e. from N = 64, and the same at μ = +0.3.</li>
+  </ul></div>
+  <div class="q"><div class="qno">Q2</div><p class="stem">Same hedge, but the stock now drifts at μ = +0.3 instead of 0. What changes?</p><ul>
+    <li class="ok"><strong>The hedged P&amp;L's mean and spread do not change within s.e.; the unhedged option's mean rises from −3.1 to +22.1</strong> — μ enters dΠ only through (∂V/∂S − Δ)·μS dt, which Δ = ∂V/∂S removes. Hedged sd 0.223 vs 0.209 at N = 4096; unhedged sd 29.6 → 51.5.</li>
+    <li class="no">Both means rise: a rising stock helps the call either way <em class="mis">— the hedge thought to follow the stock.</em> The hedged book holds the call <em>and</em> is short Δ shares; the shares give back what the call gains. Hedged mean −0.002 ± 0.003 at μ = 0.3, N = 4096.</li>
+    <li class="no">The hedged P&amp;L falls: you are short shares in a rally <em class="mis">— the short leg read on its own.</em> Short Δ shares lose Δ·δS; the call gains ∂V/∂S·δS, the same number. What is left is ½Γ(δS)², which has no sign from μ.</li>
+    <li class="no">The unhedged mean does not change, because the option's price does not depend on μ <em class="mis">— price and P&amp;L confused.</em> The price (set by the PDE) ignores μ; the payoff's expectation under the real-world drift does not: E[(S_T − K)⁺] is 15.85 at μ = 0 and 41.0 at μ = 0.3.</li>
+  </ul></div>
+  <div class="q"><div class="qno">Q3</div><p class="stem">You price and hedge at an implied vol of 0.4; the stock turns out to move at 0.5. Your hedged P&amp;L, on average, is:</p><ul>
+    <li class="ok"><strong>Positive, proportional to σ²_realised − σ²_implied times the gamma delivered along the path</strong> — +3.74 ± 0.03 on an 18.02 option at N = 4096, against (0.25 − 0.16) × Σ e^(−rt)·½ΓS²dt = 0.09 × 41.57 = 3.74 on the same paths. 2.10's "theta pays for gamma".</li>
+    <li class="no">Zero: the delta hedge has removed the risk <em class="mis">— direction and activity confused.</em> Δ removes the stock's direction (the dW and μ terms). Its activity, (δS)², stays, and the price only paid for σ² = 0.16 of it per unit time; the stock delivered 0.25.</li>
+    <li class="no">Negative: hedging at too low a vol loses money <em class="mis">— the sign read from the price, not the gamma.</em> A long option is long gamma: it gains ½Γ(δS)² on every move and pays Θ dt for it; a stock that moves more than the price assumed pays more than it costs. At σ_r = 0.3 the sign flips: −3.76.</li>
+    <li class="no">Positive, proportional to the implied vol <em class="mis">— the premium mistaken for the P&amp;L.</em> The implied vol sets what you paid; the P&amp;L is the difference between what the stock delivered and what you paid for, and it is zero when σ_r = σ_i whatever σ_i is (0.00 ± 0.004 at 0.4).</li>
+  </ul></div>
+  <div class="q"><div class="qno">Q4</div><p class="stem">You hedge a forward contract, V = S − Ke^(−rτ), the same way: short Δ = ∂V/∂S = 1 share per forward, rebalancing N times. Its P&amp;L is:</p><ul>
+    <li class="ok"><strong>Zero on every path at every N, to rounding</strong> — |P&amp;L| ≤ 4 × 10⁻¹¹ across 4,000 paths × 6 grids × 5 scenarios. Γ = 0, so there is no ½Γ(δS)² term and nothing for a rebalance to correct: a linear payoff is hedged once, exactly. The course's thesis in one row.</li>
+    <li class="no">Zero on average with a 1/√N spread, like the call <em class="mis">— every derivative assumed to need frequent rebalancing.</em> The spread comes from Γ, and the forward has none. Δ = 1 is right at every S and every t, so the hedge is never stale.</li>
+    <li class="no">Zero on average with a spread that depends on μ <em class="mis">— the drift put back into the hedged book.</em> With Δ = 1 the shares cancel the forward's exposure to S exactly, μ included; the cash leg earns r on Ke^(−rτ) and delivers K at T.</li>
+    <li class="no">Not zero: the forward has no premium, so there is nothing to earn r on <em class="mis">— the cash leg forgotten.</em> Shorting the share brings in S₀; the forward costs S₀ − Ke^(−rT); the difference Ke^(−rT) sits in cash and grows to exactly K, the amount owed at delivery.</li>
+  </ul></div>
+  <div class="q"><div class="qno">Q5</div><p class="stem">Π = V − ΔS with Δ = ∂V/∂S, and dS = μS dt + σS dW. Which term cancels in dΠ, and what is left?</p><ul>
+    <li class="ok"><strong>The dW term cancels, and the μ term with it (they share the factor ∂V/∂S − Δ); what is left is (∂V/∂t + ½σ²S²·∂²V/∂S²) dt, and the PDE says this equals r(V − ΔS) dt</strong> — checked on the closed form to 6.6 × 10⁻¹⁵ and at every point 24,000 hedges visited.</li>
+    <li class="no">Everything cancels: dΠ = dV − dV = 0 <em class="mis">— the second-order term dropped.</em> Δ dS matches only the ∂V/∂S·dS part of dV; the ∂V/∂t dt and ½σ²S²·∂²V/∂S² dt parts remain. If dΠ were 0 the hedged P&amp;L would be exactly zero on a grid of 1; it is 6.50 wide at N = 4.</li>
+    <li class="no">The dt term cancels, leaving pure noise <em class="mis">— the roles of Δ swapped.</em> Δ multiplies dS, and dS carries the dW; choosing Δ = ∂V/∂S is what removes the dW. The dt term is what no choice of Δ can touch, which is why it must be r Π dt.</li>
+    <li class="no">The dW term cancels but μS·∂V/∂S dt survives, so μ is in the PDE <em class="mis">— the shares' drift forgotten.</em> The short shares have drift −Δ·μS dt, and with Δ = ∂V/∂S it is the same size as the option's μS·∂V/∂S dt. μ is absent from the PDE and the checks show it absent from the hedged P&amp;L.</li>
+  </ul></div>
+</section>
+
+<!-- ============ 8 · LEDGER ============ -->
+<section id="s8">
+  <div class="eyebrow">For your approval — then into drafts/notation.md</div>
+  <h2><span class="stepno">8</span>The S7 batch — thirteen rows</h2>
+  <p class="note">Rows born from this session: the option value as a function of two variables, the three Greeks the P&amp;L needs, the hedged portfolio and its one rule, r, the PDE, and the hedger's three numbers. Rows marked ↺ revisit an earlier row in its new role. The symbol and its name are separated by a dash, not the "·" of earlier batches, which reads as a product next to a formula (your catch, 2026-11-03).</p>
+  <div class="tablewrap"><table style="white-space:normal">
+    <tr><th>Symbol</th><th>Say it</th><th>Here it means</th><th>Watch out</th></tr>
+    <tr><td style="white-space:nowrap">V(t, S)</td><td>"the option value", "V"</td><td style="white-space:normal;text-align:left">the price of the option at time t when the stock is at S — a function of two variables, the first the course has met. Taken on this page from the closed form as a black box (2.9 derives it); the PDE is what any V must satisfy</td><td style="white-space:normal;text-align:left">V is a surface over (t, S), not a number; "the price" is V(0, S₀) = 18.02 here. Its derivatives are partials, ∂ throughout (your ruling of 2026-09-29)</td></tr>
+    <tr><td style="white-space:nowrap">Δ = ∂V/∂S — delta, hedge ratio</td><td>"delta"</td><td style="white-space:normal;text-align:left">how much V moves per unit move in S; the number of shares to short against one option so that the first-order exposure to S cancels. 0.63 at inception here, 1 for a forward, 0 or 1 for the call at expiry</td><td style="white-space:normal;text-align:left">a function of (t, S), so it changes along the path — that is why the hedge is rebalanced. Held fixed <em>within</em> a step, reset <em>between</em> steps. Not "the derivative with respect to time". Because Δ is taken, a change over one grid step is written δS, δV on this page (2.3–2.6 wrote increments ΔW) — owner's ruling F10/A</td></tr>
+    <tr><td style="white-space:nowrap">Γ = ∂²V/∂S² — gamma</td><td>"gamma"</td><td style="white-space:normal;text-align:left">the curvature of V in S; the rate at which Δ changes. ½Γ(δS)² is the P&amp;L a delta-hedged position makes on a move of δS, in either direction, and the page's numbers are all this term</td><td style="white-space:normal;text-align:left">zero for a forward, positive for a call, largest near the strike and growing like 1/√τ towards expiry. 2.10 names the rest of the Greeks; the P&amp;L needs this one now</td></tr>
+    <tr><td style="white-space:nowrap">Θ = ∂V/∂t — theta</td><td>"theta"</td><td style="white-space:normal;text-align:left">how V changes as time passes with S held fixed; negative for a call (−9.8 per year at inception here): the option decays. The PDE reads Θ = −½σ²S²Γ − rSΔ + rV: theta pays for gamma</td><td style="white-space:normal;text-align:left">∂/∂t at fixed S, not d/dt along a path. Often quoted per day; here per year, like r and σ</td></tr>
+    <tr><td style="white-space:nowrap">Π = V − ΔS — the hedged portfolio</td><td>"pi", "the hedged book", "the portfolio"</td><td style="white-space:normal;text-align:left">long one option, short Δ shares; the cash difference at r. dΠ = dV − Δ dS over a step on which Δ is held fixed. Self-financing: nothing goes in or out after inception; rebalances pay for themselves from cash</td><td style="white-space:normal;text-align:left">the money tied up is V − ΔS (negative here: the shares you sold more than paid for the option), and it is that amount that earns r. "Π" is not a product sign</td></tr>
+    <tr><td style="white-space:nowrap">rebalance — N</td><td>—</td><td style="white-space:normal;text-align:left">resetting the share position to the current Δ at a grid time, N times over the life. Decision 1: a static hedge (N = 1) takes the spread from 29.6 to 11.8, and from there it falls like 1/√N — 6.50 at N = 4, 0.22 at N = 4096 on an 18 option</td><td style="white-space:normal;text-align:left">a hedge is never "done"; between rebalances it is stale by Γ·δS. The 1/√N is 2.3's Σ(ΔW)² − T noise again: N terms of sd ∝ dt</td></tr>
+    <tr><td style="white-space:nowrap">r — the riskless rate</td><td>"r", "the riskless rate", "the risk-free rate"</td><td style="white-space:normal;text-align:left">the rate cash earns with certainty; 0.05 here. A portfolio with no dW term must earn exactly r, or there is an arbitrage. The only way r enters the derivation, and the rate at which a price is discounted (2.8)</td><td style="white-space:normal;text-align:left">not the stock's expected return μ. Nothing on this page says the stock drifts at r; 2.8 will say that <em>pricing as if</em> it did gives the same V</td></tr>
+    <tr><td style="white-space:nowrap">K, τ = T − t</td><td>"strike", "time to expiry"</td><td style="white-space:normal;text-align:left">the call pays max(S_T − K, 0) at T; τ is how long is left. V depends on t only through τ. K = 100 = S₀ here (at the money)</td><td style="white-space:normal;text-align:left">∂V/∂t = −∂V/∂τ: the sign flips. The forward struck at K has V = S − Ke^(−rτ), Δ = 1, Γ = 0</td></tr>
+    <tr><td style="white-space:nowrap">the Black–Scholes PDE</td><td>"the PDE", "Black–Scholes"</td><td style="white-space:normal;text-align:left">∂V/∂t + ½σ²S²·∂²V/∂S² + rS·∂V/∂S − rV = 0, with V(T, S) = the payoff. What V must satisfy for a delta-hedged position to earn r; a property any pricer can be tested against (residual 10⁻¹⁵ on the closed form, h² by finite differences)</td><td style="white-space:normal;text-align:left">μ is not in it. σ and r are. "The formula" (2.9) is one solution of it, for one payoff; the PDE holds for every European payoff on this stock. 3.3 solves it on a grid</td></tr>
+    <tr><td style="white-space:nowrap">μ vanishes ↺</td><td>—</td><td style="white-space:normal;text-align:left">2.6's drift μ, cancelled from dΠ by the same choice of Δ that cancels dW, because both enter through (∂V/∂S − Δ). Decision 2: a hedger needs no view on direction. Measured: the hedged mean and sd at μ = −0.2, 0, +0.3 agree within s.e. from N = 64. Not true of a static hedge: at N = 1 the spread at μ = 0.3 is 17.6 against 11.8 — drift-blindness is bought by rebalancing</td><td style="white-space:normal;text-align:left">it vanishes from the <em>hedged</em> book, not from the stock: the unhedged mean swings from −11.7 to +22.1. On a coarse grid (N = 4) an O(dt) trace of it survives, +0.7 on a spread of 7</td></tr>
+    <tr><td style="white-space:nowrap">realised vs implied volatility ↺</td><td>"σ_realised", "σ_implied"</td><td style="white-space:normal;text-align:left">2.6's realised volatility is the σ the stock actually moves with; the implied is the σ the price and the hedge were built from. Decision 3: hedged at σ_i while the stock moves at σ_r, the mean P&amp;L is (σ²_r − σ²_i) × Σ e^(−rt)·½ΓS²dt — +3.74 for 0.5 against 0.4, −3.76 for 0.3</td><td style="white-space:normal;text-align:left">the gap in <em>variances</em>, not in vols, times a path-dependent gamma integral. "Implied" is named for 2.9's inversion of the formula; here it only means "the σ in V". That P&amp;L keeps a spread (1.3–1.7) no rebalancing removes</td></tr>
+    <tr><td style="white-space:nowrap">realised quadratic variation (of the stock) ↺</td><td>—</td><td style="white-space:normal;text-align:left">2.3's Σ(ΔW)² with the stock in place of W: Σ(δS)² along the path, the activity the hedge is left exposed to. Per step its mean is σ²_r S² dt, so the gamma P&amp;L's mean is ½ΓS²(σ²_r − σ²_i)dt</td><td style="white-space:normal;text-align:left">direction is Σ δS, which the hedge removes; activity is Σ(δS)², which it does not. The hook's "gamma acting on realised quadratic variation" is this row (owner's F3)</td></tr>
+    <tr><td style="white-space:nowrap">gamma P&amp;L — ½ΓS²((δS/S)² − σ²dt)</td><td>"the gamma P&amp;L", "the hedging error"</td><td style="white-space:normal;text-align:left">what a delta-hedged position makes on one step: the move squared against what the price assumed for it. Mean zero when σ_r = σ_i, spread ∝ dt, summed over N steps ∝ 1/√N. 2.5's (dW)² − dt noise with a price on it; 2.10's "a delta-hedged option earns ½ΓS²(σ²_r − σ²_i)dt" is its mean</td><td style="white-space:normal;text-align:left">a second-order quantity: it exists only because V is curved. A linear payoff has none, and that is the course's whole distinction. Path by path it reproduces the P&amp;L with a residual that falls faster than the P&amp;L (ratio 0.54 → 0.06 across the grids)</td></tr>
+  </table></div>
+</section>
+
+<!-- ============ 9 · INTERVIEW PLAN ============ -->
+<section id="s9">
+  <div class="eyebrow">Next — the draft, in your words</div>
+  <h2><span class="stepno">9</span>The interview plan for drafts/2.7.md</h2>
+  <p>Nine questions, one at a time in the chat, in page order. You answer in paragraphs; I transcribe, re-set any notation the paste loses, and number-check every claim against the JSON with a flag you rule on in one line. The page's shape, as 2.6's: hook, the three decisions as the plan, what was done, one section per decision with its table, then the derivation, then the PDE checked, then "Into 2.8".</p>
+  <ul class="steps">
+    <li><strong>Hook.</strong> What problem the page solves, in your words — a desk that sells an option does not want to bet on the stock; what it does instead, and what it is left holding.</li>
+    <li><strong>What this page shows, and how.</strong> The three decisions as the plan section (the F35 pattern: I can draft it at your request, marked).</li>
+    <li><strong>The experiment — what was done.</strong> <a href="#s1">§1</a> in page prose: exact steps, the same paths at six N, the forward beside the call, the formula as a candidate function with the forward link to 2.9 — and the one sentence that makes the borrowing honest: its derivation is 2.9's, the PDE check is what lets 2.7 use it.</li>
+    <li><strong>Decision 1 — how often to rebalance.</strong> <a href="#s3">§3</a>: the table; 1/√N; the unhedged 29.6; the forward's zero and why.</li>
+    <li><strong>Decision 2 — the drift.</strong> <a href="#s4">§4</a>: the three-μ table; "vanishes from the book, not from the stock"; the coarse-grid trace in one sentence.</li>
+    <li><strong>Decision 3 — which vol.</strong> <a href="#s5">§5</a>: the sign, the number, the variance gap times the gamma integral; the spread that stays; 2.10 previewed.</li>
+    <li><strong>Why — the derivation.</strong> The bridge's six rungs in your words: hold Δ fixed, substitute, choose, riskless earns r, the PDE.</li>
+    <li><strong>The PDE checked, and what the hedger is left with.</strong> <a href="#s6">§6</a>: 10⁻¹⁵, h², the remainder — <a href="#rung-7">rung 7</a> in prose; the kink at expiry in one sentence.</li>
+    <li><strong>Into 2.8.</strong> μ is gone from the price; 2.8 asks what happens if you price <em>as if</em> the stock drifted at r — previewed, not claimed.</li>
+  </ul>
+  <p class="note">Decisions you may overrule: r = 0.05 and K = S₀ = 100 as the working case; μ = 0 as the base (your P2 as posed); the forward on the page as the control; Γ and Θ named on this page ahead of 2.10; the second-half-of-life slope reported as a bound, not a rate.</p>
+</section>
+</div>
+
+<script>
+(function () {
+  function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  const BASE = { fig1: [1400, 640], fig2: [1400, 640], fig3: [1400, 640] };
+  function setup(id, canvas, k) {
+    const c = canvas || document.getElementById(id); if (!c) return null;
+    const [W, H] = BASE[id]; k = k || 1;
+    c.width = Math.round(W * k); c.height = Math.round(H * k);
+    const ctx = c.getContext("2d");
+    ctx.setTransform(k, 0, 0, k, 0, 0);
+    return { c, ctx, W, H };
+  }
+  const fontSans = '"IBM Plex Sans", system-ui, sans-serif';
+
+  // ---------- data from 2_7_delta_hedging.json (seed 20261101) ----------
+  const NS = [1, 2, 4, 16, 64, 256, 1024, 4096];
+  const SD_BASE = [11.84, 8.86, 6.499, 3.407, 1.722, 0.874, 0.440, 0.222];     // results.scenarios.base.per_N[*].call.hedged_pnl_T.sd
+  const SD_UP = [17.59, 10.72, 7.081, 3.445, 1.687, 0.823, 0.417, 0.209];       // drift_up
+  const SD_VOL = [15.75, 11.23, 8.372, 4.601, 2.712, 2.008, 1.760, 1.702];      // vol_high
+  const SD_UNHEDGED = 29.6;
+  // histograms: hedged over [-20, 20], 80 bins of 0.5; unhedged over [-40, 120], 80 bins of 2
+  const H4 = [0,0,0,0,0,0,0,0,0,6,5,6,5,8,28,21,20,33,37,31,40,51,41,55,54,49,73,73,74,92,90,114,95,112,113,118,138,144,135,159,144,132,145,130,120,132,116,95,95,90,88,80,67,68,53,52,43,39,28,23,17,27,21,18,16,10,9,8,8,8,7,10,6,10,8,6,3,6,3,2];
+  const H256 = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,3,18,49,102,253,583,1035,989,560,231,110,33,17,6,5,2,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+  const H4096 = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,85,1924,1918,70,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+  const HU = [0,0,0,0,0,0,0,0,0,0,2394,56,87,64,62,63,59,45,52,51,43,49,47,61,49,46,50,41,30,32,32,34,24,28,31,25,20,30,28,16,18,18,18,14,15,16,13,22,6,13,9,11,9,11,8,10,8,11,9,7,10,7,4,1,7,4,1,1,4,3,4,1,5,0,2,1,2,6,4,1];
+  // results.scenarios.base.first_paths: path 1 at N = 256, S and the running hedged P&L
+  const S1 = [100.0,99.57,102.86,103.87,99.17,98.39,101.43,98.72,97.07,92.95,95.95,93.05,90.78,89.05,91.56,90.46,89.37,91.24,91.54,94.79,94.26,97.07,95.46,96.93,104.86,104.58,107.36,105.62,99.35,102.26,100.35,101.64,98.12,100.99,95.24,91.18,91.21,89.92,96.86,96.26,99.28,100.74,104.37,101.06,97.78,99.37,99.7,102.34,104.46,104.23,101.07,97.24,97.87,96.98,97.6,94.8,97.88,96.14,96.93,95.39,95.47,90.62,91.31,89.46,89.77,92.24,93.56,93.46,92.93,95.6,94.5,92.18,96.63,96.85,97.69,101.22,103.95,102.01,98.76,100.5,102.34,99.74,102.82,106.21,103.3,100.95,100.77,102.38,105.84,106.64,101.28,98.99,98.95,102.39,101.15,99.62,99.86,101.79,103.9,110.03,112.59,110.42,109.77,106.88,105.99,110.5,109.99,110.6,112.77,116.9,116.07,117.87,117.41,115.92,113.36,112.93,110.0,112.14,109.05,110.38,102.78,102.98,97.55,94.49,98.16,96.13,91.85,94.29,92.46,94.41,91.82,94.48,92.29,95.79,100.9,98.64,96.04,95.53,91.8,95.99,97.64,100.49,100.14,102.87,104.35,106.74,108.89,106.77,104.44,101.11,100.36,97.69,99.29,100.9,100.15,99.67,99.52,100.3,100.97,97.52,97.96,96.65,96.27,99.86,94.44,93.07,92.96,92.92,92.42,95.23,90.82,90.9,90.43,90.45,91.51,95.47,94.74,90.42,89.06,88.19,90.09,90.63,94.74,92.07,90.84,90.0,89.94,91.52,90.87,95.04,98.14,97.05,92.27,94.94,94.67,90.14,94.01,94.23,97.97,94.43,90.72,87.51,88.5,87.96,87.88,87.64,87.41,88.31,87.49,90.56,87.63,86.76,83.64,81.37,81.8,83.13,83.79,84.36,82.92,83.5,81.17,78.39,80.2,78.36,78.04,79.82,81.15,80.63,81.04,81.82,79.42,80.76,80.65,82.09,81.73,84.35,79.1,75.97,75.01,77.82,75.12,73.57,76.17,74.63,76.26,72.71,72.54,70.76,69.78,71.26,71.63,69.86,71.83,73.03,72.68,73.5,75.11];
+  const P1 = [0.0,-0.029,-0.008,-0.033,0.038,0.012,0.025,0.031,0.015,0.074,0.092,0.107,0.107,0.096,0.102,0.08,0.058,0.048,0.019,0.047,0.018,0.029,0.013,-0.007,0.276,0.246,0.248,0.231,0.385,0.396,0.382,0.358,0.39,0.4,0.541,0.605,0.575,0.554,0.801,0.771,0.788,0.766,0.799,0.821,0.845,0.826,0.794,0.797,0.786,0.753,0.77,0.817,0.786,0.757,0.726,0.739,0.759,0.743,0.713,0.694,0.66,0.772,0.742,0.732,0.701,0.706,0.683,0.649,0.618,0.627,0.6,0.601,0.689,0.654,0.623,0.659,0.664,0.649,0.674,0.655,0.638,0.64,0.658,0.683,0.692,0.687,0.65,0.628,0.657,0.623,0.743,0.737,0.7,0.732,0.704,0.68,0.643,0.627,0.614,0.78,0.774,0.759,0.724,0.729,0.695,0.765,0.728,0.692,0.678,0.718,0.685,0.663,0.628,0.601,0.593,0.556,0.56,0.544,0.554,0.523,0.806,0.764,0.917,0.943,0.998,0.986,1.082,1.085,1.071,1.057,1.069,1.08,1.076,1.126,1.272,1.265,1.272,1.231,1.299,1.392,1.368,1.382,1.338,1.345,1.314,1.307,1.29,1.273,1.263,1.295,1.252,1.261,1.233,1.205,1.161,1.115,1.067,1.022,0.976,1.023,0.976,0.941,0.893,0.95,1.149,1.118,1.07,1.022,0.976,0.996,1.126,1.079,1.034,0.986,0.947,1.04,0.993,1.122,1.093,1.055,1.04,0.993,1.102,1.121,1.085,1.042,0.992,0.964,0.916,1.034,1.071,1.024,1.206,1.22,1.162,1.33,1.429,1.369,1.455,1.531,1.628,1.692,1.649,1.602,1.55,1.5,1.45,1.406,1.362,1.406,1.453,1.412,1.472,1.486,1.453,1.43,1.393,1.354,1.337,1.301,1.317,1.349,1.342,1.343,1.325,1.318,1.302,1.279,1.254,1.23,1.247,1.233,1.212,1.197,1.175,1.183,1.341,1.361,1.359,1.361,1.368,1.369,1.369,1.37,1.37,1.372,1.372,1.372,1.373,1.373,1.373,1.373,1.374,1.374,1.374,1.374,1.375];
+
+  // ---------- Figure 1: sd against N, log-log ----------
+  function fig1(canvas, k) {
+    const s = setup("fig1", canvas, k); if (!s) return;
+    const { ctx, W, H } = s;
+    const muted = css("--muted"), line = css("--line"), faint = css("--line-faint");
+    const cWalk = css("--walk"), cMid = css("--theory"), cRed = css("--peek");
+    ctx.clearRect(0, 0, W, H);
+    const padL = 90, padR = 40, top = 34, bottom = 56;
+    const lx0 = Math.log10(0.7), lx1 = Math.log10(6000), ly0 = Math.log10(0.15), ly1 = Math.log10(90);
+    const xOf = n => padL + ((Math.log10(n) - lx0) / (lx1 - lx0)) * (W - padL - padR);
+    const yOf = v => H - bottom - ((Math.log10(v) - ly0) / (ly1 - ly0)) * (H - bottom - top);
+    ctx.strokeStyle = faint; ctx.lineWidth = 1; ctx.fillStyle = muted; ctx.font = `20px ${fontSans}`; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    [0.2, 0.5, 1, 2, 5, 10, 20, 50].forEach(v => { const y = yOf(v); ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke(); ctx.fillText(v.toString(), padL - 10, y); });
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    NS.forEach(n => { const x = xOf(n); ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x, H - bottom); ctx.stroke(); ctx.fillText(n.toLocaleString("en-GB"), x, H - bottom + 10); });
+    ctx.fillText("N rebalances →", W - padR - 80, H - bottom + 34);
+    // unhedged
+    ctx.strokeStyle = muted; ctx.lineWidth = 1.6; ctx.setLineDash([7, 6]); ctx.beginPath(); ctx.moveTo(padL, yOf(SD_UNHEDGED)); ctx.lineTo(W - padR, yOf(SD_UNHEDGED)); ctx.stroke();
+    // 1/sqrt(N) reference through sd*sqrtN = 13.9
+    ctx.beginPath(); ctx.moveTo(xOf(0.7), yOf(13.9 / Math.sqrt(0.7))); ctx.lineTo(xOf(6000), yOf(13.9 / Math.sqrt(6000))); ctx.stroke(); ctx.setLineDash([]);
+    function series(arr, color) {
+      ctx.strokeStyle = color; ctx.lineWidth = 2.6; ctx.beginPath();
+      NS.forEach((n, i) => { const x = xOf(n), y = yOf(arr[i]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+      ctx.stroke();
+      ctx.fillStyle = color; NS.forEach((n, i) => { ctx.beginPath(); ctx.arc(xOf(n), yOf(arr[i]), 5.5, 0, 2 * Math.PI); ctx.fill(); });
+    }
+    series(SD_VOL, cRed); series(SD_UP, cMid); series(SD_BASE, cWalk);
+    ctx.font = `600 18px ${fontSans}`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.fillStyle = muted; ctx.fillText("unhedged call, sd 29.6 at every N", padL + 10, yOf(SD_UNHEDGED) + 18);
+    ctx.fillStyle = muted; ctx.fillText("13.9 / √N, the 1/√N reference", xOf(4) + 16, yOf(13.9 / Math.sqrt(4)) + 40);
+    ctx.fillStyle = cRed; ctx.fillText("σ_r = 0.5: flattens at 1.70", xOf(256) + 12, yOf(SD_VOL[5]) - 18);
+    ctx.fillStyle = cMid; ctx.fillText("μ = 0.3: the static hedge is not drift-blind", xOf(2) + 16, yOf(SD_UP[1]) - 26);
+    ctx.fillStyle = cWalk; ctx.fillText("σ_r = σ_i: 0.22 at N = 4096", xOf(1024) - 60, yOf(SD_BASE[5]) + 26);
+    ctx.fillStyle = muted; ctx.font = `600 18px ${fontSans}`; ctx.textAlign = "left"; ctx.textBaseline = "top";
+    ctx.fillText("sd of the hedged P&L at T, 4,000 paths, S₀ = K = 100, option bought at 18.02", padL + 8, top + 2);
+  }
+
+  // ---------- Figure 2: histograms, hedged (left) and unhedged (right) ----------
+  function fig2(canvas, k) {
+    const s = setup("fig2", canvas, k); if (!s) return;
+    const { ctx, W, H } = s;
+    const muted = css("--muted"), faint = css("--line-faint");
+    const cWalk = css("--walk"), cRed = css("--peek");
+    ctx.clearRect(0, 0, W, H);
+    const top = 34, bottom = 52, gap = 70, padL = 80, padR = 30;
+    const panelW = (W - padL - padR - gap) / 2;
+    // left panel: hedged over [-20, 20]
+    const Lx0 = padL, Lx1 = padL + panelW;
+    const xL = v => Lx0 + ((v + 20) / 40) * panelW;
+    const yMaxL = 1100, yL = c => H - bottom - (c / yMaxL) * (H - bottom - top);
+    ctx.strokeStyle = faint; ctx.lineWidth = 1; ctx.fillStyle = muted; ctx.font = `20px ${fontSans}`; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    [0, 250, 500, 750, 1000].forEach(c => { const y = yL(c); ctx.beginPath(); ctx.moveTo(Lx0, y); ctx.lineTo(Lx1, y); ctx.stroke(); ctx.fillText(c.toLocaleString("en-GB"), Lx0 - 10, y); });
+    function bars(arr, lo, binW, xOf, yOf, xMax, color, alpha) {
+      ctx.fillStyle = color; ctx.globalAlpha = alpha;
+      arr.forEach((c, i) => { if (!c) return; const x0 = xOf(lo + i * binW), x1 = xOf(lo + (i + 1) * binW); if (x0 >= xMax) return; ctx.fillRect(x0 + 0.5, yOf(Math.min(c, yMaxCap)), Math.max(1, Math.min(x1, xMax) - x0 - 1), yOf(0) - yOf(Math.min(c, yMaxCap))); });
+      ctx.globalAlpha = 1;
+    }
+    let yMaxCap = yMaxL;
+    bars(H4, -20, 0.5, xL, yL, Lx1, cWalk, 0.35);
+    bars(H256, -20, 0.5, xL, yL, Lx1, cWalk, 0.6);
+    bars(H4096, -20, 0.5, xL, yL, Lx1, cWalk, 1.0);
+    ctx.fillStyle = muted; ctx.font = `20px ${fontSans}`; ctx.textAlign = "center"; ctx.textBaseline = "top";
+    [-20, -10, 0, 10, 20].forEach(v => ctx.fillText(v.toString(), xL(v), H - bottom + 10));
+    ctx.font = `600 18px ${fontSans}`; ctx.textAlign = "right";
+    ctx.fillStyle = cWalk; ctx.fillText("hedged: N = 4, 256, 4096", Lx1 - 8, top + 2);
+    ctx.fillText("sd 6.50, 0.87, 0.22", Lx1 - 8, top + 26);
+    ctx.fillStyle = muted; ctx.fillText("bins of 0.5; N = 4096 clipped", Lx1 - 8, top + 50);
+    ctx.fillText("(central bins 1,924 and 1,918)", Lx1 - 8, top + 74);
+    // right panel: unhedged over [-40, 120]
+    const Rx0 = Lx1 + gap, Rx1 = Rx0 + panelW;
+    const xR = v => Rx0 + ((v + 40) / 160) * panelW;
+    const yMaxR = 2500, yR = c => H - bottom - (c / yMaxR) * (H - bottom - top);
+    ctx.strokeStyle = faint; ctx.fillStyle = muted; ctx.font = `20px ${fontSans}`; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    [0, 500, 1000, 1500, 2000, 2500].forEach(c => { const y = yR(c); ctx.beginPath(); ctx.moveTo(Rx0, y); ctx.lineTo(Rx1, y); ctx.stroke(); ctx.fillText(c.toLocaleString("en-GB"), Rx0 - 10, y); });
+    yMaxCap = yMaxR;
+    bars(HU, -40, 2, xR, yR, Rx1, cRed, 0.6);
+    ctx.fillStyle = muted; ctx.font = `20px ${fontSans}`; ctx.textAlign = "center"; ctx.textBaseline = "top";
+    [-40, 0, 40, 80, 120].forEach(v => ctx.fillText(v.toString(), xR(v), H - bottom + 10));
+    ctx.font = `600 18px ${fontSans}`; ctx.textAlign = "right";
+    ctx.fillStyle = cRed; ctx.fillText("unhedged: sd 29.6, same 4,000 paths", Rx1 - 8, top + 2);
+    ctx.fillStyle = muted; ctx.fillText("2,394 paths at −18.95: the premium lost", Rx1 - 8, top + 26);
+    ctx.textAlign = "right"; ctx.fillText("P&L at T →", Rx1, H - bottom + 34);
+  }
+
+  // ---------- Figure 3: path 1, S and the running P&L ----------
+  function fig3(canvas, k) {
+    const s = setup("fig3", canvas, k); if (!s) return;
+    const { ctx, W, H } = s;
+    const muted = css("--muted"), line = css("--line"), faint = css("--line-faint");
+    const cWalk = css("--walk"), cMid = css("--theory");
+    ctx.clearRect(0, 0, W, H);
+    const padL = 80, padR = 90, top = 34, bottom = 52, n = 256;
+    const sLo = 60, sHi = 130, pLo = -1.5, pHi = 2.0;
+    const xOf = i => padL + (i / n) * (W - padL - padR);
+    const yS = v => H - bottom - ((v - sLo) / (sHi - sLo)) * (H - bottom - top);
+    const yP = v => H - bottom - ((v - pLo) / (pHi - pLo)) * (H - bottom - top);
+    ctx.strokeStyle = faint; ctx.lineWidth = 1; ctx.font = `20px ${fontSans}`; ctx.textBaseline = "middle";
+    for (let v = 60; v <= 130; v += 10) { const y = yS(v); ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke(); ctx.fillStyle = cWalk; ctx.textAlign = "right"; ctx.fillText(v.toString(), padL - 10, y); }
+    [-1, 0, 1, 2].forEach(v => { ctx.fillStyle = cMid; ctx.textAlign = "left"; ctx.fillText((v > 0 ? "+" : "") + v.toFixed(1), W - padR + 10, yP(v)); });
+    ctx.strokeStyle = line; ctx.lineWidth = 1.2; ctx.setLineDash([7, 6]);
+    ctx.beginPath(); ctx.moveTo(padL, yS(100)); ctx.lineTo(W - padR, yS(100)); ctx.stroke();
+    ctx.strokeStyle = cMid; ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.moveTo(padL, yP(0)); ctx.lineTo(W - padR, yP(0)); ctx.stroke(); ctx.globalAlpha = 1;
+    ctx.setLineDash([]);
+    ctx.strokeStyle = cWalk; ctx.lineWidth = 2.2; ctx.beginPath();
+    for (let i = 0; i <= n; i++) { const x = xOf(i), y = yS(S1[i]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.stroke();
+    ctx.strokeStyle = cMid; ctx.lineWidth = 2.6; ctx.beginPath();
+    for (let i = 0; i <= n; i++) { const x = xOf(i), y = yP(P1[i]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.stroke();
+    ctx.font = `600 18px ${fontSans}`; ctx.textBaseline = "middle"; ctx.textAlign = "right";
+    ctx.fillStyle = cWalk; ctx.fillText("S_T = 75.1, call expires worthless", xOf(n) - 8, yS(S1[n]) - 18);
+    ctx.fillStyle = cMid; ctx.fillText("hedged P&L +1.38", xOf(n) - 8, yP(P1[n]) - 18);
+    ctx.fillStyle = muted; ctx.font = `20px ${fontSans}`; ctx.textAlign = "center"; ctx.textBaseline = "top";
+    [0, 64, 128, 192, 256].forEach(i => ctx.fillText(i === 256 ? "T = 1" : (i / 256).toFixed(2), xOf(i), H - bottom + 10));
+    ctx.font = `600 18px ${fontSans}`; ctx.textAlign = "left";
+    ctx.fillText("path 1 at N = 256: the stock (left axis, blue) and the hedged book (right axis, amber) — K = 100 dashed", padL + 8, top + 2);
+  }
+
+  const FIGS = { fig1, fig2, fig3 };
+
+  // ---------- Lightbox: click a figure to enlarge; wheel / pinch to zoom, drag to pan ----------
+  const lb = (function () {
+    const box = document.createElement("div");
+    box.className = "lightbox"; box.hidden = true; box.setAttribute("role", "dialog"); box.setAttribute("aria-label", "Enlarged figure");
+    box.innerHTML = '<div class="bar"><button type="button" data-act="out" aria-label="Zoom out">−</button>' +
+      '<button type="button" data-act="in" aria-label="Zoom in">+</button>' +
+      '<button type="button" data-act="fit">Fit</button><span class="pct">100 %</span>' +
+      '<span class="spacer"></span><span>scroll or pinch to zoom · drag to pan · double-click to fit · Esc to close</span>' +
+      '<button type="button" data-act="close" aria-label="Close">Close</button></div><div class="stage"><canvas></canvas></div>';
+    document.body.appendChild(box);
+    const stage = box.querySelector(".stage"), cv = box.querySelector("canvas"), pct = box.querySelector(".pct");
+    const K = Math.max(2, Math.min(3, window.devicePixelRatio * 2 || 2));
+    let id = null, scale = 1, tx = 0, ty = 0, base = [1, 1];
+    const pointers = new Map(); let lastDist = 0, dragging = false, lx = 0, ly = 0;
+    function apply() { cv.style.transform = `translate(${tx}px, ${ty}px) scale(${scale / K})`; pct.textContent = Math.round(100 * scale / base[0]) + " %"; }
+    function fit() {
+      const [W, H] = BASE[id], r = stage.getBoundingClientRect();
+      const s = Math.min((r.width - 24) / W, (r.height - 24) / H);
+      base = [s, s]; scale = s; tx = (r.width - W * s) / 2; ty = (r.height - H * s) / 2; apply();
+    }
+    function zoomAt(factor, cx, cy) {
+      const ns = Math.min(scale * factor, base[0] * 8), f = ns / scale;
+      if (ns < base[0] * 0.5) return;
+      tx = cx - (cx - tx) * f; ty = cy - (cy - ty) * f; scale = ns; apply();
+    }
+    function redraw() { FIGS[id](cv, K); apply(); }
+    function open(figId) { id = figId; box.hidden = false; document.body.style.overflow = "hidden"; FIGS[id](cv, K); fit(); box.querySelector('[data-act="close"]').focus(); }
+    function close() { box.hidden = true; document.body.style.overflow = ""; id = null; }
+    box.querySelector(".bar").addEventListener("click", e => {
+      const act = e.target.dataset && e.target.dataset.act; if (!act) return;
+      const r = stage.getBoundingClientRect(), cx = r.width / 2, cy = r.height / 2;
+      if (act === "in") zoomAt(1.5, cx, cy); else if (act === "out") zoomAt(1 / 1.5, cx, cy);
+      else if (act === "fit") fit(); else if (act === "close") close();
+    });
+    stage.addEventListener("wheel", e => { e.preventDefault(); const r = stage.getBoundingClientRect(); zoomAt(e.deltaY < 0 ? 1.15 : 1 / 1.15, e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+    stage.addEventListener("dblclick", fit);
+    stage.addEventListener("pointerdown", e => {
+      pointers.set(e.pointerId, [e.clientX, e.clientY]); stage.setPointerCapture(e.pointerId);
+      if (pointers.size === 1) { dragging = true; lx = e.clientX; ly = e.clientY; stage.classList.add("dragging"); }
+      if (pointers.size === 2) { const p = [...pointers.values()]; lastDist = Math.hypot(p[0][0] - p[1][0], p[0][1] - p[1][1]); }
+    });
+    stage.addEventListener("pointermove", e => {
+      if (!pointers.has(e.pointerId)) return;
+      pointers.set(e.pointerId, [e.clientX, e.clientY]);
+      if (pointers.size === 2) {
+        const p = [...pointers.values()], d = Math.hypot(p[0][0] - p[1][0], p[0][1] - p[1][1]);
+        const r = stage.getBoundingClientRect();
+        if (lastDist) zoomAt(d / lastDist, (p[0][0] + p[1][0]) / 2 - r.left, (p[0][1] + p[1][1]) / 2 - r.top);
+        lastDist = d;
+      } else if (dragging) { tx += e.clientX - lx; ty += e.clientY - ly; lx = e.clientX; ly = e.clientY; apply(); }
+    });
+    const up = e => { pointers.delete(e.pointerId); if (pointers.size < 2) lastDist = 0; if (pointers.size === 0) { dragging = false; stage.classList.remove("dragging"); } };
+    stage.addEventListener("pointerup", up); stage.addEventListener("pointercancel", up);
+    document.addEventListener("keydown", e => { if (box.hidden) return; if (e.key === "Escape") close(); if (e.key === "+" || e.key === "=") zoomAt(1.5, stage.clientWidth / 2, stage.clientHeight / 2); if (e.key === "-") zoomAt(1 / 1.5, stage.clientWidth / 2, stage.clientHeight / 2); });
+    window.addEventListener("resize", () => { if (!box.hidden) fit(); });
+    Object.keys(FIGS).forEach(f => { const c = document.getElementById(f); if (c) { c.addEventListener("click", () => open(f)); c.tabIndex = 0; c.addEventListener("keydown", e => { if (e.key === "Enter") open(f); }); } });
+    return { get open() { return !box.hidden; }, redraw };
+  })();
+
+  function draw() { fig1(); fig2(); fig3(); if (lb.open) lb.redraw(); }
+  draw();
+  if (window.matchMedia) {
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw);
+    new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  }
+})();
+</script>

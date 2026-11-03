@@ -227,7 +227,7 @@ review.
 - ☑ S4 · 2.4 The Itô integral — evidence: `docs/evidence/S4/summary.md`
 - ☑ S5 · 2.5 Itô's lemma — evidence: `\docs/evidence/S5/summary.md`
 - ☑ S6 · 2.6 SDEs and geometric Brownian motion — evidence: `docs/evidence/S6/summary.md`
-- ☐ S7 · 2.7 Delta hedging and the Black–Scholes PDE
+- ☑ S7 · 2.7 Delta hedging and the Black–Scholes PDE — evidence: `\docs/evidence/S7/summary.md`
 - ☐ S8 · 2.8 Risk-neutral pricing
 - ☐ S9 · 2.9 The Black–Scholes formula
 - ☐ S10 · 2.10 Greeks
