@@ -1,0 +1,703 @@
+<title>S8 · Risk-neutral pricing</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Study-track notes: the S1–S7 identity — one serif column, sans for apparatus, mono for the grid lines. */
+  :root {
+    --ground: #F4F6F9; --card: #FCFCFD; --ink: #1B2330; --muted: #59657A;
+    --line: #DEE3EC; --line-faint: #E9EDF3;
+    --walk: #2E59C7; --walk-soft: rgba(46, 89, 199, 0.13);
+    --theory: #B07818; --theory-soft: rgba(176, 120, 24, 0.12);
+    --smooth: #1E7A46; --smooth-soft: rgba(30, 122, 70, 0.12);
+    --peek: #B4413A; --peek-soft: rgba(180, 65, 58, 0.12);
+    --code-bg: #EEF1F6; --good: #1E7A46; --bad: #B4413A;
+    --shadow: 0 1px 2px rgba(27, 35, 48, 0.05), 0 4px 16px rgba(27, 35, 48, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0F141D; --card: #161C27; --ink: #E6EAF2; --muted: #97A2B5;
+      --line: #29323F; --line-faint: #1F2733;
+      --walk: #5B7FE3; --walk-soft: rgba(91, 127, 227, 0.16);
+      --theory: #B08422; --theory-soft: rgba(176, 132, 34, 0.16);
+      --smooth: #4CAF79; --smooth-soft: rgba(76, 175, 121, 0.16);
+      --peek: #D9736B; --peek-soft: rgba(217, 115, 107, 0.16);
+      --code-bg: #1B2230; --good: #4CAF79; --bad: #D9736B;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0F141D; --card: #161C27; --ink: #E6EAF2; --muted: #97A2B5;
+    --line: #29323F; --line-faint: #1F2733;
+    --walk: #5B7FE3; --walk-soft: rgba(91, 127, 227, 0.16);
+    --theory: #B08422; --theory-soft: rgba(176, 132, 34, 0.16);
+    --smooth: #4CAF79; --smooth-soft: rgba(76, 175, 121, 0.16);
+    --peek: #D9736B; --peek-soft: rgba(217, 115, 107, 0.16);
+    --code-bg: #1B2230; --good: #4CAF79; --bad: #D9736B;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ground); color: var(--ink);
+    font-family: "Source Serif 4", Georgia, "Times New Roman", serif; font-size: 17px; line-height: 1.68;
+    -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 760px; margin: 0 auto; padding-block: 40px 80px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .eyebrow { font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 11.5px; font-weight: 600;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  header.top { padding: 28px 0 8px; border-bottom: 1px solid var(--line); margin-bottom: 36px; }
+  header.top .eyebrow .sess { color: var(--walk); }
+  h1 { font-family: "Source Serif 4", Georgia, serif; font-size: clamp(30px, 6vw, 42px); font-weight: 700;
+    line-height: 1.12; letter-spacing: -0.01em; margin: 10px 0 12px; text-wrap: balance; }
+  .standfirst { color: var(--muted); font-size: 16px; margin: 0 0 18px; max-width: 62ch; }
+  .standfirst strong { color: var(--ink); font-weight: 600; }
+  section { margin: 44px 0; }
+  h2 { font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 21px; font-weight: 600;
+    letter-spacing: -0.005em; margin: 6px 0 14px; text-wrap: balance; }
+  h2 .stepno { color: var(--walk); font-variant-numeric: tabular-nums; margin-right: 6px; }
+  h3 { font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 15.5px; font-weight: 600; margin: 22px 0 8px; }
+  p { margin: 0 0 14px; max-width: 66ch; }
+  .note { color: var(--muted); font-size: 15px; max-width: 66ch; }
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, Consolas, monospace; font-size: 0.86em; }
+  code { background: var(--code-bg); border-radius: 4px; padding: 0.1em 0.35em; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+  .predictions { display: flex; flex-direction: column; gap: 12px; }
+  .prediction { display: flex; gap: 14px; align-items: baseline; }
+  .prediction .tag { flex: none; font-family: "IBM Plex Sans", sans-serif; font-size: 11px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--walk); border: 1px solid var(--walk);
+    border-radius: 99px; padding: 2px 10px; white-space: nowrap; }
+  .prediction q { font-style: italic; }
+  .prediction .asked { font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 14.5px; color: var(--muted); }
+  .prediction > div { min-width: 0; }
+  .verdict { font-family: "IBM Plex Sans", sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+  .verdict.ok { color: var(--good); } .verdict.no { color: var(--bad); } .verdict.half { color: var(--theory); }
+  ul.steps { margin: 6px 0 16px; padding-left: 22px; max-width: 66ch; }
+  ul.steps li { margin: 0 0 6px; }
+  figure { margin: 26px 0; }
+  .figbox { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; box-shadow: var(--shadow); }
+  canvas { display: block; width: 100%; height: auto; max-width: 100%; }
+  .figbox canvas { cursor: zoom-in; }
+  .lightbox { position: fixed; inset: 0; z-index: 50; background: var(--ground); display: flex; flex-direction: column; }
+  .lightbox[hidden] { display: none; }
+  .lightbox .bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line);
+    font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 13px; color: var(--muted); flex: none; }
+  .lightbox .bar button { font: inherit; font-weight: 600; color: var(--ink); background: var(--card); border: 1px solid var(--line);
+    border-radius: 6px; padding: 4px 12px; cursor: pointer; min-width: 36px; }
+  .lightbox .bar button:focus-visible { outline: 2px solid var(--walk); outline-offset: 2px; }
+  .lightbox .bar .spacer { flex: 1; }
+  .lightbox .stage { flex: 1; overflow: hidden; position: relative; touch-action: none; cursor: grab; }
+  .lightbox .stage.dragging { cursor: grabbing; }
+  .lightbox .stage canvas { position: absolute; left: 0; top: 0; width: auto; height: auto; transform-origin: 0 0; }
+  figcaption { font-size: 14px; color: var(--muted); margin-top: 10px; max-width: 76ch; }
+  .figbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; font-family: "IBM Plex Sans", sans-serif; font-size: 12.5px; color: var(--muted); }
+  .swatch { width: 14px; height: 3px; border-radius: 2px; }
+  .swatch.dash { background: repeating-linear-gradient(90deg, currentColor 0 4px, transparent 4px 7px); height: 2px; }
+  .swatch.ring { width: 10px; height: 10px; border-radius: 50%; border: 2px solid currentColor; background: transparent; }
+  .tablewrap { overflow-x: auto; margin: 14px 0; }
+  table { border-collapse: collapse; width: 100%; font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 14px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--line-faint); text-align: right; white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; }
+  td.hi { color: var(--walk); font-weight: 600; }
+  td.warn { color: var(--theory); font-weight: 600; }
+  td.pk { color: var(--peek); font-weight: 600; }
+  td.sm { color: var(--smooth); font-weight: 600; }
+  td.dim { color: var(--muted); }
+  .aside { border-left: 3px solid var(--theory); background: var(--theory-soft); padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 18px 0; }
+  .aside .eyebrow { color: var(--theory); margin-bottom: 4px; }
+  .aside p { font-size: 15.5px; }
+  .aside.flag { border-left-color: var(--peek); background: var(--peek-soft); }
+  .aside.flag .eyebrow { color: var(--peek); }
+  .identity { margin: 16px 0; padding: 16px 20px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); }
+  .identity .line { font-family: "Source Serif 4", Georgia, serif; font-size: 19px; font-weight: 600; margin: 4px 0; overflow-x: auto; white-space: nowrap; }
+  .identity .line .l { color: var(--walk); } .identity .line .m { color: var(--theory); } .identity .line .r { color: var(--peek); } .identity .line .s { color: var(--smooth); }
+  .identity .why { font-size: 14.5px; color: var(--muted); font-family: "IBM Plex Sans", system-ui, sans-serif; margin: 2px 0 10px; }
+  .q { margin: 18px 0; padding: 16px 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+  .q .qno { font-family: "IBM Plex Sans", sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: var(--walk); text-transform: uppercase; }
+  .q p.stem { font-weight: 600; margin: 6px 0 10px; }
+  .q ul { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .q li { padding-left: 26px; position: relative; font-size: 15.5px; }
+  .q li::before { position: absolute; left: 0; top: 0; font-family: "IBM Plex Sans", sans-serif; font-weight: 600; }
+  .q li.ok::before { content: "✓"; color: var(--good); }
+  .q li.no::before { content: "✗"; color: var(--bad); }
+  .q li em.mis { color: var(--muted); font-style: italic; }
+  .map { display: grid; grid-template-columns: auto 1fr; gap: 0; margin: 0 0 8px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; box-shadow: var(--shadow);
+    font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 14.5px; line-height: 1.5; }
+  .map > div { padding: 9px 14px; border-bottom: 1px solid var(--line-faint); min-width: 0; }
+  .map > div:nth-last-child(-n+2) { border-bottom: none; }
+  .map .no { color: var(--walk); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .map .no.p { color: var(--muted); }
+  .map .what strong { font-weight: 600; }
+  .map .what .why { color: var(--muted); }
+  .ladder { counter-reset: rung; margin: 12px 0 18px; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .ladder li { position: relative; padding: 10px 14px 10px 54px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; font-size: 15.5px; }
+  .ladder li::before { counter-increment: rung; content: counter(rung); position: absolute; left: 14px; top: 9px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--walk-soft); color: var(--walk); font-family: "IBM Plex Sans", sans-serif; font-weight: 600; font-size: 13px; display: flex; align-items: center; justify-content: center; }
+  .ladder li .src { font-family: "IBM Plex Sans", sans-serif; font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 2px; }
+  .ladder li .eq { font-family: "Source Serif 4", Georgia, serif; font-weight: 600; font-size: 17px; display: block; overflow-x: auto; white-space: nowrap; margin: 2px 0 4px; }
+  .ladder li .new { color: var(--peek); }
+  .ladder li .m { color: var(--theory); } .ladder li .r { color: var(--peek); }
+  a { color: var(--walk); text-decoration: none; border-bottom: 1px solid var(--walk-soft); }
+  a:hover { border-bottom-color: var(--walk); }
+  .map .no a, .ladder .src a { border-bottom: none; }
+  :target { scroll-margin-top: 16px; }
+  li:target { outline: 2px solid var(--walk); outline-offset: 2px; }
+  :focus-visible { outline: 2px solid var(--walk); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Touchstone · study track · <span class="sess">Session S8</span> — teaching notes · v3</div>
+  <h1>Risk-neutral pricing</h1>
+  <p class="standfirst">Working material for <strong>page 2.8</strong>, which you write in your own words (I2 — none of this is page prose). The experiment has run on your workstation; every number below is in <code>2_8_risk_neutral_pricing.json</code> (seed 20261104, S₀ = K = 100, r = 0.05, σ = 0.4, T = 1; 10⁶ exact draws of S_T at each of six drifts, 10⁵ stepped paths at three, a Monte Carlo surface over (t, S); 131 checks, all pass). Setup as you ruled it: <strong>(a)</strong> the "PDE price" the Monte Carlo is compared against is the closed form, which 2.7 checked against the PDE; <strong>(b)</strong> Girsanov is measured — the μ-paths reweighted, not re-simulated. Theory sits after the numbers, as at S7. v3 (2026-11-04, 21:55): the draft <code>drafts/2.8.md</code> is interview-transcribed in nine answers with eleven flags ruled; the checks and the ledger batch are approved; "risk-free" is the course's term for r from this session (ruled course-wide).</p>
+</header>
+
+<!-- ============ ABOUT ============ -->
+<section id="about" style="margin-top:0">
+  <div class="eyebrow">Before anything else</div>
+  <h2>What this page is about, and what it is trying to do</h2>
+  <p><strong>In one sentence: this page is about how to <em>compute</em> an option price now that 2.7 has told you what the price must satisfy, and why the method every desk uses looks wrong and isn't.</strong></p>
+  <p>2.7 ended with a differential equation and no μ in it. A PDE is one way to get a number out (solve it on a grid, which is 3.3). This page gives the other way, the one you would actually write first: simulate the stock many times, average the payoff, discount. That pricer has one slot you have to fill — the drift — and the natural thing to put in it, the stock's expected return, gives the wrong answer. Put r in, the rate the stock certainly does not earn, and you get the right one. The page's job is to make a developer confident in three things: that this is the correct recipe (drift r, and report the standard error, because a Monte Carlo price is a price ± something); that it is not a trick — the reason is 2.7's hedge, which earns r whatever the stock does, so the price has to be the average under the one drift that makes the discounted stock a fair game; and that "switching to the risk-neutral measure" is not a different world with a different stock — it is the same paths with different weights, same volatility, which is what Girsanov means and what the experiment shows bin for bin (<a href="#s5">§5</a>).</p>
+  <p>What it is trying to achieve for the course: it closes the loop on the thesis. The forward's price is pure no-arbitrage, no model needed; the page shows the same expectation reproduces it exactly (<a href="#s3">§3</a>), so the risk-neutral average is no-arbitrage written as an average, and for the option — where no-arbitrage alone does not give a number — the average is what fills the gap. It also sets up 2.9 and 3.3: Feynman–Kac says the average and the PDE are two descriptions of one function (<a href="#s6">§6</a>), so the Monte Carlo pricer, the closed form and the grid solver must agree, and 2.9 is just this page's expectation done by hand.</p>
+  <p>What it is not: a claim that the stock drifts at r, or that anyone is neutral to risk. Nobody is; the hedge is.</p>
+</section>
+
+<!-- ============ MAP ============ -->
+<section>
+  <div class="eyebrow">The notes in one card</div>
+  <h2>What each section shows, and why it is there</h2>
+  <div class="map">
+    <div class="no p"><a href="#about">—</a></div><div class="what"><strong>What the page is about and what it is trying to do, in four paragraphs.</strong> <span class="why">— the "so what" before any mechanics; added at your request.</span></div>
+    <div class="no p"><a href="#predictions">P</a></div><div class="what"><strong>Your five predictions, verbatim, scored.</strong> <span class="why">— P1, P2, P3 and half of P4 you had; P5's "no to the weight" and "reweighting would not give the same price" are the page's target misconception, and P4's second half (the real-world drift) its second.</span></div>
+    <div class="no"><a href="#s1">§1</a></div><div class="what"><strong>What ran: five claims, 131 checks, 5 s, and where every number lives in the JSON.</strong> <span class="why">— I1: nothing below is claimed that the file does not show.</span></div>
+    <div class="no"><a href="#s2">§2</a></div><div class="what"><strong>The three questions a developer writing a Monte Carlo pricer asks — and that is the whole page.</strong> <span class="why">— the "so what": which drift to simulate under; how many paths, and how you know; whether paths drawn at another drift can be reused.</span></div>
+    <div class="no"><a href="#s3">§3</a></div><div class="what"><strong>Question 1 — the drift: simulated at its real-world μ, the discounted average payoff is not the price (21.42 against 18.02 at μ = 0.1; 38.96 at μ = 0.3; 6.77 at μ = −0.2, each hundreds of s.e. off); simulated at r it is (18.01 ± 0.03). The forward the same.</strong> <span class="why">— P1, P2, P3; the index's check, both halves.</span></div>
+    <div class="no"><a href="#s4">§4</a></div><div class="what"><strong>Question 2 — how many paths: the error falls like 1/√n, and the standard error the pricer reports is the error it makes (rms 0.298 against 0.312 at n = 10⁴, over 100 batches).</strong> <span class="why">— I20: the s.e. reported, and here also measured.</span></div>
+    <div class="no"><a href="#s5">§5</a></div><div class="what"><strong>Question 3 — reuse: the same μ-paths, each weighted by e^(−λW_T − ½λ²T), average to the price at every μ; the weights move the drift (0.222 → −0.029) and leave the volatility (0.3999 → 0.3994); their cost is an effective sample size of n·e^(−λ²T).</strong> <span class="why">— P5 corrected; Girsanov as a number.</span></div>
+    <div class="no p"><a href="#bridge">→</a></div><div class="what"><strong>Then the why — from 2.7's hedge to V = e^(−rT)·E^Q[payoff] in six rungs.</strong> <span class="why">— theory after the numbers; the only new moves are "pick the drift" and "a martingale has no drift".</span></div>
+    <div class="no"><a href="#s6">§6</a></div><div class="what"><strong>The martingale and the PDE on the numbers: e^(−rt)S_t has mean 100 at every checkpoint under Q and 128.6 at T under μ = 0.3; the Monte Carlo surface V_MC(t, S) matches the closed form within 1.7 s.e. everywhere and satisfies the PDE to Monte Carlo precision.</strong> <span class="why">— P4; C3; C5 — Feynman–Kac named, and shown as a residual.</span></div>
+    <div class="no"><a href="#s7">§7</a></div><div class="what"><strong>Five draft check questions.</strong> <span class="why">— for your approval (I5).</span></div>
+    <div class="no"><a href="#s8">§8</a></div><div class="what"><strong>Thirteen ledger rows born on this page.</strong> <span class="why">— for your approval, then into <code>drafts/notation.md</code>.</span></div>
+    <div class="no"><a href="#s9">§9</a></div><div class="what"><strong>The interview plan: nine questions for <code>drafts/2.8.md</code>, in page order.</strong> <span class="why">— so you can see the shape before I ask the first one.</span></div>
+  </div>
+</section>
+
+<!-- ============ 0 · PREDICTIONS ============ -->
+<section id="predictions">
+  <div class="eyebrow">On the record</div>
+  <h2>Your predictions, before any code ran</h2>
+  <p class="note" style="margin-bottom:12px"><strong>Setup as posed:</strong> the stock follows 2.6's Geometric Brownian motion (GBM), dS = μS dt + σS dW, with S₀ = K = 100, r = 0.05, σ = 0.4, T = 1; the option is the European call of 2.7, whose closed-form price is 18.02. "Simulate" means draw S_T and average the discounted payoff e^(−rT)·max(S_T − K, 0). Gut answers, not derivations. Your P2 paste arrived as tripled LaTeX and is re-set below to the course's plain notation (confirmed 2026-11-04); P5's first "no" you clarified as "no to all".</p>
+  <div class="card predictions">
+    <div class="prediction"><span class="tag">P1</span><div><span class="asked">Simulate the stock at its real-world drift μ = 0.1, average the discounted payoff e^(−rT)·max(S_T − K, 0) over many paths. Is that number above, below, or equal to the Black–Scholes price? By roughly how much at μ = 0.1, r = 0.05, σ = 0.4, T = 1?</span><br>You: <q>above by 3.34%</q> &nbsp;<span class="verdict ok">above — right</span>; <span class="verdict half">3.34 — right in price units, not in percent</span> — <a href="#s3">§3</a>: 21.42 ± 0.03 against 18.02, a gap of 3.40 ± 0.03; the closed-form gap e^(−rT)·E^P[payoff] − V is 3.337, which is your number — 3.34 on an 18.02 option, 18.5 %.</div></div>
+    <div class="prediction"><span class="tag">P2</span><div><span class="asked">Now simulate with the drift set to r instead of μ. Does the discounted average land on the Black–Scholes price? Why would a drift the stock does not have give the right price?</span><br>You: <q>yes because replacing μ with r changes the distribution to the risk-neutral one, and the discounted expectation becomes the unique no-arbitrage price</q> &nbsp;<span class="verdict ok">yes — right</span> — 18.010 ± 0.031, 0.4 s.e. from 18.023 at 10⁶ paths, <a href="#s3">§3</a>. <span class="verdict half">the why names the result, not the mechanism</span> — the page's answer is 2.7's: the hedged book earns r whatever μ is, so the price is what makes the hedge break even, and that is the expectation under the one drift for which the discounted stock is a martingale (<a href="#rung-2">rung 2</a>, <a href="#rung-3">rung 3</a>). "Risk-neutral" is the name of that drift, and nobody's attitude to risk is in it.</div></div>
+    <div class="prediction"><span class="tag">P3</span><div><span class="asked">Two desks price the same option: one believes μ = 0.3, the other μ = −0.2. Do they agree on the price? On the expected payoff?</span><br>You: <q>Yes on the price, no on the expected payoff</q> &nbsp;<span class="verdict ok">right, both</span> — <a href="#s3">§3</a>, <a href="#s5">§5</a>: the two desks expect payoffs of 40.95 and 7.12, and both reweight their own paths to the price, 18.00 ± 0.01 and 18.11 ± 0.07. The price is what the hedge costs; the expected payoff is what each desk hopes to be paid.</div></div>
+    <div class="prediction"><span class="tag">P4</span><div><span class="asked">Under the r-drift, is the discounted stock price e^(−rt)S_t a martingale (2.5's word), a submartingale, or neither? And under the real-world drift?</span><br>You: <q>martingale</q> &nbsp;<span class="verdict ok">under Q — right</span> — <a href="#s6">§6</a>: mean 99.98 ± 0.06, 100.00 ± 0.09, 99.99 ± 0.11, 100.01 ± 0.13 at t = ¼, ½, ¾, 1. <span class="verdict half">the second half is unanswered</span> — under μ = 0.3 it is a submartingale (128.6 ± 0.2 at T, 170 s.e. above 100) and under μ = −0.2 a supermartingale (77.8 ± 0.1): the discounted stock drifts at μ − r.</div></div>
+    <div class="prediction"><span class="tag">P5</span><div><span class="asked">Girsanov: changing the drift from μ to r — does it change the paths' volatility, their drift, or the weight each path gets in the average? If you reweighted the μ-paths instead of re-simulating, would the price come out the same?</span><br>You: <q>No and no</q> — the first clarified as <q>no to all</q> &nbsp;<span class="verdict ok">volatility: no — right</span> (0.3994 weighted against 0.3999 as drawn); <span class="verdict no">drift: it moves</span> (the weighted mean log-return 0.222 → −0.029, which is the Q-drift); <span class="verdict no">weight: that is exactly what changes</span> — L = e^(−λW_T − ½λ²T) per path, mean 1; <span class="verdict no">the second "no" is wrong</span> — <a href="#s5">§5</a>: the μ-paths reweighted by e^(−λW_T − ½λ²T), λ = (μ − r)/σ, give 18.00–18.11 at every drift, within s.e. of 18.02. The weights move the mean log-return from 0.222 to −0.029 (the Q-drift is −0.030) and leave the realised volatility at 0.3994 against 0.3999: the same paths, the same σ, a different weight on each.</div></div>
+  </div>
+  <p class="note" style="margin-top:14px">P1, P2 and P3 are the page's mechanics and you had all three; your 3.34 is the closed-form number itself. P4's second half and P5's "no to the weight, and no it would not give the same price" are what the page exists to show, and they are one fact seen twice: under the real-world drift the discounted stock is not a martingale and its expectation is not the price (P4); the fix is not new paths but new weights, and the weights are 2.5's exponential martingale with λ in place of σ (P5). "Unique no-arbitrage price" in your P2 is right and is 2.11's to earn: one source of noise, one traded stock, so one Q — this page shows one Q works and does not show it is the only one.</p>
+</section>
+
+<!-- ============ 1 · WHAT RAN ============ -->
+<section id="s1">
+  <div class="eyebrow">Numbers first</div>
+  <h2><span class="stepno">1</span>The experiment on your disk</h2>
+  <p><code>experiments/2_8_risk_neutral_pricing.py</code> wrote <code>2_8_risk_neutral_pricing.json</code> in 5.1 s on your workstation (Python 3.12.15, numpy 2.5.2, via <code>uv run --frozen</code>); <code>--quick</code> runs in 0.4 s. The container run (numpy 2.5.3) agrees to every printed digit; the largest difference among non-rounding values is 9 parts in 10¹¹. The stock is never stepped by Euler: S_T is drawn <em>exactly</em> — S_T = S₀·e^((μ − ½σ²)T + σW_T), 2.6's closed-form solution, because a European payoff looks only at T (2.6's decision 1) — and where a path is needed it is stepped by 2.6's exact step on 256 steps. Five claims, 131 checks, all measured:</p>
+  <ul class="steps">
+    <li><strong>C1</strong> — the drift test, 10⁶ draws at each of μ = −0.2, 0, 0.05 (= r), 0.1, 0.3, 0.6: the discounted mean payoff against the closed form, the gap against e^(−rT)·E^P[payoff] − V in closed form (the lognormal integrated against the payoff under μ — 2.7's unhedged mean, 2.9's integral with μ for r), E[S_T] against S₀e^(μT), and the forward's discounted mean against S₀ − Ke^(−rT) (<a href="#s3">§3</a>). <code>results.terminal.mu_*.{discounted_mean_payoff, closed_form_bias, measured_bias, bias_in_se, forward_discounted_mean}</code>.</li>
+    <li><strong>C2</strong> — the Q-run's error law: nested estimates at n = 10³, 10⁴, 10⁵, 10⁶; the 10⁶ draws cut into batches of 100, 1,000 and 10,000, the rms error of the batch means against the reported s.e.; the same for the forward; E^Q[S_T] (<a href="#s4">§4</a>). <code>results.terminal.mu_0.05.convergence</code>.</li>
+    <li><strong>C3</strong> — the martingale: 10⁵ stepped paths at μ = r, 0.3 and −0.2, the mean and sd of e^(−rt)S_t at t = ¼, ½, ¾, 1 against S₀e^((μ−r)t), and path by path e^(−rt)S_t = S₀·e^(σW̃_t − ½σ²t) with W̃_t = W_t + λt (<a href="#s6">§6</a>). <code>results.paths.mu_*.{checkpoints, identity_max_abs, realised_variance, log_return_T}</code>.</li>
+    <li><strong>C4</strong> — Girsanov as reweighting: C1's own μ-draws, each weighted by L = e^(−λW_T − ½λ²T), λ = (μ − r)/σ, averaged to the price and to the forward; mean L, mean L², the effective sample size against n·e^(−λ²T); the in-the-money fraction against Φ(d₂); on C3's paths, the weighted mean log-return against (r − ½σ²)T and the weighted realised variance against σ²; the weighted discounted stock at every checkpoint (<a href="#s5">§5</a>). <code>results.terminal.mu_*.girsanov</code>, <code>results.paths.mu_*.{checkpoints[*].reweighted_discounted_S, log_return_T.reweighted, realised_variance.reweighted}</code>.</li>
+    <li><strong>C5</strong> — Feynman–Kac in numbers: V_MC(t, S) = e^(−rτ)·E^Q[payoff | S] on S ∈ [50, 200] (16 points) at τ = 1 and ½, 10⁶ common draws per point, against the closed form; its PDE residual with the Greeks taken by central differences from V_MC alone, against the closed form's own finite-difference residual and the noise measured by an independent replication (<a href="#s6">§6</a>). <code>results.feynman_kac.rows[*]</code>.</li>
+  </ul>
+  <p class="note">Notation for everything below, each term defined where it is first used in the sections. P is the real-world measure — the probabilities of 2.6's model with its drift μ; Q is the measure in which the stock drifts at r instead, and E^Q[·] an average over paths drawn that way. V = 18.02 is the closed form at t = 0, used on this page as the solution of 2.7's PDE (your ruling (a)); F = S₀ − Ke^(−rT) = 4.877 is the forward's value by no-arbitrage. λ = (μ − r)/σ is how far the real-world drift sits from r in units of σ; L = e^(−λW_T − ½λ²T) is the weight Girsanov puts on a path drawn under P, and W̃_t = W_t + λt the Brownian motion that path is a sample of under Q. "s.e." is the standard error of the quantity beside it; 10⁶ draws give the price to ±0.03 and a mean of S_T to ±0.04. Every drift-plus-noise line is written drift first.</p>
+</section>
+
+<!-- ============ 2 · THE THREE QUESTIONS ============ -->
+<section id="s2">
+  <div class="eyebrow">The so what</div>
+  <h2><span class="stepno">2</span>Three questions a developer writing a Monte Carlo pricer asks</h2>
+  <p>2.7 ended with μ gone from the PDE and a question: if the price does not depend on the stock's real-world drift, what drift goes into the simulator? A developer who writes "simulate the stock, average the discounted payoff" has to type a number for μ, and the obvious one — the stock's expected return — gives the wrong price. The page is the three decisions that follow from that, each with a wrong answer that produces a plausible-looking number.</p>
+  <p class="note"><strong>"Rung" below means a step of the argument</strong>, laid out as a six-rung ladder in <a href="#bridge">the bridge</a> after <a href="#s5">§5</a> (theory after numbers). In one line each: <a href="#rung-1">1</a> 2.7's result — the hedged book earns r whatever μ is, and the PDE has no μ in it; <a href="#rung-2">2</a> so price with the drift that makes the arithmetic easiest, r, "as if" the stock drifted at r; <a href="#rung-3">3</a> under that drift the discounted stock is 2.5's exponential martingale; <a href="#rung-4">4</a> the price as an expectation, V = e^(−rT)·E^Q[payoff], and Feynman–Kac: that expectation solves the PDE; <a href="#rung-5">5</a> Girsanov — the change of drift is a reweighting of the same paths by L; <a href="#rung-6">6</a> why "risk-neutral": under Q every discounted traded price is a martingale. Every "rung n" in the notes is a link to it.</p>
+  <div class="identity">
+    <div class="line"><span class="l">1 · Which drift do you simulate under?</span></div>
+    <div class="why">r. Not the stock's expected return, not zero, not "it doesn't matter". At μ = 0.1 the discounted real-world average is 21.42, 3.40 above the price; at μ = 0.3 it is 38.96; at μ = 0 it is 15.11, below. At μ = r it is 18.01 ± 0.03. The forward behaves the same way: only the r-drift returns S₀ − Ke^(−rT), the value that needed no simulation at all. The wrong answers are "the price is the expected payoff, discounted" and "μ doesn't matter, so any drift will do". §3.</div>
+    <div class="line"><span class="m">2 · How many paths — and how do you know the number is right?</span></div>
+    <div class="why">You don't get the price; you get the price ± a standard error, and the s.e. is sd/√n: 10³ paths give ±0.95 on 18, 10⁶ give ±0.03, 10⁸ would give ±0.003. The s.e. is not a guess: cut the run into batches and the batch means scatter by exactly it (0.298 measured against 0.312 reported at n = 10⁴). The wrong answers are "the Monte Carlo price is the price" and "more paths fix it linearly". §4.</div>
+    <div class="line"><span class="r">3 · Can you reuse paths drawn at another drift?</span></div>
+    <div class="why">Yes — weight each path by L = e^(−λW_T − ½λ²T), λ = (μ − r)/σ, and the μ-paths average to the price: 18.00 ± 0.01 from paths drawn at μ = 0.3, 18.11 ± 0.07 from μ = −0.2. Nothing about the paths changed: same σ (0.3994 against 0.3999), same W. What changed is the weight, and the weights move the mean drift from μ to r exactly. That is Girsanov, and its cost is paths: the effective sample size is n·e^(−λ²T), 68 % at |λ| = 0.625, 16 % at 1.375. The wrong answers are "changing the drift changes the volatility" and "you have to re-simulate". §5.</div>
+  </div>
+  <p>The maths the page needs is six rungs long (<a href="#bridge">the bridge</a>, after <a href="#s5">§5</a>), and 2.5 and 2.7 did four of them; what is new is "pick the drift" (<a href="#rung-2">rung 2</a>) and "a martingale has no drift, and Itô's lemma says what that costs V" (<a href="#rung-4">rung 4</a>). What is new in the numbers is that the whole thing is one identity read three ways: e^(−rT)·E^Q[payoff] is the price (question 1), its Monte Carlo estimate is that price ± sd/√n (question 2), and E^Q[·] = E^P[L·(·)] on the same paths (question 3).</p>
+</section>
+
+<!-- ============ 3 · QUESTION 1 ============ -->
+<section id="s3">
+  <div class="eyebrow">Question 1 — C1, 10⁶ draws at six drifts</div>
+  <h2><span class="stepno">3</span>The drift: the real-world expectation is not the price, and the r-drift is</h2>
+  <p><strong>What this decides.</strong> What number goes in the simulator's drift slot, and what you get if you put the wrong one in. Six runs, each 10⁶ exact draws of S_T at one drift, the stock's volatility 0.4 in all of them; the discounted average payoff against the closed form, 18.02. The closed-form column is e^(−rT)·E^P[payoff] — 2.7's unhedged mean plus the funding, the lognormal integrated against the payoff with μ where 2.9 will put r — so the Monte Carlo is checked against what it should give under μ, not only against what it should not.</p>
+  <div class="tablewrap"><table>
+    <tr><th>drift μ</th><th>λ = (μ − r)/σ</th><th>e^(−rT)·mean payoff ± s.e.</th><th>closed form under μ</th><th>gap to the price 18.02</th><th>in s.e.</th><th>E[S_T] (S₀e^(μT))</th><th>forward: e^(−rT)·mean(S_T − K) (closed form)</th></tr>
+    <tr><td>−0.2</td><td class="dim">−0.625</td><td class="pk">6.77 ± 0.02</td><td class="dim">6.74</td><td class="pk">−11.25</td><td class="dim">−622</td><td class="dim">81.92 (81.87)</td><td class="pk">−17.20 ± 0.03 (−17.24)</td></tr>
+    <tr><td>0</td><td class="dim">−0.125</td><td class="pk">15.11 ± 0.03</td><td class="dim">15.08</td><td class="pk">−2.92</td><td class="dim">−103</td><td class="dim">100.06 (100.00)</td><td class="pk">0.06 ± 0.04 (0.00)</td></tr>
+    <tr><td>0.05 = r</td><td class="dim">0</td><td class="hi">18.01 ± 0.03</td><td class="dim">18.02</td><td class="hi">−0.01</td><td class="hi">−0.4</td><td class="dim">105.11 (105.13)</td><td class="hi">4.86 ± 0.04 (4.88)</td></tr>
+    <tr><td>0.1</td><td class="dim">+0.125</td><td class="pk">21.42 ± 0.03</td><td class="dim">21.36</td><td class="pk">+3.40</td><td class="dim">+99</td><td class="dim">110.58 (110.52)</td><td class="pk">10.06 ± 0.04 (10.00)</td></tr>
+    <tr><td>0.3</td><td class="dim">+0.625</td><td class="pk">38.96 ± 0.05</td><td class="dim">39.01</td><td class="pk">+20.93</td><td class="dim">+439</td><td class="dim">134.91 (134.99)</td><td class="pk">33.21 ± 0.05 (33.28)</td></tr>
+    <tr><td>0.6</td><td class="dim">+1.375</td><td class="pk">79.64 ± 0.07</td><td class="dim">79.69</td><td class="pk">+61.62</td><td class="dim">+877</td><td class="dim">182.18 (182.21)</td><td class="pk">78.17 ± 0.07 (78.20)</td></tr>
+  </table></div>
+  <p class="note"><code>results.terminal.mu_*.{discounted_mean_payoff, closed_form_discounted_real_world_expectation, measured_bias, bias_in_se, E_S_T, forward_discounted_mean, forward_closed_form_under_mu}</code>. The gap is measured within 5 s.e. of its closed form at every μ, and it increases with μ at every step of the table (checked). The forward's no-arbitrage value is S₀ − Ke^(−rT) = 4.877; its discounted real-world expectation is S₀e^((μ−r)T) − Ke^(−rT), which equals that only at μ = r.</p>
+  <p><strong>The number.</strong> At the stock's "true" drift of 0.1 the pricer that discounts the real-world expectation at r is 3.40 too high on an 18.02 option — your P1, and the closed form says 3.34. At μ = 0.3 it is more than double the price; at μ = −0.2 it is a third of it. The gap is not Monte Carlo noise — it is 99, 439 and 622 standard errors — and it is not a mistake in the simulator: every row matches its own closed form, and E[S_T] is S₀e^(μT) in every row (2.6's check again). The simulator is right about the expectation. The expectation is the wrong thing.</p>
+  <p><strong>At μ = r the same code returns the price.</strong> 18.010 ± 0.031, 0.4 s.e. from 18.023, and the only thing that changed is the number in the drift slot. The stock does not drift at r — nothing on this page or on 2.7 says it does — but <em>pricing as if it did</em> gives the number the hedge of 2.7 breaks even at. <a href="#rung-1">Rung 1</a> is why: the hedged book earns r whatever μ is, so V cannot depend on μ, so any μ gives the same V through the PDE, and r is the μ for which "discount the expectation" is that V (<a href="#rung-4">rung 4</a>). Your P2 called that distribution "the risk-neutral one", which is its name; what makes it the right one is the hedge, not anyone's neutrality.</p>
+  <p><strong>The forward, in the same table.</strong> A forward needs no model: it is worth S₀ − Ke^(−rT) = 4.877 by carrying the stock and borrowing K e^(−rT), the course's thesis. Simulated at μ = 0.3 and discounted it comes out at 33.21, at μ = −0.2 at −17.20, and only at μ = r at 4.86 ± 0.04. So the r-drift is not a trick for options: it is the drift under which "discount the expected payoff" agrees with no-arbitrage for the one product where no-arbitrage is all there is. That is <a href="#rung-6">rung 6</a>'s definition of Q in one row.</p>
+  <p><strong>P3's two desks.</strong> The μ = 0.3 desk expects to be paid 40.95 (undiscounted; closed form 41.01) and the μ = −0.2 desk 7.12 (7.09): they disagree by a factor of six on what the option will pay, and <a href="#s5">§5</a> shows both arriving at 18.0 for its price from their own paths. The price is not the expected payoff; it is what it costs to hedge, and 2.7 showed the hedge does not care what either desk expects.</p>
+  <figure>
+    <div class="figbox">
+      <canvas id="fig1" width="1400" height="640" aria-label="Discounted mean payoff against the simulated drift: the closed-form curve rises from 4 at drift minus 0.3 to 88 at drift 0.65, the six measured points sit on it, and the six reweighted points all sit on the price line at 18"></canvas>
+      <div class="figbar">
+        <span class="chip"><span class="swatch" style="background:var(--peek)"></span>e^(−rT)·E^P[payoff] under μ — closed form (line), measured (dots)</span>
+        <span class="chip"><span class="swatch ring" style="color:var(--walk)"></span>the same draws reweighted by L (§5)</span>
+        <span class="chip"><span class="swatch dash" style="color:var(--muted)"></span>the price, 18.02 · μ = r</span>
+      </div>
+    </div>
+    <figcaption>Click to enlarge. The discounted real-world expectation against the drift it was simulated at (<code>results.terminal.mu_*</code>). It crosses the price once, at μ = r; the error bars are smaller than the dots. The six hollow points are the same six runs with Girsanov's weights on the paths (<a href="#s5">§5</a>): 18.11, 18.05, 18.01, 18.07, 18.00, 18.05.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 4 · QUESTION 2 ============ -->
+<section id="s4">
+  <div class="eyebrow">Question 2 — C2, the Q-run cut into batches</div>
+  <h2><span class="stepno">4</span>How many paths: 1/√n, and the reported s.e. is the error you make</h2>
+  <p><strong>What this decides.</strong> What a Monte Carlo pricer should print beside its price, and how to test that what it prints is true. The Q-run's 10⁶ draws, read two ways: the running estimate at n = 10³, 10⁴, 10⁵, 10⁶ — one pricer getting more paths — and the same draws cut into independent batches of n = 100, 1,000, 10,000, so the batch means are 10,000, 1,000 and 100 independent pricers of size n and their scatter around 18.02 is the error such a pricer makes.</p>
+  <div class="tablewrap"><table>
+    <tr><th>n paths</th><th>Q-estimate ± s.e. (nested)</th><th>error, in s.e.</th><th>batches of n</th><th>rms error of the batch means</th><th>s.e. the pricer reports, sd/√n</th><th>forward: rms error (reported)</th></tr>
+    <tr><td>100</td><td class="dim">—</td><td class="dim">—</td><td class="dim">10,000</td><td class="hi">3.16</td><td class="dim">3.12</td><td class="dim">4.19 (4.16)</td></tr>
+    <tr><td>1,000</td><td class="hi">18.22 ± 0.95</td><td class="dim">+0.2</td><td class="dim">1,000</td><td class="hi">0.975</td><td class="dim">0.988</td><td class="dim">1.29 (1.32)</td></tr>
+    <tr><td>10,000</td><td class="hi">18.35 ± 0.31</td><td class="dim">+1.1</td><td class="dim">100</td><td class="hi">0.298</td><td class="dim">0.312</td><td class="dim">0.385 (0.416)</td></tr>
+    <tr><td>100,000</td><td class="hi">18.06 ± 0.10</td><td class="dim">+0.4</td><td class="dim">—</td><td class="dim">—</td><td class="dim">—</td><td class="dim">—</td></tr>
+    <tr><td>1,000,000</td><td class="hi">18.010 ± 0.031</td><td class="dim">−0.4</td><td class="dim">—</td><td class="dim">—</td><td class="dim">—</td><td class="dim">—</td></tr>
+  </table></div>
+  <p class="note"><code>results.terminal.mu_0.05.convergence.{nested, batches, slope_rms_error_vs_n, slope_forward_rms_error_vs_n, E_Q_S_T}</code>. Slope of the batch rms error against n, log-log: −0.512 for the call, −0.519 for the forward (checked against −½ to 0.06). The rms error agrees with the reported s.e. within 5 s.e. of an rms estimated from that many batches (3.5 %, 11 %, 35 %); E^Q[S_T] = 105.11 ± 0.04 against S₀e^(rT) = 105.13.</p>
+  <p><strong>The number.</strong> Each 100× more paths buys one more decimal: ±0.95, ±0.31, ±0.10, ±0.03. That is 2.1's √n — the sd of a sum of n independent draws grows like √n, so the sd of their mean shrinks like 1/√n — and it is the reason a Monte Carlo price is never quoted without its s.e. (I20). The nested estimates wander within their own error bars (0.2, 1.1, 0.4, 0.4 s.e.) and never outside them; the pricer at 10⁴ paths was 0.33 high, and said so.</p>
+  <p><strong>The s.e. is measured, not asserted.</strong> A pricer that reports sd/√n is making a claim about runs it did not do. The batches do those runs: 100 independent pricers of 10,000 paths each scatter around the price with rms 0.298, and each of them reported 0.312. At n = 100 the 10,000 pricers scatter by 3.16 and report 3.12. The reported number is the error, and the law holds for the forward too (slope −0.52), whose payoff has no kink: the √n is about averaging, not about options.</p>
+  <figure>
+    <div class="figbox">
+      <canvas id="fig2" width="1400" height="640" aria-label="Log-log chart of root-mean-square error against path count for the call and the forward, both falling with slope one half along the reported standard error lines"></canvas>
+      <div class="figbar">
+        <span class="chip"><span class="swatch" style="background:var(--walk)"></span>the call: rms error of independent batches of n paths</span>
+        <span class="chip"><span class="swatch" style="background:var(--theory)"></span>the forward</span>
+        <span class="chip"><span class="swatch dash" style="color:var(--muted)"></span>sd/√n, the s.e. the pricer reports</span>
+      </div>
+    </div>
+    <figcaption>Click to enlarge. Both axes logarithmic. The dots are measured errors across 10,000, 1,000 and 100 independent batches; the dashed lines are what one batch would have reported. The slope is −½ for both payoffs. Doubling the precision costs four times the paths.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 5 · QUESTION 3 ============ -->
+<section id="s5">
+  <div class="eyebrow">Question 3 — C4, the same paths, reweighted</div>
+  <h2><span class="stepno">5</span>Reuse: Girsanov is a weight on each path, and it moves the drift without touching σ</h2>
+  <p><strong>What this decides.</strong> Whether "change the drift to r" means new paths or new arithmetic on the old ones — and so what Girsanov's theorem is <em>for</em>. Take C1's μ-draws exactly as they are and give path i the weight L_i = e^(−λW_{T,i} − ½λ²T), with λ = (μ − r)/σ; average L × the discounted payoff. The weight is 2.5's exponential martingale e^(aW − ½a²T) with a = −λ, so its mean is 1 and it moves no money in or out of the average: it moves money <em>between</em> paths, from the ones a μ-drift over-produces to the ones it under-produces.</p>
+  <div class="tablewrap"><table>
+    <tr><th>paths drawn at μ</th><th>λ</th><th>reweighted price ± s.e.</th><th>reweighted forward</th><th>mean L</th><th>ESS/n measured (e^(−λ²T))</th><th>s.e. against the Q-run's 0.031</th><th>P(S_T &gt; K): under μ → reweighted (Φ(d₂) = 0.470)</th></tr>
+    <tr><td>−0.2</td><td class="dim">−0.625</td><td class="hi">18.11 ± 0.07</td><td class="dim">4.98 ± 0.08</td><td class="dim">1.001 ± 0.001</td><td class="warn">0.676 (0.677)</td><td class="dim">0.073</td><td class="dim">0.243 → 0.472</td></tr>
+    <tr><td>0</td><td class="dim">−0.125</td><td class="hi">18.05 ± 0.04</td><td class="dim">4.93 ± 0.05</td><td class="dim">1.000 ± 0.000</td><td class="warn">0.985 (0.985)</td><td class="dim">0.037</td><td class="dim">0.422 → 0.471</td></tr>
+    <tr><td>0.1</td><td class="dim">+0.125</td><td class="hi">18.07 ± 0.03</td><td class="dim">4.92 ± 0.04</td><td class="dim">1.000 ± 0.000</td><td class="warn">0.984 (0.985)</td><td class="dim">0.027</td><td class="dim">0.520 → 0.470</td></tr>
+    <tr><td>0.3</td><td class="dim">+0.625</td><td class="hi">18.00 ± 0.01</td><td class="dim">4.82 ± 0.04</td><td class="dim">1.001 ± 0.001</td><td class="warn">0.677 (0.677)</td><td class="dim">0.015</td><td class="dim">0.708 → 0.470</td></tr>
+    <tr><td>0.6</td><td class="dim">+1.375</td><td class="hi">18.05 ± 0.01</td><td class="dim">5.25 ± 0.11</td><td class="dim">0.993 ± 0.002</td><td class="warn">0.158 (0.151)</td><td class="dim">0.009</td><td class="dim">0.904 → 0.471</td></tr>
+  </table></div>
+  <p class="note"><code>results.terminal.mu_*.girsanov.{reweighted_discounted_mean_payoff, reweighted_forward, mean_L, mean_L2, ess_over_n, expected_ess_over_n, se_reweighted_price, reweighted_itm_fraction}</code>, <code>…itm_fraction_P</code>, <code>…itm_probability_Q</code>. Every reweighted price and forward is within 5 s.e. of its target (worst 2.8 s.e., at μ = 0.6); mean L² is e^(λ²T) within 5 s.e. (1.482 ± 0.003 against 1.478 at |λ| = 0.625; 6.25 ± 0.17 against 6.62 at 1.375). ESS = (ΣL)²/ΣL² is the number of equally-weighted paths the weighted average is worth.</p>
+  <p><strong>The number.</strong> Paths drawn at μ = 0.3 average to 38.96 on their own and to 18.00 ± 0.01 with the weights on; paths drawn at μ = −0.2 go from 6.77 to 18.11 ± 0.07. Same paths, same S_T on every one of them — only the weight changed. The in-the-money column says what the weight did: under μ = 0.3, 70.8 % of the paths finish above K; weighted, 47.0 % of the mass does, which is Φ(d₂), the Q-probability of finishing in the money (2.9 names it). Under μ = −0.2 it is 24.3 % of the paths and, weighted, 47.2 % of the mass. The weights turn a μ-sample into a Q-sample without drawing a single new number.</p>
+  <div class="tablewrap"><table>
+    <tr><th>stepped paths (10⁵ × 256) at μ</th><th>mean log(S_T/S₀): as drawn ((μ − ½σ²)T)</th><th>reweighted ((r − ½σ²)T = −0.030)</th><th>realised vol: as drawn</th><th>reweighted</th><th>E[e^(−rt)S_t] at T: as drawn</th><th>reweighted</th></tr>
+    <tr><td>0.05 = r</td><td class="dim">−0.030 ± 0.001 (−0.030)</td><td class="dim">—</td><td class="dim">0.4001</td><td class="dim">—</td><td class="hi">100.01 ± 0.13</td><td class="dim">—</td></tr>
+    <tr><td>0.3</td><td class="pk">+0.222 ± 0.001 (+0.220)</td><td class="hi">−0.029 ± 0.002</td><td class="dim">0.3999</td><td class="sm">0.3994</td><td class="pk">128.65 ± 0.17</td><td class="hi">99.90 ± 0.07</td></tr>
+    <tr><td>−0.2</td><td class="pk">−0.281 ± 0.001 (−0.280)</td><td class="hi">−0.031 ± 0.002</td><td class="dim">0.4000</td><td class="sm">0.3998</td><td class="pk">77.81 ± 0.10</td><td class="hi">99.85 ± 0.43</td></tr>
+  </table></div>
+  <p class="note"><code>results.paths.mu_*.{log_return_T, realised_variance, checkpoints[3]}</code>. Realised variance per path from 256 log-returns, mean 0.1599–0.1601 as drawn and 0.1595–0.1599 reweighted against σ² = 0.16, each within 5 s.e. (±0.00035 weighted); the vol column is its square root.</p>
+  <p><strong>What the weight moves, and what it does not.</strong> The mean log-return of the μ = 0.3 paths is 0.222 as drawn — (μ − ½σ²)T — and −0.029 with the weights on, which is (r − ½σ²)T to within 1 s.e.: the weights have moved the drift from μ to r. The realised volatility of the same paths is 0.3999 as drawn and 0.3994 weighted: they have not touched σ. That is the index's sentence — "reweighting paths, not changing volatility" — as two numbers. The reason is <a href="#rung-5">rung 5</a>: under the weights the process W̃_t = W_t + λt is a Brownian motion, and S_T = S₀·e^((r − ½σ²)T + σW̃_T) is 2.6's solution with r in place of μ and the same σ in front of the same noise.</p>
+  <p><strong>The cost: paths, not correctness.</strong> Mean L is 1, but mean L² is e^(λ²T), so the weights have a spread, and a weighted average of n paths is worth only n·e^(−λ²T) equal ones: 98 % of them at |λ| = 0.125, 68 % at 0.625, 16 % at 1.375 (measured 0.158). That is the practical reason to put r in the simulator rather than μ and weights: it is the drift that needs no weights, and every path counts in full. Nothing is lost in the <em>answer</em> — the reweighted prices are right at every λ in the table.</p>
+  <div class="aside">
+    <div class="eyebrow">Measured, and an aside on the page at most</div>
+    <p>The s.e. column does something the ESS does not predict: paths drawn at μ = 0.3 give a <em>smaller</em> s.e. than the Q-run (0.015 against 0.031), and at 0.6 smaller still (0.009), while paths drawn at μ = −0.2 give a larger one (0.073). The ESS counts the weights alone; the estimator's spread is the spread of L × payoff, and a drift pushed towards the call's payoff puts paths where the payoff is and small weights on them, which is importance sampling, which 3.2 takes up with the other variance-reduction methods; on the page as an aside. The check asserts only the ordering (0.3 below the Q-run, −0.2 above). Q remains the drift that is right for every payoff at once with no weights to choose.</p>
+  </div>
+  <figure>
+    <div class="figbox">
+      <canvas id="fig3" width="1400" height="640" aria-label="Histograms of the terminal stock price: paths drawn at drift 0.3 peak near 105 and spread to the right; the same paths reweighted trace exactly the histogram of paths drawn at the risk-free drift, peaking near 80"></canvas>
+      <div class="figbar">
+        <span class="chip"><span class="swatch" style="background:var(--walk);opacity:.45"></span>S_T drawn at μ = r (the Q-run), 10⁶ paths</span>
+        <span class="chip"><span class="swatch" style="background:var(--theory);opacity:.45"></span>S_T drawn at μ = 0.3, the same count</span>
+        <span class="chip"><span class="swatch" style="background:var(--peek)"></span>the μ = 0.3 paths, each counted L times</span>
+      </div>
+    </div>
+    <figcaption>Click to enlarge. Bins of 5 (<code>results.terminal.{mu_0.05.histogram_S_T, mu_0.30.histogram_S_T, mu_0.30.histogram_S_T_reweighted}</code>). The amber histogram is what a μ = 0.3 simulator produces; the red line is the same 10⁶ values with each path counted L times, and it lies on the Q-run's blue histogram bin for bin. No path moved; the weights redistributed the mass from the right tail to the left.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ BRIDGE ============ -->
+<section id="bridge">
+  <div class="eyebrow">The bridge — from 2.7's last line to 2.8's formula</div>
+  <h2>From the hedge to the expectation, one move at a time</h2>
+  <p><a href="#s3">§3</a>–<a href="#s5">§5</a> measured one identity three ways; this is where it comes from. 2.7 ended with the PDE, μ gone from it, and the question of what drift to value with. Every rung below adds one thing to the rung before it and names where that thing was already shown. Say which rung is the first you do not recognise.</p>
+  <ol class="ladder">
+    <li id="rung-1"><span class="src">2.7, rungs 5 and 6 — the hedged book earns r, and the PDE has no μ</span><span class="eq">dΠ = rΠ dt whatever μ is;   ∂V/∂t + ½σ²S²·∂²V/∂S² + rS·∂V/∂S − rV = 0</span>Measured on 2.7: the hedged mean and spread are the same at μ = −0.2, 0, +0.3 from 64 rebalances on. So V, which the PDE and the payoff determine, cannot depend on μ. The real-world drift is in the stock and not in the price — and so not in the price's expectation either, if there is one.</li>
+    <li id="rung-2"><span class="src">New — the choice</span><span class="eq">Price as if dS = rS dt + σS dW̃ <span class="new">— the "r-drift", the measure Q</span></span>If V is the same for every μ, compute it with the μ that makes the arithmetic easiest. The PDE has r where 2.5's general form would have the drift coefficient (rS·∂V/∂S against a·∂f/∂x), so the easiest μ is r. Call the model with the drift set to r "the stock under Q". Nothing is claimed about the real stock: <a href="#s3">§3</a>'s E[S_T] is still S₀e^(μT).</li>
+    <li id="rung-3"><span class="src">2.6's solution and 2.5's exponential martingale, with r for μ</span><span class="eq">e^(−rt)S_t = S₀·e^(σW̃_t − ½σ²t)  ⇒  E^Q[e^(−rt)S_t] = S₀</span>2.6 solved dS = μS dt + σS dW as S_t = S₀·e^((μ − ½σ²)t + σW_t); with μ = r, discounting by e^(−rt) leaves exactly 2.5's e^(aW − ½a²t) with a = σ, which 2.5 showed has constant mean 1. So under Q the discounted stock is a martingale: its mean is S₀ at every t, with a growing spread. <a href="#s6">§6</a> measures both, and the identity path by path to 10⁻¹².</li>
+    <li id="rung-4"><span class="src">New — the price as an expectation; Feynman–Kac named</span><span class="eq">V(t, S) = e^(−rτ)·E^Q[max(S_T − K, 0) | S_t = S]</span>Define u(t, S) as that expectation. Then e^(−rt)u(t, S_t) = E^Q[e^(−rT)·payoff | S_t] is a martingale under Q (a conditional expectation of one fixed thing, re-taken as time passes — 2.4's "zero mean, martingale" for the integral, here for the price). A martingale has no dt term, and <a href="#rung-1">2.7's rung 1</a> says what the dt term of a function of (t, S) is: Itô's lemma with the Q-drift rS gives dt·[∂u/∂t + rS·∂u/∂S + ½σ²S²·∂²u/∂S² − ru] after discounting, and setting it to zero is 2.7's PDE. So the expectation solves the PDE with the payoff as its condition at T — that is Feynman–Kac, and the page names it. The PDE has one solution for that condition, so u is V. <a href="#s6">§6</a> checks the expectation against the PDE by finite differences.</li>
+    <li id="rung-5"><span class="src">New — Girsanov: the r-drift is a reweighting of the μ-paths</span><span class="eq">W̃_t = W_t + λt, λ = (μ − r)/σ;   L = e^(−λW_T − ½λ²T);   E^Q[X] = E^P[L·X]</span>Write 2.6's S_T = S₀·e^((μ − ½σ²)T + σW_T) as S₀·e^((r − ½σ²)T + σ(W_T + λT)). The same path with the same σ is a Q-path if W̃_t = W_t + λt is a Brownian motion — and it is, under the weight L, which is 2.5's exponential martingale with a = −λ (mean 1). Girsanov's theorem is that sentence; the page does not prove it, <a href="#s5">§5</a> measures it: the weighted mean log-return is (r − ½σ²)T, the weighted realised vol is σ, the weighted price is V. λ is how far μ sits from r in units of σ, and it is what Q removes.</li>
+    <li id="rung-6"><span class="src">Why "risk-neutral" — what Q is</span><span class="eq">under Q, every discounted traded price is a martingale: the stock (<a href="#rung-3">rung 3</a>), the hedged book (dΠ = rΠ dt), the forward, the call</span>Q is the measure in which nothing earns more than r on average — the one a risk-neutral investor would have to believe in to hold the stock at its price. Nobody believes it; it is a bookkeeping device that turns no-arbitrage into an average. The forward is the proof in one line: its no-arbitrage value S₀ − Ke^(−rT) needs no expectation, and e^(−rT)·E^Q[S_T − K] returns exactly that (<a href="#s3">§3</a>, <a href="#s4">§4</a>). Why there is exactly one such Q here (one noise, one traded stock) is 2.11's question.</li>
+  </ol>
+  <p><a href="#rung-1">Rungs 1–4</a> are the page's "why", and <a href="#rung-4">rung 4</a> is what it is <em>for</em>: a developer with a Monte Carlo pricer (2.8), a closed form (2.9) and a grid solver (3.3) now has three routes to one number, and Feynman–Kac is the statement that they must agree — I20's three-way agreement is this rung. <a href="#rung-5">Rung 5</a> is the index's Girsanov line made measurable; <a href="#rung-6">rung 6</a> is the name explained.</p>
+</section>
+
+<!-- ============ 6 · THE MARTINGALE AND THE PDE ============ -->
+<section id="s6">
+  <div class="eyebrow">C3 and C5 — the martingale checked, the expectation against the PDE</div>
+  <h2><span class="stepno">6</span>The martingale and the PDE on the numbers</h2>
+  <p><strong>What this decides.</strong> That <a href="#rung-3">rung 3</a> and <a href="#rung-4">rung 4</a> are measurable properties, not slogans: the discounted stock has mean S₀ at every checkpoint under Q and not under μ; the Q-expectation evaluated as a function of (t, S) satisfies 2.7's PDE. 10⁵ paths stepped exactly on 256 steps at three drifts; and a Monte Carlo surface on 16 values of S at two times.</p>
+  <div class="tablewrap"><table>
+    <tr><th>E[e^(−rt)S_t] ± s.e.</th><th>t = ¼</th><th>t = ½</th><th>t = ¾</th><th>t = 1</th><th>sd at t = 1 (S₀√(e^(σ²t) − 1))</th></tr>
+    <tr><td>μ = r (Q)</td><td class="hi">99.98 ± 0.06</td><td class="hi">100.00 ± 0.09</td><td class="hi">99.99 ± 0.11</td><td class="hi">100.01 ± 0.13</td><td class="dim">41.8 (41.7)</td></tr>
+    <tr><td>μ = 0.3, expected S₀e^((μ−r)t)</td><td class="pk">106.50 ± 0.07 (106.45)</td><td class="pk">113.45 ± 0.10 (113.32)</td><td class="pk">120.85 ± 0.14 (120.62)</td><td class="pk">128.65 ± 0.17 (128.40)</td><td class="dim">53.6 (53.5)</td></tr>
+    <tr><td>μ = −0.2</td><td class="pk">93.89 ± 0.06 (93.94)</td><td class="pk">88.14 ± 0.08 (88.25)</td><td class="pk">82.86 ± 0.09 (82.90)</td><td class="pk">77.81 ± 0.10 (77.88)</td><td class="dim">32.5 (32.4)</td></tr>
+    <tr><td>μ = 0.3, reweighted by L</td><td class="sm">99.75 ± 0.19</td><td class="sm">99.81 ± 0.16</td><td class="sm">99.85 ± 0.12</td><td class="sm">99.90 ± 0.07</td><td class="dim">—</td></tr>
+    <tr><td>μ = −0.2, reweighted by L</td><td class="sm">99.83 ± 0.27</td><td class="sm">99.88 ± 0.33</td><td class="sm">99.98 ± 0.38</td><td class="sm">99.85 ± 0.43</td><td class="dim">—</td></tr>
+  </table></div>
+  <p class="note"><code>results.paths.mu_*.checkpoints[*].{discounted_S, expected_under_mu, expected_sd_under_mu, reweighted_discounted_S}</code>. Under Q the mean is S₀ within 5 s.e. at every checkpoint and the sd is S₀√(e^(σ²t) − 1) to 3 %; under μ = 0.3 the mean is above S₀ by 96, 129, 152, 170 s.e. and matches S₀e^((μ−r)t) within 5 s.e.; under −0.2 below by 102, 146, 182, 215 s.e. Path by path, e^(−rt)S_t − S₀·e^(σW̃_t − ½σ²t) ≤ 5.7 × 10⁻¹³ with W̃_t = W_t + λt (<code>…identity_max_abs</code>).</p>
+  <p><strong>P4, both halves.</strong> Under Q the discounted stock is a martingale: its mean does not move, 100 at every quarter, while its spread grows from 20 to 42 — a martingale is a fair game, not a constant, and the growing sd is 2.2's √t again on the exponential. Under the real-world drift it is not: at μ = 0.3 its mean climbs to 128.6 by T, which is a submartingale, and at −0.2 it falls to 77.8, a supermartingale; the discounted stock drifts at μ − r. The last two rows are <a href="#rung-5">rung 5</a> on a path: with the weights on, the μ = 0.3 paths' discounted stock has mean 99.9 ± 0.1 at every checkpoint — the martingale restored, from the same paths.</p>
+  <div class="tablewrap"><table>
+    <tr><th>Monte Carlo surface V_MC(t, S), 16 S-points, 10⁶ common draws each</th><th>worst |V_MC − V| in s.e.</th><th>PDE residual on V_MC, rms (max)</th><th>the closed form's own FD residual, same h</th><th>MC noise in the residual, by replication</th><th>largest PDE term, rms</th></tr>
+    <tr><td>τ = 1</td><td class="hi">1.7</td><td class="hi">0.044 (0.083)</td><td class="dim">0.0016</td><td class="warn">0.052</td><td class="dim">5.19</td></tr>
+    <tr><td>τ = ½</td><td class="hi">0.3</td><td class="hi">0.026 (0.056)</td><td class="dim">0.0033</td><td class="warn">0.033</td><td class="dim">6.27</td></tr>
+  </table></div>
+  <p class="note"><code>results.feynman_kac.rows[*].{max_abs_error_in_se, pde_residual_rms, pde_residual_max_abs, closed_form_fd_residual_rms, mc_noise_rms_by_replication, largest_pde_term_rms, V_mc, V_closed_form, se}</code>. S from 50 to 200 in steps of 10; h = 2 % of S and of τ; the Greeks by central differences from V_MC alone, as 2.7's C5 (i) took them from the closed form. The analytic residual on the same grid is 1.8 × 10⁻¹⁵ (2.7's check, repeated). At S = 100, τ = 1: V_MC = 18.068 ± 0.031 against 18.023.</p>
+  <p><strong>Feynman–Kac in numbers.</strong> The expectation, evaluated at 32 points of (t, S), agrees with 2.7's candidate function at every one of them — the worst disagreement is 1.7 s.e. — so the Q-expectation <em>is</em> the function that satisfies the PDE. Differentiating the Monte Carlo surface directly is harder, because a second difference divides noise by h²: the residual on V_MC has rms 0.044 at τ = 1, which is under 1 % of the PDE's largest term and the same size as the noise an independent replication measures (0.052), while the closed form differenced the same way gives 0.0016. The surface satisfies the PDE to Monte Carlo precision, and no better — which is <a href="#rung-4">rung 4</a>'s claim and nothing more. Common random numbers (the same 10⁶ draws at every S) are what make the surface smooth enough to difference at all; 3.2 will meet that trick again.</p>
+  <figure>
+    <div class="figbox">
+      <canvas id="fig4" width="1400" height="640" aria-label="The mean discounted stock price against time at three drifts: flat at 100 under the risk-free drift, rising to 129 under drift 0.3, falling to 78 under drift minus 0.2, with the reweighted means of the two drifted runs sitting back on 100"></canvas>
+      <div class="figbar">
+        <span class="chip"><span class="swatch" style="background:var(--walk)"></span>μ = r: E[e^(−rt)S_t] = 100</span>
+        <span class="chip"><span class="swatch" style="background:var(--theory)"></span>μ = 0.3</span>
+        <span class="chip"><span class="swatch" style="background:var(--peek)"></span>μ = −0.2</span>
+        <span class="chip"><span class="swatch ring" style="color:var(--smooth)"></span>the drifted runs reweighted by L</span>
+        <span class="chip"><span class="swatch dash" style="color:var(--muted)"></span>S₀e^((μ−r)t)</span>
+      </div>
+    </div>
+    <figcaption>Click to enlarge. The mean of the discounted stock at four checkpoints (<code>results.paths.mu_*.checkpoints</code>), error bars smaller than the markers; the dashed curves are S₀e^((μ−r)t). The hollow green markers are the μ = 0.3 and μ = −0.2 runs with Girsanov's weights on: 99.75–99.98 at every checkpoint. The martingale is a property of the weights, not of the paths.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 7 · CHECKS ============ -->
+<section id="s7">
+  <div class="eyebrow">Approved 2026-11-04 — I5</div>
+  <h2><span class="stepno">7</span>Draft check questions</h2>
+  <p class="note">One per question of <a href="#s2">§2</a>, one for the martingale, one for the "why". Every wrong option names its misconception; the feedback says why with a number from the JSON. Q1's "the expected payoff, discounted" is P1's trap; Q3's "a martingale under both" is P4's unanswered half; Q4's "re-simulate" is your P5. Drift first throughout.</p>
+  <div class="q"><div class="qno">Q1</div><p class="stem">You price a European call by Monte Carlo: draw S_T many times, average the discounted payoff e^(−rT)·max(S_T − K, 0). The drift you simulate with is:</p><ul>
+    <li class="ok"><strong>r, the risk-free rate — and the average is the price within its standard error</strong> — 18.010 ± 0.031 against the closed form's 18.023 at 10⁶ paths. The stock does not drift at r; pricing as if it did gives the number 2.7's hedge breaks even at.</li>
+    <li class="no">μ, the stock's expected return: the price is the expected payoff, discounted <em class="mis">— the real-world expectation mistaken for the price.</em> At μ = 0.1 that average is 21.42 ± 0.03, 3.40 too high on an 18.02 option, and the simulator is not wrong: it matches e^(−rT)·E^P[payoff] in closed form. The expectation is the wrong thing.</li>
+    <li class="no">Any drift — the price does not depend on μ, so it does not matter <em class="mis">— the price's independence of μ read as the expectation's.</em> V does not depend on μ; e^(−rT)·E[payoff] does, from 6.77 at μ = −0.2 to 38.96 at 0.3. Only the r-drift makes the two coincide.</li>
+    <li class="no">Zero drift: a fair game has no drift <em class="mis">— "fair" measured in the wrong unit.</em> With μ = 0 the average is 15.11, 2.9 below the price. The fair game is the <em>discounted</em> stock, and that needs the stock to drift at r, not at 0.</li>
+  </ul></div>
+  <div class="q"><div class="qno">Q2</div><p class="stem">Why does a drift the stock does not have give the right price?</p><ul>
+    <li class="ok"><strong>Because 2.7's hedged book earns r whatever μ is, so V cannot depend on μ, and r is the drift for which "discount the expectation" reproduces that V</strong> — under the r-drift the discounted stock is a martingale (mean 100.0 ± 0.1 at every checkpoint) and the discounted hedged book is too (2.7: mean 0 at every drift). The forward shows it with no model: e^(−rT)·E[S_T − K] is S₀ − Ke^(−rT) = 4.88 only at μ = r.</li>
+    <li class="no">Because the stock really drifts at r on average <em class="mis">— the device taken literally.</em> Nothing says so: E[S_T] is S₀e^(μT) = 110.5 at μ = 0.1, and the page measures it. Q is a change of weights on the paths, not a claim about the stock.</li>
+    <li class="no">Because investors are risk-neutral, so they discount the expected payoff at r <em class="mis">— the name taken for the reason.</em> No investor's attitude enters: the hedge removes μ, and the hedge is the same for everyone. Two desks that believe μ = 0.3 and μ = −0.2 both get 18.0 from their own paths once the weights are on.</li>
+    <li class="no">It is an approximation that is good when μ is close to r <em class="mis">— exactness mistaken for luck.</em> The reweighted price is 18.05 ± 0.01 from paths drawn at μ = 0.6, twelve times r. The identity E^Q[X] = E^P[L·X] holds at every λ; what grows with λ is the cost in effective paths, n·e^(−λ²T).</li>
+  </ul></div>
+  <div class="q"><div class="qno">Q3</div><p class="stem">Under the r-drift, the discounted stock price e^(−rt)S_t is:</p><ul>
+    <li class="ok"><strong>A martingale: its mean is S₀ at every t, with a spread that grows with t</strong> — 99.98, 100.00, 99.99, 100.01 (± 0.1) at t = ¼, ½, ¾, 1, sd 20 → 42. Path by path it is S₀·e^(σW̃_t − ½σ²t), 2.5's exponential martingale.</li>
+    <li class="no">A constant: discounting at r undoes the growth at r <em class="mis">— the mean mistaken for the path.</em> It undoes the growth of the <em>mean</em>; each path still has σ dW̃ in it. The sd at T is 41.8 on a mean of 100.</li>
+    <li class="no">A submartingale, because stocks go up on average <em class="mis">— the real-world drift smuggled into Q.</em> Under μ = 0.3 it is: 128.6 ± 0.2 at T. Under the r-drift the growth at r is exactly what the discounting removes, and the mean stays at 100.</li>
+    <li class="no">A martingale under the real-world drift too, since martingale is a property of the Brownian motion, not the drift <em class="mis">— drift and noise confused.</em> The noise is the same under both; the drift is not, and the drift is what a martingale forbids. At μ = −0.2 the mean falls to 77.8 by T, at μ = 0.3 it rises to 128.6.</li>
+  </ul></div>
+  <div class="q"><div class="qno">Q4</div><p class="stem">You have 10⁶ paths simulated at the stock's real-world drift μ = 0.3. To price under Q you:</p><ul>
+    <li class="ok"><strong>Keep the paths and weight each by L = e^(−λW_T − ½λ²T), λ = (μ − r)/σ; the weighted average is the price, the paths' volatility is unchanged, and the weights cost effective paths, n·e^(−λ²T)</strong> — 18.00 ± 0.01 from the μ = 0.3 paths; realised vol 0.3994 weighted against 0.3999 as drawn; mean log-return moved from 0.222 to −0.029; ESS 68 % of n at λ = 0.625.</li>
+    <li class="no">Re-simulate: a different drift means different paths <em class="mis">— the change of measure mistaken for a change of model.</em> A μ-path is a Q-path with a different probability, not a different shape: S_T = S₀·e^((r − ½σ²)T + σ(W_T + λT)) is the same number. Girsanov is the weight, and the histogram of the weighted μ-paths lies on the Q-run's bin for bin.</li>
+    <li class="no">Rescale the volatility to σ − λ and keep the drift <em class="mis">— drift and volatility traded off.</em> Q changes the drift only. The weighted paths' realised vol is 0.3994 against σ = 0.4; a model with σ = 0.4 − 0.625 would not price anything.</li>
+    <li class="no">Divide the average by e^((μ−r)T) <em class="mis">— the stock's growth factor applied to the option.</em> That fixes E[S_T] (134.9 → 105.1) and not the payoff: 38.96 / e^(0.25) = 30.3, not 18.0. The correction is per path, not per average, because the payoff is not linear in S_T. (For the forward it would work: linear.)</li>
+  </ul></div>
+  <div class="q"><div class="qno">Q5</div><p class="stem">Your pricer reports 18.35 ± 0.31 from 10⁴ paths; the closed form is 18.02. The pricer is:</p><ul>
+    <li class="ok"><strong>Right: the error is 1.1 standard errors, and the s.e. it reports is the error it makes — 100 independent runs of 10⁴ paths scatter by 0.298 against a reported 0.312</strong> — and the error falls like 1/√n: ±0.95, ±0.31, ±0.10, ±0.03 at 10³ … 10⁶ paths. Feynman–Kac says the limit is the PDE's solution, and the surface check agrees within 1.7 s.e. at 32 points of (t, S).</li>
+    <li class="no">Wrong: it should return 18.02 <em class="mis">— the estimate mistaken for the quantity.</em> A Monte Carlo price is a price ± an s.e.; without the s.e. it is not a number. 18.35 ± 0.31 and 18.02 agree.</li>
+    <li class="no">Right, and 10× the paths will give 10× the precision <em class="mis">— 1/n assumed.</em> It is 1/√n: 10× the paths gives √10 ≈ 3.2× the precision; four decimals need 10⁸ paths, not 10⁵. Slope −0.51 measured.</li>
+    <li class="no">Wrong: Monte Carlo under Q converges to the expectation, and the PDE's solution is a different number <em class="mis">— Feynman–Kac denied.</em> They are the same function: V_MC(t, S) agrees with 2.7's candidate at every grid point within 1.7 s.e., and the PDE residual on V_MC is the size of its Monte Carlo noise.</li>
+  </ul></div>
+</section>
+
+<!-- ============ 8 · LEDGER ============ -->
+<section id="s8">
+  <div class="eyebrow">Approved 2026-11-04 — in drafts/notation.md</div>
+  <h2><span class="stepno">8</span>The S8 batch — thirteen rows</h2>
+  <p class="note">Rows born from this session: the two measures and the expectation under the second, the pricing formula, the r-drift, the Q-Brownian motion, λ and L, the two named theorems, the Monte Carlo s.e., the effective sample size, and the discounted stock revisited. Rows marked ↺ revisit an earlier row in its new role. Symbol and name divided by a dash, as the S7 batch.</p>
+  <div class="tablewrap"><table style="white-space:normal">
+    <tr><th>Symbol</th><th>Say it</th><th>Here it means</th><th>Watch out</th></tr>
+    <tr><td style="white-space:nowrap">P — the real-world measure</td><td>"P", "the real-world measure", "the physical measure"</td><td style="white-space:normal;text-align:left">the probabilities 2.6's model assigns to paths when the stock drifts at its actual expected return μ; the measure every page up to 2.7 worked in without naming it. E^P[S_T] = S₀e^(μT)</td><td style="white-space:normal;text-align:left">named only now that there is a second one. Nothing about P changed on this page; what changed is which measure the price is an expectation under. Not "the real distribution" — still the model's</td></tr>
+    <tr><td style="white-space:nowrap">Q — the risk-neutral measure</td><td>"Q", "the risk-neutral measure", "the pricing measure"</td><td style="white-space:normal;text-align:left">the same model with the drift set to r: dS = rS dt + σS dW̃. Under Q every discounted traded price is a martingale — the stock, the forward, the call, the hedged book — and prices are discounted expectations. Measured: e^(−rt)S_t has mean S₀ at every checkpoint; the Q-run's average is the price</td><td style="white-space:normal;text-align:left">a device, not a belief: nobody thinks the stock drifts at r, and E^P[S_T] stays S₀e^(μT). "Risk-neutral" names the investor who <em>would</em> believe it, and no such investor enters the argument — the hedge does. That there is exactly one Q here is 2.11's to show (one noise, one traded stock)</td></tr>
+    <tr><td style="white-space:nowrap">E^Q[·] — expectation under Q</td><td>"the Q-expectation", "the risk-neutral expectation"</td><td style="white-space:normal;text-align:left">the average over paths drawn with the r-drift — or over paths drawn with any drift, each weighted by L. The quantity a Monte Carlo pricer estimates</td><td style="white-space:normal;text-align:left">not E^P. The two differ by e^(−rT)·E^P[payoff] − V = 3.34 at μ = 0.1, 20.9 at 0.3. The superscript is not decoration</td></tr>
+    <tr><td style="white-space:nowrap">V = e^(−rT)·E^Q[payoff] — the pricing formula</td><td>"discount the risk-neutral expectation"</td><td style="white-space:normal;text-align:left">the page's result: the price is the Q-expectation of the payoff, discounted at r. For V(t, S), condition on S_t = S and discount over τ. Measured: 18.010 ± 0.031 against 18.023; the surface over (t, S) within 1.7 s.e. everywhere</td><td style="white-space:normal;text-align:left">both the drift inside the expectation and the discount rate are r, and for different reasons: the discount is the time value of the payoff; the drift is what makes the hedge break even. E^P discounted at r is not a price (P1)</td></tr>
+    <tr><td style="white-space:nowrap">the r-drift — "as if the stock drifted at r"</td><td>"simulate under Q", "the r-drift"</td><td style="white-space:normal;text-align:left">what a simulator does to price: S_T = S₀·e^((r − ½σ²)T + σ√T·Z). The only change from 2.6's exact draw is the number in the drift slot</td><td style="white-space:normal;text-align:left">σ is untouched. The −½σ² is 2.6's drag, unchanged; the Q-median of S_T is S₀e^((r − ½σ²)T) = 97.0, below S₀ — "drifts at r" is about the mean</td></tr>
+    <tr><td style="white-space:nowrap">W̃ — the Q-Brownian motion</td><td>"W-tilde", "the Brownian motion under Q"</td><td style="white-space:normal;text-align:left">W̃_t = W_t + λt: 2.2's Brownian motion with a tilt added, which under Q is a Brownian motion with no tilt. The noise the stock has under the r-drift: dS = rS dt + σS dW̃</td><td style="white-space:normal;text-align:left">the same path as W — the same random numbers — read with a different drift absorbed into it. Under P it is "Brownian motion with drift λ" (2.2); under Q it is Brownian motion. Which one it is depends on the measure, not on the path</td></tr>
+    <tr><td style="white-space:nowrap">λ = (μ − r)/σ — the market price of risk</td><td>"lambda", "the market price of risk"</td><td style="white-space:normal;text-align:left">how far the real-world drift sits above r, in units of σ: excess return per unit of volatility. 0.625 at μ = 0.3, −0.625 at −0.2, 1.375 at 0.6. The size of the tilt Girsanov removes</td><td style="white-space:normal;text-align:left">not needed to price — it is exactly what Q eliminates, and the price does not contain it. It sets the cost of reweighting (e^(−λ²T) of the paths) and nothing else on this page. The name is finance's, not the page's argument</td></tr>
+    <tr><td style="white-space:nowrap">L = e^(−λW_T − ½λ²T) — the likelihood ratio, Girsanov's weight</td><td>"the weight", "the likelihood ratio", "dQ/dP"</td><td style="white-space:normal;text-align:left">the factor that turns a P-average into a Q-average on the same paths: E^Q[X] = E^P[L·X]. 2.5's exponential martingale e^(aW − ½a²T) with a = −λ, so mean L = 1. Measured: the weighted μ-paths average to the price at every μ in the table; mean L = 1.000 ± 0.001</td><td style="white-space:normal;text-align:left">a weight per path, not per average: dividing the μ = 0.3 average by e^((μ−r)T) gives 30.3, not 18.0, because the payoff is not linear. Mean L² = e^(λ²T), so the weights have a spread — the ESS row</td></tr>
+    <tr><td style="white-space:nowrap">Girsanov's theorem</td><td>"Girsanov", "the change of measure"</td><td style="white-space:normal;text-align:left">adding a drift λ to a Brownian motion is the same as reweighting its paths by L: the tilted process is a Brownian motion under the reweighted measure. Here: the μ-stock and the r-stock are the same paths with different weights. Named on the page and measured, not proved: weighted mean log-return (r − ½σ²)T, weighted realised vol σ</td><td style="white-space:normal;text-align:left">changes the drift and <em>only</em> the drift — "reweighting paths, not changing volatility" (the index's line). A change of volatility is not a change of measure; no reweighting turns a σ = 0.4 path into a 0.5 one</td></tr>
+    <tr><td style="white-space:nowrap">Feynman–Kac</td><td>"Feynman–Kac"</td><td style="white-space:normal;text-align:left">the discounted Q-expectation of the payoff, as a function of (t, S), solves 2.7's PDE with the payoff as its condition at T — because e^(−rt)V(t, S_t) is a Q-martingale and Itô's lemma says its dt term is the PDE. Named on the page, sketched in the bridge, measured: V_MC agrees with the closed form at 32 grid points within 1.7 s.e. and its PDE residual is the size of its Monte Carlo noise</td><td style="white-space:normal;text-align:left">the link between three pricers — Monte Carlo (2.8), the closed form (2.9), finite differences (3.3) — and the reason I20 can ask them to agree. It says the expectation solves the PDE; it does not say how to evaluate either</td></tr>
+    <tr><td style="white-space:nowrap">s.e. = sd/√n — the Monte Carlo standard error ↺</td><td>"standard error", "s.e."</td><td style="white-space:normal;text-align:left">2.1's √n in its working clothes: the sd of the mean of n draws is the sd of one draw over √n. ±0.95 at 10³ paths, ±0.03 at 10⁶. Measured, not assumed: 100 pricers of 10⁴ paths scatter by 0.298 and each reported 0.312</td><td style="white-space:normal;text-align:left">a Monte Carlo price is never quoted without it (I20). 100× the paths for 10× the precision. "Within standard error" means within one; the checks use five</td></tr>
+    <tr><td style="white-space:nowrap">ESS = n·e^(−λ²T) — effective sample size</td><td>"effective sample size", "ESS"</td><td style="white-space:normal;text-align:left">(ΣL)²/ΣL²: how many equally-weighted paths a reweighted average of n is worth. 68 % of n at |λ| = 0.625, 16 % at 1.375 (0.158 measured). The cost of simulating at the wrong drift and fixing it with weights</td><td style="white-space:normal;text-align:left">counts the weights, not the estimator: paths drawn towards the payoff can give a <em>smaller</em> s.e. than the Q-run (0.015 against 0.031 at μ = 0.3) — importance sampling, which 3.2 takes up. The reason to simulate under Q is that it needs no weights for any payoff</td></tr>
+    <tr><td style="white-space:nowrap">e^(−rt)S_t — the discounted stock, a Q-martingale ↺</td><td>"the discounted stock"</td><td style="white-space:normal;text-align:left">2.5's martingale, with the thing that is a martingale now named: under Q, e^(−rt)S_t = S₀·e^(σW̃_t − ½σ²t), 2.5's exponential martingale with a = σ, mean S₀ at every t. Under P it drifts at μ − r: a submartingale for μ > r (128.6 at T from 100), a supermartingale for μ < r (77.8)</td><td style="white-space:normal;text-align:left">a martingale is not a constant: its sd grows to 41.8 by T. "Martingale" is a statement about the mean given the past; P4's "martingale" needed "under Q" after it to be a sentence</td></tr>
+  </table></div>
+</section>
+
+<!-- ============ 9 · INTERVIEW PLAN ============ -->
+<section id="s9">
+  <div class="eyebrow">Next — the draft, in your words</div>
+  <h2><span class="stepno">9</span>The interview plan for drafts/2.8.md</h2>
+  <p>Nine questions, one at a time in the chat, in page order. You answer in paragraphs; I transcribe, re-set any notation the paste loses, and number-check every claim against the JSON with a flag you rule on in one line. The page's shape, as 2.7's: hook, the three questions as the plan, what was done, one section per question with its table (in the draft, with value-path comments — not left to L2 this time), then the why, then the martingale and the PDE checked, then "Into 2.9". Links on the page go only to pages that route (2.1–2.7); 2.9, 2.10, 2.11, 3.2 and 3.3 are plain until the conventions pass.</p>
+  <ul class="steps">
+    <li><strong>Hook.</strong> What problem the page solves, in your words — μ is gone from the price; what goes in the simulator's drift slot, and why the "wrong" drift gives the right number.</li>
+    <li><strong>What this page shows, and how.</strong> The three questions as the plan section (the F35 pattern: I can draft it at your request, marked).</li>
+    <li><strong>The experiment — what was done.</strong> <a href="#s1">§1</a> in page prose: exact draws, six drifts, the closed form as the PDE's solution with the forward link to 2.9 and the one sentence that makes the borrowing honest (2.7 checked it against the PDE), the forward beside the call.</li>
+    <li><strong>Question 1 — which drift.</strong> <a href="#s3">§3</a>: the table; the real-world expectation is not the price; the r-drift is; the forward; the two desks.</li>
+    <li><strong>Question 2 — how many paths.</strong> <a href="#s4">§4</a>: the nested estimates, the batches, 1/√n, the s.e. reported and measured.</li>
+    <li><strong>Question 3 — reuse.</strong> <a href="#s5">§5</a>: the weight; the two tables; "the drift moved, σ did not"; the cost in paths; the aside at most.</li>
+    <li><strong>Why — from the hedge to the expectation.</strong> The bridge's six rungs in your words: 2.7's result, pick the drift, the martingale, the expectation and Feynman–Kac named, Girsanov named, why "risk-neutral".</li>
+    <li><strong>The martingale and the PDE checked.</strong> <a href="#s6">§6</a>: the checkpoint table, both halves of P4; the surface against the closed form and against the PDE.</li>
+    <li><strong>Into 2.9.</strong> E^Q[payoff] can be done by hand for this payoff: integrate the lognormal against max(S_T − K, 0) and N(d₁), N(d₂) fall out — previewed, not claimed. (The page has already met Φ(d₂) as the in-the-money mass in <a href="#s5">§5</a>; 2.9 names it.)</li>
+  </ul>
+  <p class="note">Decisions you may overrule: the six drifts, with 0.6 included only to show the cost of a large |λ|; 10⁶ exact draws and 10⁵ stepped paths; the batches at n = 100, 1,000, 10,000; the surface at 16 × 2 points with h = 2 %; the importance-sampling finding as an aside, not a claim; Φ(d₂) shown as a number on this page ahead of 2.9's naming; λ given its finance name ("market price of risk") in the ledger.</p>
+</section>
+</div>
+
+<script>
+(function () {
+  function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  const BASE = { fig1: [1400, 640], fig2: [1400, 640], fig3: [1400, 640], fig4: [1400, 640] };
+  function setup(id, canvas, k) {
+    const c = canvas || document.getElementById(id); if (!c) return null;
+    const [W, H] = BASE[id]; k = k || 1;
+    c.width = Math.round(W * k); c.height = Math.round(H * k);
+    const ctx = c.getContext("2d");
+    ctx.setTransform(k, 0, 0, k, 0, 0);
+    return { c, ctx, W, H };
+  }
+  const fontSans = '"IBM Plex Sans", system-ui, sans-serif';
+
+  // ---------- data from 2_8_risk_neutral_pricing.json (seed 20261104) ----------
+  const V = 18.023, R = 0.05;
+  // e^(-rT) E^P[payoff] in closed form, mu from -0.30 to 0.65 in steps of 0.01
+  const CURVE = [4.246,4.456,4.673,4.899,5.134,5.378,5.631,5.894,6.166,6.448,6.741,7.044,7.357,7.681,8.017,8.364,8.722,9.092,9.474,9.869,10.275,10.695,11.127,11.573,12.032,12.505,12.991,13.492,14.006,14.535,15.079,15.637,16.211,16.799,17.403,18.023,18.658,19.309,19.977,20.66,21.36,22.077,22.81,23.56,24.327,25.111,25.913,26.732,27.568,28.422,29.294,30.183,31.091,32.017,32.961,33.923,34.904,35.903,36.92,37.957,39.012,40.085,41.178,42.29,43.42,44.57,45.739,46.927,48.134,49.361,50.607,51.872,53.157,54.462,55.786,57.13,58.494,59.877,61.28,62.703,64.146,65.609,67.092,68.595,70.119,71.662,73.226,74.81,76.415,78.04,79.686,81.352,83.039,84.747,86.476,88.226];
+  const MUS = [-0.2, 0.0, 0.05, 0.1, 0.3, 0.6];
+  const MEAS = [6.7694, 15.1059, 18.0098, 21.4211, 38.9566, 79.6422];      // results.terminal.mu_*.discounted_mean_payoff.mean
+  const REW = [18.1136, 18.0522, 18.0098, 18.0702, 18.0043, 18.0476];      // …girsanov.reweighted_discounted_mean_payoff.mean
+  // C2 batches: n, rms error (call), predicted s.e., rms error (forward), predicted
+  const BN = [100, 1000, 10000], BC = [3.1579, 0.9749, 0.2982], BCP = [3.1229, 0.9875, 0.3123], BF = [4.1938, 1.2869, 0.385], BFP = [4.1604, 1.3156, 0.416];
+  const SD_CALL = 31.229, SD_FWD = 41.604;                                  // sd of one draw, from sd/sqrt(n) at n = 100
+  // histograms of S_T over [0, 400], 80 bins of 5
+  const HQ = [0,0,3,37,308,1284,3676,8016,13951,21453,29187,36688,43470,49024,52779,54882,55299,54988,53932,51116,48316,44857,41067,37780,34174,31104,27673,24597,22063,19722,17514,15474,13466,11937,10321,8981,7768,6805,5882,5169,4695,3978,3463,2931,2586,2226,1908,1713,1482,1322,1154,981,826,724,676,571,517,425,358,337,274,256,232,172,172,155,139,136,94,83,58,78,61,51,50,51,34,39,31,32];
+  const HU = [0,0,0,2,27,148,597,1493,3193,5685,9397,13670,18078,22656,27737,31677,35515,38587,40877,42346,43310,43317,42585,42004,40450,39428,37276,35190,33002,30805,28703,26469,24711,22724,20775,19036,17185,15642,14348,13205,11695,10490,9618,8680,7795,7059,6398,5690,5104,4666,4152,3788,3349,3072,2804,2474,2160,2006,1707,1672,1364,1241,1134,999,916,804,721,634,589,537,468,438,382,339,320,294,237,238,206,188];
+  const HW = [0,0,0,29,303,1246,3934,7919,14004,20958,29731,37540,43639,48508,53153,54712,55627,55144,53572,51115,48359,44896,41119,37890,34185,31307,27866,24830,22024,19479,17227,15105,13430,11782,10287,9011,7792,6798,5984,5291,4508,3890,3437,2991,2593,2268,1987,1709,1484,1314,1133,1003,860,766,679,583,495,447,370,353,281,249,222,191,171,146,128,110,100,89,76,69,59,52,48,43,34,33,28,25];
+  // C3 checkpoints: t, mean of e^(-rt) S_t for Q, mu = 0.3, mu = -0.2, and the two reweighted
+  const TS = [0, 0.25, 0.5, 0.75, 1.0];
+  const CQ = [100, 99.98, 100.004, 99.987, 100.007], CU = [100, 106.504, 113.453, 120.848, 128.646], CD = [100, 93.889, 88.14, 82.855, 77.806];
+  const CUW = [100, 99.751, 99.814, 99.852, 99.904], CDW = [100, 99.833, 99.875, 99.983, 99.851];
+
+  function grid(ctx, W, H, padL, padR, top, bottom, faint) { ctx.strokeStyle = faint; ctx.lineWidth = 1; }
+
+  // ---------- Figure 1: discounted mean payoff against mu ----------
+  function fig1(canvas, k) {
+    const s = setup("fig1", canvas, k); if (!s) return;
+    const { ctx, W, H } = s;
+    const muted = css("--muted"), line = css("--line"), faint = css("--line-faint");
+    const cWalk = css("--walk"), cRed = css("--peek");
+    ctx.clearRect(0, 0, W, H);
+    const padL = 80, padR = 40, top = 34, bottom = 56;
+    const x0 = -0.3, x1 = 0.65, y0 = 0, y1 = 90;
+    const xOf = m => padL + ((m - x0) / (x1 - x0)) * (W - padL - padR);
+    const yOf = v => H - bottom - ((v - y0) / (y1 - y0)) * (H - bottom - top);
+    ctx.strokeStyle = faint; ctx.lineWidth = 1; ctx.fillStyle = muted; ctx.font = `20px ${fontSans}`; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    [0, 20, 40, 60, 80].forEach(v => { const y = yOf(v); ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke(); ctx.fillText(v.toString(), padL - 10, y); });
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    [-0.3, -0.2, -0.1, 0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6].forEach(m => { const x = xOf(m); ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x, H - bottom); ctx.stroke(); ctx.fillText(m.toFixed(1).replace("-", "−"), x, H - bottom + 10); });
+    ctx.fillText("drift μ simulated at →", W - padR - 110, H - bottom + 34);
+    // the price and mu = r
+    ctx.strokeStyle = muted; ctx.lineWidth = 1.6; ctx.setLineDash([7, 6]);
+    ctx.beginPath(); ctx.moveTo(padL, yOf(V)); ctx.lineTo(W - padR, yOf(V)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(xOf(R), top); ctx.lineTo(xOf(R), H - bottom); ctx.stroke(); ctx.setLineDash([]);
+    // closed-form curve
+    ctx.strokeStyle = cRed; ctx.lineWidth = 2.6; ctx.beginPath();
+    CURVE.forEach((v, i) => { const m = -0.3 + 0.01 * i, x = xOf(m), y = yOf(v); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke();
+    // measured
+    ctx.fillStyle = cRed; MUS.forEach((m, i) => { ctx.beginPath(); ctx.arc(xOf(m), yOf(MEAS[i]), 7, 0, 2 * Math.PI); ctx.fill(); });
+    // reweighted
+    ctx.strokeStyle = cWalk; ctx.lineWidth = 3; MUS.forEach((m, i) => { ctx.beginPath(); ctx.arc(xOf(m), yOf(REW[i]), 7, 0, 2 * Math.PI); ctx.stroke(); });
+    ctx.font = `600 18px ${fontSans}`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.fillStyle = cRed; ctx.fillText("e^(−rT)·E^P[payoff]: 21.42 at μ = 0.1 (P1), 38.96 at 0.3", xOf(0.12), yOf(27));
+    ctx.fillStyle = cWalk; ctx.fillText("the same paths reweighted by L: 18.0 at every μ", xOf(0.33), yOf(11));
+    ctx.fillStyle = muted; ctx.fillText("the price, 18.02", xOf(-0.29), yOf(V) + 18);
+    ctx.textAlign = "right"; ctx.fillText("μ = r", xOf(R) - 8, yOf(62));
+    ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.fillText("discounted mean payoff, 10⁶ draws at each μ, S₀ = K = 100, σ = 0.4", padL + 8, top + 2);
+  }
+
+  // ---------- Figure 2: rms error against n, log-log ----------
+  function fig2(canvas, k) {
+    const s = setup("fig2", canvas, k); if (!s) return;
+    const { ctx, W, H } = s;
+    const muted = css("--muted"), faint = css("--line-faint");
+    const cWalk = css("--walk"), cMid = css("--theory");
+    ctx.clearRect(0, 0, W, H);
+    const padL = 90, padR = 40, top = 34, bottom = 56;
+    const lx0 = Math.log10(60), lx1 = Math.log10(16000), ly0 = Math.log10(0.2), ly1 = Math.log10(6);
+    const xOf = n => padL + ((Math.log10(n) - lx0) / (lx1 - lx0)) * (W - padL - padR);
+    const yOf = v => H - bottom - ((Math.log10(v) - ly0) / (ly1 - ly0)) * (H - bottom - top);
+    ctx.strokeStyle = faint; ctx.lineWidth = 1; ctx.fillStyle = muted; ctx.font = `20px ${fontSans}`; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    [0.2, 0.5, 1, 2, 5].forEach(v => { const y = yOf(v); ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke(); ctx.fillText(v.toString(), padL - 10, y); });
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    [100, 1000, 10000].forEach(n => { const x = xOf(n); ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x, H - bottom); ctx.stroke(); ctx.fillText(n.toLocaleString("en-GB"), x, H - bottom + 10); });
+    ctx.fillText("n paths per pricer →", W - padR - 100, H - bottom + 34);
+    ctx.strokeStyle = muted; ctx.lineWidth = 1.6; ctx.setLineDash([7, 6]);
+    [SD_CALL, SD_FWD].forEach(sd => { ctx.beginPath(); ctx.moveTo(xOf(60), yOf(sd / Math.sqrt(60))); ctx.lineTo(xOf(16000), yOf(sd / Math.sqrt(16000))); ctx.stroke(); });
+    ctx.setLineDash([]);
+    function dots(arr, color) { ctx.fillStyle = color; BN.forEach((n, i) => { ctx.beginPath(); ctx.arc(xOf(n), yOf(arr[i]), 8, 0, 2 * Math.PI); ctx.fill(); }); }
+    dots(BF, cMid); dots(BC, cWalk);
+    ctx.font = `600 18px ${fontSans}`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.fillStyle = cWalk; ctx.fillText("the call: 3.16, 0.975, 0.298 measured · 3.12, 0.988, 0.312 reported", xOf(130), yOf(0.6));
+    ctx.fillStyle = cMid; ctx.fillText("the forward: 4.19, 1.29, 0.385 · 4.16, 1.32, 0.416", xOf(400), yOf(3.4));
+    ctx.fillStyle = muted; ctx.fillText("slope −0.51 and −0.52: sd/√n", xOf(1200), yOf(0.33));
+    ctx.textBaseline = "top"; ctx.fillText("rms error of the batch means around the price, 10⁶ draws cut into batches of n", padL + 8, top + 2);
+  }
+
+  // ---------- Figure 3: S_T histograms, Q against mu = 0.3 and its reweighting ----------
+  function fig3(canvas, k) {
+    const s = setup("fig3", canvas, k); if (!s) return;
+    const { ctx, W, H } = s;
+    const muted = css("--muted"), faint = css("--line-faint");
+    const cWalk = css("--walk"), cMid = css("--theory"), cRed = css("--peek");
+    ctx.clearRect(0, 0, W, H);
+    const padL = 90, padR = 40, top = 34, bottom = 56, hi = 300, yMax = 60000;
+    const xOf = v => padL + (v / hi) * (W - padL - padR);
+    const yOf = c => H - bottom - (c / yMax) * (H - bottom - top);
+    ctx.strokeStyle = faint; ctx.lineWidth = 1; ctx.fillStyle = muted; ctx.font = `20px ${fontSans}`; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    [0, 20000, 40000, 60000].forEach(c => { const y = yOf(c); ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke(); ctx.fillText(c.toLocaleString("en-GB"), padL - 10, y); });
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    [0, 50, 100, 150, 200, 250, 300].forEach(v => ctx.fillText(v.toString(), xOf(v), H - bottom + 10));
+    ctx.fillText("S_T →", W - padR - 30, H - bottom + 34);
+    function bars(arr, color, alpha) {
+      ctx.fillStyle = color; ctx.globalAlpha = alpha;
+      arr.forEach((c, i) => { const a = i * 5; if (a >= hi || !c) return; ctx.fillRect(xOf(a) + 0.5, yOf(c), xOf(a + 5) - xOf(a) - 1, yOf(0) - yOf(c)); });
+      ctx.globalAlpha = 1;
+    }
+    bars(HQ, cWalk, 0.45); bars(HU, cMid, 0.45);
+    ctx.strokeStyle = cRed; ctx.lineWidth = 3; ctx.beginPath();
+    HW.forEach((c, i) => { const a = i * 5; if (a >= hi) return; const y = yOf(c); if (i === 0) ctx.moveTo(xOf(a), y); else { ctx.lineTo(xOf(a), y); } ctx.lineTo(xOf(a + 5), y); });
+    ctx.stroke();
+    ctx.strokeStyle = muted; ctx.lineWidth = 1.2; ctx.setLineDash([7, 6]); ctx.beginPath(); ctx.moveTo(xOf(100), top); ctx.lineTo(xOf(100), H - bottom); ctx.stroke(); ctx.setLineDash([]);
+    ctx.font = `600 18px ${fontSans}`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.fillStyle = cWalk; ctx.fillText("drawn at μ = r: 47.0 % of paths finish above K = 100", xOf(150), yOf(55000));
+    ctx.fillStyle = cMid; ctx.fillText("drawn at μ = 0.3: 70.8 % above K; mean payoff 38.96", xOf(150), yOf(48000));
+    ctx.fillStyle = cRed; ctx.fillText("the μ = 0.3 paths × L: on the Q histogram bin for bin; 18.00 ± 0.01", xOf(150), yOf(41000));
+    ctx.fillStyle = muted; ctx.textBaseline = "top"; ctx.fillText("paths per bin of 5, 10⁶ draws each", padL + 8, top + 2);
+    ctx.textAlign = "right"; ctx.fillText("K", xOf(100) - 6, top + 2);
+  }
+
+  // ---------- Figure 4: the discounted stock's mean against t ----------
+  function fig4(canvas, k) {
+    const s = setup("fig4", canvas, k); if (!s) return;
+    const { ctx, W, H } = s;
+    const muted = css("--muted"), faint = css("--line-faint");
+    const cWalk = css("--walk"), cMid = css("--theory"), cRed = css("--peek"), cGreen = css("--smooth");
+    ctx.clearRect(0, 0, W, H);
+    const padL = 80, padR = 40, top = 34, bottom = 56, y0 = 70, y1 = 135;
+    const xOf = t => padL + t * (W - padL - padR);
+    const yOf = v => H - bottom - ((v - y0) / (y1 - y0)) * (H - bottom - top);
+    ctx.strokeStyle = faint; ctx.lineWidth = 1; ctx.fillStyle = muted; ctx.font = `20px ${fontSans}`; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    [70, 80, 90, 100, 110, 120, 130].forEach(v => { const y = yOf(v); ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke(); ctx.fillText(v.toString(), padL - 10, y); });
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    TS.forEach(t => { const x = xOf(t); ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x, H - bottom); ctx.stroke(); ctx.fillText(t === 1 ? "T = 1" : t.toFixed(2), x, H - bottom + 10); });
+    ctx.fillText("t →", W - padR - 20, H - bottom + 34);
+    // expected curves
+    ctx.strokeStyle = muted; ctx.lineWidth = 1.4; ctx.setLineDash([7, 6]);
+    [0.3, -0.2].forEach(mu => { ctx.beginPath(); for (let i = 0; i <= 100; i++) { const t = i / 100, v = 100 * Math.exp((mu - R) * t), x = xOf(t), y = yOf(v); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.stroke(); });
+    ctx.setLineDash([]);
+    function series(arr, color) {
+      ctx.strokeStyle = color; ctx.lineWidth = 2.6; ctx.beginPath();
+      TS.forEach((t, i) => { const x = xOf(t), y = yOf(arr[i]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke();
+      ctx.fillStyle = color; TS.forEach((t, i) => { if (!i) return; ctx.beginPath(); ctx.arc(xOf(t), yOf(arr[i]), 6.5, 0, 2 * Math.PI); ctx.fill(); });
+    }
+    series(CU, cMid); series(CD, cRed); series(CQ, cWalk);
+    ctx.strokeStyle = cGreen; ctx.lineWidth = 3;
+    [CUW, CDW].forEach(arr => TS.forEach((t, i) => { if (!i) return; ctx.beginPath(); ctx.arc(xOf(t), yOf(arr[i]), 8, 0, 2 * Math.PI); ctx.stroke(); }));
+    ctx.font = `600 18px ${fontSans}`; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    ctx.fillStyle = cMid; ctx.fillText("μ = 0.3: 128.65 ± 0.17 at T — a submartingale", xOf(0.98), yOf(CU[4]) - 20);
+    ctx.fillStyle = cRed; ctx.fillText("μ = −0.2: 77.81 ± 0.10 — a supermartingale", xOf(0.98), yOf(CD[4]) + 22);
+    ctx.fillStyle = cWalk; ctx.fillText("μ = r: 100.01 ± 0.13 — a martingale", xOf(0.98), yOf(CQ[4]) - 22);
+    ctx.fillStyle = cGreen; ctx.textAlign = "left"; ctx.fillText("reweighted by L: 99.75–99.98", xOf(0.27), yOf(96));
+    ctx.fillStyle = muted; ctx.textBaseline = "top"; ctx.fillText("E[e^(−rt)·S_t] across 10⁵ stepped paths, S₀ = 100", padL + 8, top + 2);
+  }
+
+  const FIGS = { fig1, fig2, fig3, fig4 };
+
+  // ---------- Lightbox: click a figure to enlarge; wheel / pinch to zoom, drag to pan ----------
+  const lb = (function () {
+    const box = document.createElement("div");
+    box.className = "lightbox"; box.hidden = true; box.setAttribute("role", "dialog"); box.setAttribute("aria-label", "Enlarged figure");
+    box.innerHTML = '<div class="bar"><button type="button" data-act="out" aria-label="Zoom out">−</button>' +
+      '<button type="button" data-act="in" aria-label="Zoom in">+</button>' +
+      '<button type="button" data-act="fit">Fit</button><span class="pct">100 %</span>' +
+      '<span class="spacer"></span><span>scroll or pinch to zoom · drag to pan · double-click to fit · Esc to close</span>' +
+      '<button type="button" data-act="close" aria-label="Close">Close</button></div><div class="stage"><canvas></canvas></div>';
+    document.body.appendChild(box);
+    const stage = box.querySelector(".stage"), cv = box.querySelector("canvas"), pct = box.querySelector(".pct");
+    const K = Math.max(2, Math.min(3, window.devicePixelRatio * 2 || 2));
+    let id = null, scale = 1, tx = 0, ty = 0, base = [1, 1];
+    const pointers = new Map(); let lastDist = 0, dragging = false, lx = 0, ly = 0;
+    function apply() { cv.style.transform = `translate(${tx}px, ${ty}px) scale(${scale / K})`; pct.textContent = Math.round(100 * scale / base[0]) + " %"; }
+    function fit() {
+      const [W, H] = BASE[id], r = stage.getBoundingClientRect();
+      const s = Math.min((r.width - 24) / W, (r.height - 24) / H);
+      base = [s, s]; scale = s; tx = (r.width - W * s) / 2; ty = (r.height - H * s) / 2; apply();
+    }
+    function zoomAt(factor, cx, cy) {
+      const ns = Math.min(scale * factor, base[0] * 8), f = ns / scale;
+      if (ns < base[0] * 0.5) return;
+      tx = cx - (cx - tx) * f; ty = cy - (cy - ty) * f; scale = ns; apply();
+    }
+    function redraw() { FIGS[id](cv, K); apply(); }
+    function open(figId) { id = figId; box.hidden = false; document.body.style.overflow = "hidden"; FIGS[id](cv, K); fit(); box.querySelector('[data-act="close"]').focus(); }
+    function close() { box.hidden = true; document.body.style.overflow = ""; id = null; }
+    box.querySelector(".bar").addEventListener("click", e => {
+      const act = e.target.dataset && e.target.dataset.act; if (!act) return;
+      const r = stage.getBoundingClientRect(), cx = r.width / 2, cy = r.height / 2;
+      if (act === "in") zoomAt(1.5, cx, cy); else if (act === "out") zoomAt(1 / 1.5, cx, cy);
+      else if (act === "fit") fit(); else if (act === "close") close();
+    });
+    stage.addEventListener("wheel", e => { e.preventDefault(); const r = stage.getBoundingClientRect(); zoomAt(e.deltaY < 0 ? 1.15 : 1 / 1.15, e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+    stage.addEventListener("dblclick", fit);
+    stage.addEventListener("pointerdown", e => {
+      pointers.set(e.pointerId, [e.clientX, e.clientY]); stage.setPointerCapture(e.pointerId);
+      if (pointers.size === 1) { dragging = true; lx = e.clientX; ly = e.clientY; stage.classList.add("dragging"); }
+      if (pointers.size === 2) { const p = [...pointers.values()]; lastDist = Math.hypot(p[0][0] - p[1][0], p[0][1] - p[1][1]); }
+    });
+    stage.addEventListener("pointermove", e => {
+      if (!pointers.has(e.pointerId)) return;
+      pointers.set(e.pointerId, [e.clientX, e.clientY]);
+      if (pointers.size === 2) {
+        const p = [...pointers.values()], d = Math.hypot(p[0][0] - p[1][0], p[0][1] - p[1][1]);
+        const r = stage.getBoundingClientRect();
+        if (lastDist) zoomAt(d / lastDist, (p[0][0] + p[1][0]) / 2 - r.left, (p[0][1] + p[1][1]) / 2 - r.top);
+        lastDist = d;
+      } else if (dragging) { tx += e.clientX - lx; ty += e.clientY - ly; lx = e.clientX; ly = e.clientY; apply(); }
+    });
+    const up = e => { pointers.delete(e.pointerId); if (pointers.size < 2) lastDist = 0; if (pointers.size === 0) { dragging = false; stage.classList.remove("dragging"); } };
+    stage.addEventListener("pointerup", up); stage.addEventListener("pointercancel", up);
+    document.addEventListener("keydown", e => { if (box.hidden) return; if (e.key === "Escape") close(); if (e.key === "+" || e.key === "=") zoomAt(1.5, stage.clientWidth / 2, stage.clientHeight / 2); if (e.key === "-") zoomAt(1 / 1.5, stage.clientWidth / 2, stage.clientHeight / 2); });
+    window.addEventListener("resize", () => { if (!box.hidden) fit(); });
+    Object.keys(FIGS).forEach(f => { const c = document.getElementById(f); if (c) { c.addEventListener("click", () => open(f)); c.tabIndex = 0; c.addEventListener("keydown", e => { if (e.key === "Enter") open(f); }); } });
+    return { get open() { return !box.hidden; }, redraw };
+  })();
+
+  function draw() { fig1(); fig2(); fig3(); fig4(); if (lb.open) lb.redraw(); }
+  draw();
+  if (window.matchMedia) {
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw);
+    new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  }
+})();
+</script>
