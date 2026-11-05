@@ -229,7 +229,7 @@ review.
 - ☑ S6 · 2.6 SDEs and geometric Brownian motion — evidence: `docs/evidence/S6/summary.md`
 - ☑ S7 · 2.7 Delta hedging and the Black–Scholes PDE — evidence: `\docs/evidence/S7/summary.md`
 - ☑ S8 · 2.8 Risk-neutral pricing — evidence: `\docs/evidence/S8/summary.md`
-- ☐ S9 · 2.9 The Black–Scholes formula
+- ☑ S9 · 2.9 The Black–Scholes formula — `evidence: \docs/evidence/S9/summary.md`
 - ☐ S10 · 2.10 Greeks
 - ☐ S11 · 2.11 Where it breaks
 
