@@ -1,0 +1,542 @@
+<title>S10 notes · 2.10 Greeks</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column (68ch), tables and figures may widen to the shell (88rem); section-map card and tables set in Plex Mono for the digits. Same system as the S4–S9 notes. */
+:root {
+  --bg: #f7f7f4; --surface: #fdfdfb; --fg: #16181d; --fg-2: #4b4f58; --muted: #868a93;
+  --rule: #dcdcd5; --grid: #e4e4de; --accent: #1c5cab; --accent-soft: #e3ecf8;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #6250d6;
+  --ramp1: #86b6ef; --ramp2: #5598e7; --ramp3: #2a78d6; --ramp4: #184f95;
+  --ok: #006300; --warn: #a35e00; --bad: #b02a2a;
+  --display: "Newsreader", "Iowan Old Style", Georgia, serif;
+  --body: "IBM Plex Sans", "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono: "IBM Plex Mono", "SF Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #15161a; --surface: #1d1f24; --fg: #ecece7; --fg-2: #b9bbb4; --muted: #868a93;
+  --rule: #2f3238; --grid: #2a2d33; --accent: #7fb0ee; --accent-soft: #1f2d42;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #9085e9;
+  --ramp1: #184f95; --ramp2: #256abf; --ramp3: #3987e5; --ramp4: #86b6ef;
+  --ok: #4ec04e; --warn: #e2a64a; --bad: #e66767; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #15161a; --surface: #1d1f24; --fg: #ecece7; --fg-2: #b9bbb4; --muted: #868a93;
+  --rule: #2f3238; --grid: #2a2d33; --accent: #7fb0ee; --accent-soft: #1f2d42;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #9085e9;
+  --ramp1: #184f95; --ramp2: #256abf; --ramp3: #3987e5; --ramp4: #86b6ef;
+  --ok: #4ec04e; --warn: #e2a64a; --bad: #e66767; color-scheme: dark; }
+
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 4rem; }
+.shell { max-width: 88rem; margin: 0 auto; }
+.col { max-width: 68ch; }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.15; text-wrap: balance; margin: 0; }
+h1 { font-size: 2.1rem; }
+h2 { font-size: 1.55rem; margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--rule); }
+h3 { font-size: 1.2rem; margin-top: 1.8rem; }
+p { margin: 0.8rem 0; max-width: 68ch; }
+.lede { font-size: 1.05rem; color: var(--fg-2); }
+.eyebrow { font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+header { padding-block: 2.2rem 0.6rem; display: grid; gap: 0.5rem; }
+header .meta { font-family: var(--mono); font-size: 0.8rem; color: var(--fg-2); display: flex; flex-wrap: wrap; gap: 0.4rem 1.4rem; }
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.m { font-family: var(--display); font-style: italic; font-size: 1.04em; white-space: nowrap; }
+.m b { font-style: normal; font-weight: 400; }
+.eq { font-family: var(--display); font-size: 1.12rem; margin: 0.9rem 0 0.9rem 1.5rem; overflow-x: auto; white-space: nowrap; padding-bottom: 2px; }
+.eq.sm { font-size: 1.02rem; }
+sub, sup { font-size: 0.72em; line-height: 0; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.card { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 1rem 1.2rem; margin: 1.2rem 0; max-width: 68ch; }
+.map { display: grid; grid-template-columns: max-content 1fr; gap: 0.35rem 1rem; font-size: 0.92rem; }
+.map .k { font-family: var(--mono); color: var(--accent); white-space: nowrap; }
+.map .k a { text-decoration: none; }
+.pred { display: grid; gap: 0.3rem; margin: 1rem 0; max-width: 68ch; }
+.pred .q { font-weight: 600; }
+.pred .a { border-left: 3px solid var(--rule); padding-left: 0.9rem; color: var(--fg-2); white-space: pre-wrap; }
+.pred .a .conf { font-family: var(--mono); font-size: 0.76rem; color: var(--muted); }
+.pred .s { font-size: 0.95rem; }
+.score { font-family: var(--mono); font-size: 0.78rem; padding: 0.05rem 0.45rem; border-radius: 3px; border: 1px solid var(--rule); }
+.score.r { color: var(--ok); } .score.h { color: var(--warn); } .score.w { color: var(--bad); }
+.tbl { overflow-x: auto; margin: 1rem 0; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); }
+table { border-collapse: collapse; font-size: 0.86rem; min-width: 100%; }
+th, td { padding: 0.45rem 0.7rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--rule); }
+th { font-weight: 600; color: var(--fg-2); font-size: 0.8rem; background: var(--bg); }
+tr:last-child td { border-bottom: 0; }
+td.n, th.n { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.cap { font-size: 0.8rem; color: var(--muted); font-family: var(--mono); margin: -0.5rem 0 1.2rem; max-width: 88rem; overflow-wrap: anywhere; }
+.fig { margin: 1.2rem 0 0.4rem; max-width: 60rem; }
+.fig .title { font-weight: 600; font-size: 0.95rem; margin-bottom: 0.3rem; }
+.fig canvas { width: 100%; height: auto; display: block; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); touch-action: pan-y; }
+.fig .legend { display: flex; flex-wrap: wrap; gap: 0.3rem 1.1rem; font-size: 0.8rem; color: var(--fg-2); margin: 0.4rem 0 0; }
+.fig .legend span::before { content: ""; display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; background: var(--c); }
+.fig .legend span.dash::before { height: 0; border-top: 2px dashed var(--c); background: none; }
+.rung { display: grid; grid-template-columns: 3.2rem 1fr; gap: 0.4rem 0.8rem; margin: 1rem 0; max-width: 72ch; }
+.rung .no { font-family: var(--mono); color: var(--accent); font-size: 0.85rem; padding-top: 0.25rem; }
+.rung .body p:first-child { margin-top: 0; }
+.rung .body { min-width: 0; }
+.check { margin: 1.2rem 0; max-width: 72ch; }
+.check .stem { font-weight: 600; }
+.check ol { margin: 0.4rem 0 0; padding-left: 1.3rem; }
+.check li { margin: 0.35rem 0; }
+.check .ok { color: var(--ok); font-weight: 600; font-family: var(--mono); font-size: 0.8rem; }
+.check .no { color: var(--bad); font-family: var(--mono); font-size: 0.8rem; }
+.check .why { color: var(--fg-2); font-size: 0.92rem; }
+ol.plan { max-width: 72ch; padding-left: 1.4rem; }
+ol.plan li { margin: 0.5rem 0; }
+ul { max-width: 72ch; padding-left: 1.3rem; }
+li { margin: 0.3rem 0; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; max-width: 60rem; }
+.two > div { min-width: 0; }
+@media (max-width: 760px) { .two { grid-template-columns: 1fr; } .map { grid-template-columns: 1fr; gap: 0.1rem 0; } .map .k { margin-top: 0.4rem; } h1 { font-size: 1.7rem; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+code { font-family: var(--mono); font-size: 0.86em; background: var(--accent-soft); padding: 0.05em 0.3em; border-radius: 3px; }
+.note { font-size: 0.9rem; color: var(--fg-2); }
+</style>
+
+<div class="shell">
+<header>
+  <div class="eyebrow">Touchstone · study track · session S10 · teaching notes v2 (close)</div>
+  <h1>2.10 Greeks</h1>
+  <div class="meta"><span>2026-11-07</span><span>experiment <code>2_10_greeks.py</code> · seed 20261105 · 165/165 checks · 59 s on the workstation</span><span>S₀ = K = 100 · r = 0.05 · σ = 0.4 · T = 1 · q = 0 unless stated · C = 18.023</span></div>
+</header>
+
+<section class="col" id="about">
+<h2 style="border-top:0;margin-top:1rem">What this page is about, and what it is trying to achieve</h2>
+<p class="lede">2.9 derived the price of a call, <span class="m">C = S₀N(d₁) − Ke<sup>−rT</sup>N(d₂)</span>, and met its first derivative with respect to the stock, the delta <span class="m">Δ = ∂C/∂S₀ = N(d₁)</span>, which <a href="https://preview.dnl8fxtcop63d.amplifyapp.com/stochastic-calculus/delta-hedging-and-the-pde">2.7</a> had already hedged with. This page differentiates the rest of the formula. A <b>Greek</b> is a partial derivative of the price with respect to one of its inputs, with a name: delta and gamma for the stock, vega for volatility, theta for time, rho for the risk-free rate. Each one answers a trader's question of the form "if this input moves and nothing else does, how much does my book move?" — and the page's job is to say what each one measures, who watches it, how it comes out of the formula, and how to check an implementation of it.</p>
+<p>What the page achieves, in order: (1) the five numbers at the base case, each confirmed two independent ways — by bumping the formula and by the oracle — so that "Δ = 0.627, Γ = 0.0095, vega = 37.8, Θ = −9.80, ρ = 44.7" are measurements, not quotations (<a href="#qA">A</a>, <a href="#qB">B</a>, <a href="#qF">F</a>); (2) the shape of each Greek across spot and expiry, which is what the D6 pricer draws and what a trader's intuition is made of (<a href="#qC">C</a>); (3) <a href="https://preview.dnl8fxtcop63d.amplifyapp.com/stochastic-calculus/delta-hedging-and-the-pde">2.7</a>'s PDE re-read as a P&amp;L statement, measured step by step on the hedged book: the option's theta is the price of its gamma, and a hedger paid in realised variance and charged in implied (<a href="#qD">D</a>); (4) the put's Greeks for free, from parity (<a href="#qE">E</a>).</p>
+<p>Why a developer cares: every risk system, every hedger's screen and every test of a pricer is built on these five derivatives. Part 3 implements them (3.1) and studies how to compute them when there is no formula (3.5: bump sizes, Monte Carlo noise, AAD). This page is where the analytic forms are established and where the units are fixed — raw partials, the same ones the golden file and the C++ carry.</p>
+</section>
+
+<div class="card" id="map">
+<div class="eyebrow" style="margin-bottom:0.6rem">What each section shows, and why it is there</div>
+<div class="map">
+  <span class="k"><a href="#pred">Predictions</a></span><span>your P1–P5 as posed and answered, scored — three of the misses become check distractors</span>
+  <span class="k"><a href="#ran">What ran</a></span><span>the experiment: claims C1–C5, 165 checks, both machines, the oracle's seven columns</span>
+  <span class="k"><a href="#qA">A · five numbers</a></span><span>the Greeks at the base case, call and put, with the one-unit moves the predictions asked about — the page's "so what"</span>
+  <span class="k"><a href="#qB">B · bump</a></span><span>analytic against bump-and-revalue at the base case and across 216 points; the Gamma bump study, to say why 3.5 exists</span>
+  <span class="k"><a href="#qC">C · shapes</a></span><span>each Greek against spot at four expiries and against expiry at the money — where each is largest, and how it blows up or vanishes at expiry</span>
+  <span class="k"><a href="#qD">D · theta pays for gamma</a></span><span>the PDE as a P&amp;L statement, measured per step on 2.7's hedged book; the gamma P&amp;L cited from 2.7 and seen per step</span>
+  <span class="k"><a href="#qE">E · the put</a></span><span>parity differentiated: the put's Greeks from the call's</span>
+  <span class="k"><a href="#qF">F · the oracle</a></span><span>all seven columns of the golden file and QuantLib live — the first time the golden Greeks are read on a study page</span>
+  <span class="k"><a href="#why">Why</a></span><span>the derivation after the numbers: one identity does all five</span>
+  <span class="k"><a href="#dec">Decisions</a></span><span>what I chose that you may overrule</span>
+  <span class="k"><a href="#checks">Checks</a></span><span>Q1–Q6, approved</span>
+  <span class="k"><a href="#ledger">Ledger</a></span><span>the S10 batch, approved</span>
+  <span class="k"><a href="#plan">Interview</a></span><span>the nine questions, answered and transcribed into drafts/2.10.md</span>
+</div>
+</div>
+
+<section class="col" id="pred">
+<h2>Predictions, as posed and as answered</h2>
+<p class="note">Your words verbatim (P1's tripled-LaTeX "≈0.627" re-set to "≈ 0.627"). Scored against the JSON; the numbers are in the sections linked.</p>
+
+<div class="pred"><div class="q">P1 — delta. The stock rises from 100 to 101 and nothing else moves. (a) By roughly how much does the call price change? (b) Is the actual change more or less than 0.627, and why?</div>
+<div class="a">(a) ≈ 0.627
+(b) Slightly more than 0.627, because positive gamma makes delta increase as the stock rises.</div>
+<div class="s"><span class="score r">right</span> The price goes 18.023 → 18.655, a change of 0.632: Δ × 1 = 0.627 plus ½Γ × 1² = 0.0047 gives 0.6321, within 3 × 10⁻⁵ of the actual (<a href="#qA">A</a>). Going down to 99 the fall is 0.623, smaller than Δ, for the same reason.</div></div>
+
+<div class="pred"><div class="q">P2 — gamma. (a) Along the spot axis, where is Γ = ∂²C/∂S² largest? (b) At the strike, what happens to Γ as T → 0? (c) 2.7's hedged book — long one call, short Δ shares — gains or loses when the stock moves, and does it depend on the direction?</div>
+<div class="a">a) at strike, b) gamma goes up c) hedge book neither gains nor looses but will need re-hedging in order to remain hedging</div>
+<div class="s"><span class="score h">half</span> (a) is right only near expiry. With a year to run the peak of Γ against S sits at <span class="m">Ke<sup>−(r + 3σ²/2)T</sup> = 74.8</span>, well below the strike (Γ = 0.0123 there against 0.0095 at 100); at τ = 0.05 the peak has moved to 98.6 (<a href="#qC">C</a>). (b) right: at the strike Γ grows like 1/√T, 0.0095 at T = 1, 0.10 at 0.01, 10 at 10⁻⁶. (c) half: the book is not flat on a move. Long the option it is <b>long gamma</b> — on a move of δS in either direction it gains ½Γ(δS)², which is never negative — and it pays for that through theta while nothing moves. On average the two cancel exactly (that is the PDE, <a href="#qD">D</a>: the gamma gain's mean 7.58 against the theta cost −9.71 plus the carry +2.14); per move they do not, which is why "neither gains nor loses" holds in expectation and not on any one step. Re-hedging is right, and is a separate thing: it resets the slope, it does not remove the curvature. → check distractors Q2 and Q3.</div></div>
+
+<div class="pred"><div class="q">P3 — theta. (a) Is Θ more negative at the money or deep in the money? (b) 2.7's PDE Θ + ½σ²S²Γ + rSΔ − rV = 0, read as the hedged book's P&amp;L per unit time: what pays for what?</div>
+<div class="a">a) deep in the money (instrument behaves like a forward at that point) b) gamma pays for theta and vice versa</div>
+<div class="s"><span class="score h">half</span> (a) wrong, and your own reason says why: deep in the money the call <i>is</i> a forward, and a forward's theta is only the carry, <span class="m">−rKe<sup>−rT</sup> = −4.76</span> per year here. Theta is most negative near the strike, where Γ is large: −9.80 at the money, −10.20 at the trough (S = 114 with a year to run — the carry term pulls the trough a little above the strike), falling back to −4.76 far in the money and to 0 far out (<a href="#qC">C</a>). (b) right in substance: the PDE says the expected gamma gain, ½σ²S²Γ, equals what theta and the carry cost. The course's phrase is "theta pays for gamma" — the long holder pays theta and is paid gamma — and <a href="#qD">D</a> measures it: 7.58 ± 0.05 against −(−9.71 + 2.14) = 7.57. → check distractor Q4.</div></div>
+
+<div class="pred"><div class="q">P4 — vega. (a) Does ∂C/∂σ depend on which way the stock moves? (b) Where along the spot axis is vega largest, and does it grow or shrink with T? (c) σ from 40 % to 41 %: roughly how much does C change?</div>
+<div class="a">a) no b) largest at strike, shrinks with T c) approximately +0.375 (about +0.38)
+<span class="conf">clarified 2026-11-08, after the notes: "P4 b i actually meant shrinks as T shrinks, i know its greatest at greatest T"</span></div>
+<div class="s"><span class="score r">right</span> (a) right. (b) right as clarified — "shrinks with T" read both ways, and the record keeps both lines: the peak is at <span class="m">Ke<sup>(σ²/2 − r)T</sup> = 103.0</span>, close enough to the strike, and vega grows like √T at the money — 27.5 at T = ½, 37.8 at 1, 50.8 at 2 (<a href="#qC">C</a>). (c) right: 0.378 — the actual change is 0.3783, vega × 0.01 = 0.3784. Q5 keeps "shrinks with expiry" as a distractor on its own merits.</div></div>
+
+<div class="pred"><div class="q">P5 — rho. In C = S₀N(d₁) − Ke^(−rT)N(d₂), r sits in the discount factor and inside d₁, d₂. (a) Is ρ = ∂C/∂r the sensitivity through the discount only, or through d₁, d₂ too? (b) Sign for the call; sign for the put? (c) Which piece — S₀N(d₁), Ke^(−rT)N(d₂), or both — is ρ the derivative of?</div>
+<div class="a">a) both b) -ve for call, +ve for put c) both</div>
+<div class="s"><span class="score w">wrong</span> (a) is true of the differentiation and false of the result: r does enter through d₁ and d₂, but those two terms cancel each other exactly — the same identity that made Δ = N(d₁) on 2.9 — and what survives is the discount factor's derivative alone, <span class="m">ρ = KTe<sup>−rT</sup>N(d₂) = 44.7</span> (<a href="#why">why</a>, rung 2 and rung 6). So (c) is the strike piece only. (b) reversed: a higher rate makes the strike you will pay worth less today, so the call gains (+44.7 per unit of r; 0.45 for one point) and the put loses (−50.4). Your definition two days ago — "the rate used to discount future cashflows" — was the right half. → check distractor Q6.</div></div>
+</section>
+
+<section class="col" id="ran">
+<h2>What ran</h2>
+<p><code>experiments/2_10_greeks.py</code>, seed 20261105: claims C1–C5 and the D6 fixtures, 165 checks, all pass. 59 s on the workstation (<code>uv run --frozen</code>, Python 3.12.15, numpy 2.5.2, QuantLib 1.43, the environment rebuilt under <code>~/tmp</code> in 13 s), 28 s in the container (numpy 2.5.3, QuantLib 1.44); the two JSONs agree to 3 parts in 10¹³ in every value that is not itself round-off, and the paths are identical. The workstation's JSON is on your disk, uncommitted, and is the one to commit.</p>
+<ul>
+<li><b>C1</b> analytic against bump-and-revalue: six Greeks at the base case, the put, and across 2.9's 216-point grid; the Gamma bump study; the one-unit moves (<a href="#qA">A</a>, <a href="#qB">B</a>).</li>
+<li><b>C2</b> the oracle: the seven columns of <code>golden/bs_vanilla.json</code> at 7,234 rows and QuantLib live at the grid (<a href="#qF">F</a>).</li>
+<li><b>C3</b> the PDE on paths: 2.7's hedge re-run over 4,000 paths at N = 256 and 4096, σ_r = 0.3, 0.4, 0.5, every step attributed (<a href="#qD">D</a>).</li>
+<li><b>C4</b> shapes against S at τ = 1, ½, ¼, 0.05 and against T at the money (<a href="#qC">C</a>).</li>
+<li><b>C5</b> parity's Greeks across the grid and at the base case (<a href="#qE">E</a>).</li>
+<li><b>D6</b> fixtures: the five Greeks of the call and the put against S at the four τ, and the base-case readout (<code>results.d6</code>).</li>
+</ul>
+<p>Your three rulings at open are in: (Q1/a) the gamma P&amp;L is cited from 2.7 and re-read, and C3 shows what is new — the per-step attribution; (Q2/a) vega and rho are per unit, theta per year, with the desk scalings named once; (Q3/a) the put's Greeks sit beside the call's.</p>
+</section>
+
+<section id="qA">
+<h2>A · Five numbers, and what a one-unit move does</h2>
+<div class="col">
+<p>Every Greek below is a raw partial derivative: vega per 1.00 of σ (not per vol point), theta per year (not per day), rho per 1.00 of r (not per basis point). Those are the golden file's units and the C++'s; a desk scales at display — ÷100, ÷365, ÷10 000 — and the last column shows what that gives. The call is the base case; the put is the same strike, from <a href="#qE">E</a>.</p>
+</div>
+<div class="tbl"><table>
+<tr><th>Greek</th><th>definition</th><th class="n">call</th><th class="n">put</th><th>closed form</th><th>desk scaling (call)</th><th>who watches it</th></tr>
+<tr><td>Δ — delta</td><td>∂V/∂S</td><td class="n">0.6274</td><td class="n">−0.3726</td><td>N(d₁); put N(d₁) − 1</td><td>—</td><td>the hedger: shares to hold against one option</td></tr>
+<tr><td>Γ — gamma</td><td>∂²V/∂S² = ∂Δ/∂S</td><td class="n">0.009460</td><td class="n">0.009460</td><td>φ(d₁)/(S₀σ√T); φ(d₁) = 0.3784</td><td>—</td><td>the hedger: how fast Δ goes stale; the P&amp;L on a move, ½ΓS²(δS/S)²</td></tr>
+<tr><td>vega</td><td>∂V/∂σ</td><td class="n">37.842</td><td class="n">37.842</td><td>S₀φ(d₁)√T</td><td class="n">0.378 per vol point</td><td>the vol trader: the option is a position in σ</td></tr>
+<tr><td>Θ — theta</td><td>∂V/∂t at fixed S</td><td class="n">−9.804</td><td class="n">−5.048</td><td>−½σ²S²Γ − rKe^(−rT)N(d₂) = −7.568 − 2.236</td><td class="n">−0.0269 per day</td><td>the holder: what a day costs with nothing moving</td></tr>
+<tr><td>ρ — rho</td><td>∂V/∂r</td><td class="n">44.718</td><td class="n">−50.405</td><td>KTe^(−rT)N(d₂); put −KTe^(−rT)N(−d₂)</td><td class="n">0.0045 per basis point</td><td>the rates desk, and nobody else for a one-year equity option</td></tr>
+<tr><td>∂V/∂q</td><td>the dividend-rho</td><td class="n">−62.741</td><td class="n">37.259</td><td>−TS₀N(d₁)</td><td>—</td><td>carried by the oracle; not one of the five</td></tr>
+</table></div>
+<div class="cap">results.base_case.{call, put}.{delta, gamma, vega, theta, rho, dividend_rho}; results.base_case.{d1, d2, phi_d1, theta_pieces, desk_units}</div>
+<div class="col">
+<p>The moves the predictions asked about, each against its Greek. The first-order estimate is the Greek times the move; the stock move also gets the second-order term, which is gamma's.</p>
+</div>
+<div class="tbl"><table>
+<tr><th>move</th><th class="n">C before</th><th class="n">C after</th><th class="n">actual change</th><th class="n">Greek × move</th><th class="n">+ ½Γ(δS)²</th><th>reading</th></tr>
+<tr><td>S₀ 100 → 101</td><td class="n">18.0230</td><td class="n">18.6551</td><td class="n">+0.6321</td><td class="n">+0.6274</td><td class="n">+0.6321</td><td>P1: more than Δ by 0.0047 = ½Γ; Δ itself has moved to 0.6368</td></tr>
+<tr><td>S₀ 100 → 99</td><td class="n">18.0230</td><td class="n">17.4003</td><td class="n">−0.6227</td><td class="n">−0.6274</td><td class="n">−0.6227</td><td>the fall is smaller than Δ by the same 0.0047 — gamma helps both ways</td></tr>
+<tr><td>σ 0.40 → 0.41</td><td class="n">18.0230</td><td class="n">18.4013</td><td class="n">+0.3783</td><td class="n">+0.3784</td><td>—</td><td>P4(c): one vol point is vega/100</td></tr>
+<tr><td>r 0.05 → 0.06</td><td class="n">18.0230</td><td class="n">18.4726</td><td class="n">+0.4497</td><td class="n">+0.4472</td><td>—</td><td>P5: one rate point is ρ/100; the call gains</td></tr>
+<tr><td>one day passes</td><td class="n">18.0230</td><td class="n">17.9961</td><td class="n">−0.0269</td><td class="n">−0.0269</td><td>—</td><td>Θ/365; the holder's daily bill, with the stock and σ frozen</td></tr>
+</table></div>
+<div class="cap">results.moves.{spot_100_to_101, spot_100_to_99, vol_0.40_to_0.41, rate_0.05_to_0.06, one_day_passes}.{actual_change, first_order, second_order}</div>
+</section>
+
+<section id="qB">
+<h2>B · Analytic against bump-and-revalue</h2>
+<div class="col">
+<p>A <b>bump-and-revalue</b> Greek is a finite difference: move the input by h, re-price, divide. It needs no formula for the derivative, only for the price, which is why Part 3 leans on it; the cost is two errors pulling in opposite directions — truncation, from the terms Taylor's series leaves out, which grow with h, and round-off, from subtracting two nearly equal prices, which grows as h shrinks. Here the closed forms exist, so the bump is the <i>check</i>: central differences at the base case and across the 216-point grid (call and put) agree with the analytic Greeks to 10⁻⁷ or better.</p>
+</div>
+<div class="tbl"><table>
+<tr><th>Greek</th><th>step h</th><th class="n">analytic (call)</th><th class="n">bump − analytic, base case</th><th class="n">worst over 216 points × 2</th><th>where the worst was</th></tr>
+<tr><td>Δ</td><td>5 × 10⁻⁵ × S</td><td class="n">0.62740946</td><td class="n">−7 × 10⁻¹⁰</td><td class="n">1.1 × 10⁻⁸</td><td>call S = 120, K = 110, σ = 0.2, T = ¼</td></tr>
+<tr><td>Γ (second difference)</td><td>10⁻⁴ × S</td><td class="n">0.00946050</td><td class="n">+2 × 10⁻¹⁰</td><td class="n">3.2 × 10⁻⁹</td><td>put S = K = 100, σ = 0.2, T = ¼</td></tr>
+<tr><td>vega</td><td>5 × 10⁻⁵ × σ</td><td class="n">37.841983</td><td class="n">−1 × 10⁻⁹</td><td class="n">3.0 × 10⁻⁸</td><td>put S = 120, K = 90, σ = 0.2, T = 2</td></tr>
+<tr><td>Θ (in T, sign flipped)</td><td>5 × 10⁻⁵ × T</td><td class="n">−9.804296</td><td class="n">−3 × 10⁻⁹</td><td class="n">5.9 × 10⁻⁹</td><td>call S = K = 100, σ = 0.4, T = ¼</td></tr>
+<tr><td>ρ</td><td>10⁻⁵ absolute</td><td class="n">44.717995</td><td class="n">−2 × 10⁻⁹</td><td class="n">6.7 × 10⁻⁸</td><td>put S = 120, K = 100, σ = 0.2, T = 2</td></tr>
+<tr><td>∂V/∂q</td><td>10⁻⁵ absolute</td><td class="n">−62.740946</td><td class="n">−2 × 10⁻⁹</td><td class="n">5.9 × 10⁻⁸</td><td>call S = 100, K = 110, q = 0.03, T = 2</td></tr>
+</table></div>
+<div class="cap">results.bump.{h_rel, base.{analytic, bump}, grid.{n_points, max_abs_error_*, worst_row_*}}; tolerance 10⁻⁷ throughout (params.bump_tolerance)</div>
+<div class="col">
+<p>Why the step sizes are what they are, in one table: Γ at the base case by the second central difference as h shrinks. The error falls as h² down to h ≈ 10⁻⁴ × S = 0.01, then rises as 1/h² — a V, with its floor at 2 × 10⁻¹⁰. A hand estimate would have put the best h a hundred times larger. This is the whole subject of 3.5, and the page states only that it exists; the systematic study, and Greeks by Monte Carlo where the noise swamps everything, are 3.5's.</p>
+</div>
+<div class="fig"><div class="title">Figure 1 — the Gamma bump study: |bump − analytic| against h/S, both axes logarithmic</div><canvas id="c0" width="1200" height="420"></canvas><div class="legend"><span style="--c: var(--s1)">error of the second central difference</span><span class="dash" style="--c: var(--muted)">truncation ∝ h² and round-off ∝ 1/h², fitted by eye at the ends</span></div></div>
+<div class="cap">results.bump.gamma_bump_study[*].{h_rel, abs_error}</div>
+</section>
+
+<section id="qC">
+<h2>C · Shapes: each Greek against spot, and against expiry</h2>
+<div class="col">
+<p>These are the curves the D6 pricer draws, from the fixtures in the JSON. Four expiries, τ = 1, ½, ¼, 0.05 years; the spot axis 40 to 200; K = 100, r = 0.05, σ = 0.4. The thing to see in each: where it is largest, and what it does as expiry approaches.</p>
+</div>
+<div class="two">
+<div class="fig"><div class="title">Figure 2a — Δ against S: a smoothed step, 0 to 1, sharpening to the step at expiry</div><canvas id="c1" width="600" height="380"></canvas></div>
+<div class="fig"><div class="title">Figure 2b — Γ against S: the bump under the step, peaking below the strike at long τ, at it as τ → 0, and growing like 1/√τ</div><canvas id="c2" width="600" height="380"></canvas></div>
+<div class="fig"><div class="title">Figure 2c — vega = ΓS²στ against S: Γ's shape re-weighted by S², largest near the strike and <i>shrinking</i> as τ → 0</div><canvas id="c3" width="600" height="380"></canvas></div>
+<div class="fig"><div class="title">Figure 2d — Θ against S: most negative near the strike, −rKe^(−rτ) deep in, 0 deep out, collapsing to the kink at expiry</div><canvas id="c4" width="600" height="380"></canvas></div>
+</div>
+<div class="fig" style="max-width:60rem"><div class="legend"><span style="--c: var(--ramp4)">τ = 1</span><span style="--c: var(--ramp3)">τ = ½</span><span style="--c: var(--ramp2)">τ = ¼</span><span style="--c: var(--ramp1)">τ = 0.05</span><span class="dash" style="--c: var(--muted)">K = 100</span></div></div>
+<div class="cap">results.d6.curves.tau_*.call.{delta, gamma, vega, theta} on results.d6.S</div>
+<div class="tbl"><table>
+<tr><th class="n">τ</th><th class="n">Γ peaks at S</th><th class="n">= Ke^(−(r+3σ²/2)τ)</th><th class="n">Γ at peak</th><th class="n">Γ at K</th><th class="n">vega peaks at</th><th class="n">= Ke^((σ²/2−r)τ)</th><th class="n">vega at K</th><th class="n">Θ trough at S</th><th class="n">Θ there</th><th class="n">Θ at K</th><th class="n">Δ at 40 · 200</th></tr>
+<tr><td class="n">1</td><td class="n">75</td><td class="n">74.8</td><td class="n">0.01230</td><td class="n">0.00946</td><td class="n">103</td><td class="n">103.0</td><td class="n">37.84</td><td class="n">114</td><td class="n">−10.20</td><td class="n">−9.80</td><td class="n">0.025 · 0.980</td></tr>
+<tr><td class="n">½</td><td class="n">87</td><td class="n">86.5</td><td class="n">0.01566</td><td class="n">0.01374</td><td class="n">102</td><td class="n">101.5</td><td class="n">27.47</td><td class="n">107</td><td class="n">−13.61</td><td class="n">−13.32</td><td class="n">0.001 · 0.996</td></tr>
+<tr><td class="n">¼</td><td class="n">93</td><td class="n">93.0</td><td class="n">0.02102</td><td class="n">0.01969</td><td class="n">101</td><td class="n">100.8</td><td class="n">19.69</td><td class="n">103</td><td class="n">−18.35</td><td class="n">−18.14</td><td class="n">0.000 · 1.000</td></tr>
+<tr><td class="n">0.05</td><td class="n">99</td><td class="n">98.6</td><td class="n">0.04502</td><td class="n">0.04449</td><td class="n">100</td><td class="n">100.2</td><td class="n">8.90</td><td class="n">101</td><td class="n">−38.12</td><td class="n">−38.05</td><td class="n">0.000 · 1.000</td></tr>
+</table></div>
+<div class="cap">results.shapes_against_S.curves.tau_*.{gamma_peak, vega_peak, theta_trough, delta_range}; the peaks on a grid of step 1 against the closed-form location</div>
+<div class="col">
+<p>Against expiry at the money, with S₀ = K: the three scalings. Γ and Θ blow up like 1/√T, vega vanishes like √T, and the products settle on their limits — <span class="m">Γ√T → φ(0)/(S₀σ) = 0.009974</span>, <span class="m">vega/√T → S₀φ(0) = 39.89</span>, <span class="m">Θ√T → −S₀σφ(0)/2 = −7.98</span> (theta's carry term, −rKe^(−rT)N(d₂), is the gap at T = 1). The same 1/√T that <a href="https://preview.dnl8fxtcop63d.amplifyapp.com/stochastic-calculus/delta-hedging-and-the-pde">2.7</a>'s ledger promised for gamma near expiry, and that 2.9's T → 0 table at the kink showed for the price, C/√T → S₀σφ(0) = 15.96 — the same φ(0).</p>
+</div>
+<div class="tbl"><table>
+<tr><th class="n">T</th><th class="n">Δ</th><th class="n">Γ</th><th class="n">vega</th><th class="n">Θ</th><th class="n">ρ</th><th class="n">Γ√T</th><th class="n">vega/√T</th><th class="n">Θ√T</th></tr>
+<tr><td class="n">2</td><td class="n">0.677</td><td class="n">0.00635</td><td class="n">50.76</td><td class="n">−7.15</td><td class="n">82.84</td><td class="n">0.00897</td><td class="n">35.90</td><td class="n">−10.11</td></tr>
+<tr><td class="n">1</td><td class="n">0.627</td><td class="n">0.00946</td><td class="n">37.84</td><td class="n">−9.80</td><td class="n">44.72</td><td class="n">0.00946</td><td class="n">37.84</td><td class="n">−9.80</td></tr>
+<tr><td class="n">½</td><td class="n">0.591</td><td class="n">0.01374</td><td class="n">27.47</td><td class="n">−13.32</td><td class="n">23.35</td><td class="n">0.00971</td><td class="n">38.85</td><td class="n">−9.42</td></tr>
+<tr><td class="n">¼</td><td class="n">0.565</td><td class="n">0.01969</td><td class="n">19.69</td><td class="n">−18.14</td><td class="n">11.98</td><td class="n">0.00984</td><td class="n">39.37</td><td class="n">−9.07</td></tr>
+<tr><td class="n">0.1</td><td class="n">0.541</td><td class="n">0.03137</td><td class="n">12.55</td><td class="n">−27.54</td><td class="n">4.88</td><td class="n">0.00992</td><td class="n">39.68</td><td class="n">−8.71</td></tr>
+<tr><td class="n">0.01</td><td class="n">0.513</td><td class="n">0.0997</td><td class="n">3.99</td><td class="n">−82.2</td><td class="n">0.50</td><td class="n">0.00997</td><td class="n">39.87</td><td class="n">−8.22</td></tr>
+<tr><td class="n">10⁻⁴</td><td class="n">0.501</td><td class="n">0.997</td><td class="n">0.399</td><td class="n">−800</td><td class="n">0.005</td><td class="n">0.009974</td><td class="n">39.894</td><td class="n">−8.004</td></tr>
+<tr><td class="n">10⁻⁶</td><td class="n">0.500</td><td class="n">9.97</td><td class="n">0.0399</td><td class="n">−7981</td><td class="n">0.00005</td><td class="n">0.009974</td><td class="n">39.894</td><td class="n">−7.981</td></tr>
+<tr><td class="n">limit</td><td class="n">½</td><td class="n">∞</td><td class="n">0</td><td class="n">−∞</td><td class="n">0</td><td class="n">0.009974</td><td class="n">39.894</td><td class="n">−7.979</td></tr>
+</table></div>
+<div class="cap">results.shapes_against_T.rows[*]; results.shapes_against_T.limits</div>
+</section>
+
+<section id="qD">
+<h2>D · Theta pays for gamma: the PDE as a P&amp;L statement, step by step</h2>
+<div class="col">
+<p>On <a href="https://preview.dnl8fxtcop63d.amplifyapp.com/stochastic-calculus/delta-hedging-and-the-pde">2.7</a> the hedged book — long one call, short Δ shares, the difference in cash at r, rebalanced N times — came out with mean zero and a spread that fell like 1/√N, and the PDE <span class="m">Θ + ½σ²S²Γ + rSΔ − rV = 0</span> was what the closed form had to satisfy for that to happen. This section takes the same book, the same code, the same 4,000-path setup (μ = 0, σ_i = 0.4) and writes down on every step where the option's change went. <a href="https://preview.dnl8fxtcop63d.amplifyapp.com/stochastic-calculus/ito-lemma">2.5</a>'s lemma on a grid says, over one step with the stock moving by δS,</p>
+<div class="eq">δV = Θ δt + Δ δS + ½Γ (δS)² + remainder,</div>
+<p>and the hedge removes the Δ δS term while the cash leg adds (rSΔ − rV) δt. So the hedged book's step is three named pieces plus the remainder, and summed along a path (discounted):</p>
+<div class="eq sm">hedged P&amp;L = Σ e<sup>−rt</sup>Θ δt + Σ e<sup>−rt</sup>½Γ(δS)² + Σ e<sup>−rt</sup>(rSΔ − rV) δt + remainder.</div>
+<p>Call the three sums the <b>theta cost</b>, the <b>gamma gain</b> and the <b>carry</b>. The PDE, multiplied by δt and summed, is an identity between them and a fourth sum the price assumed for the gamma gain:</p>
+<div class="eq sm">theta cost + carry = −Σ e<sup>−rt</sup>½σ<sub>i</sub>²S²Γ δt — on every path, to 10⁻¹³.</div>
+<p>That is the sentence "theta pays for gamma" with the units attached: what the holder pays in theta (net of carry) is exactly what the formula assumed the curvature would earn at the implied volatility. Whether the curvature <i>does</i> earn it is the one thing the formula cannot assume — it depends on how the stock actually moves — and subtracting the identity from the hedged P&amp;L leaves 2.7's gamma P&amp;L row, <span class="m">Σ e<sup>−rt</sup>½ΓS²((δS/S)² − σ<sub>i</sub>²δt)</span>, plus the remainder. Realised variance in, implied variance out.</p>
+</div>
+<div class="tbl"><table>
+<tr><th>σ_r</th><th class="n">N</th><th class="n">option change Σδ V</th><th class="n">delta term (removed)</th><th class="n">gamma gain</th><th class="n">theta cost</th><th class="n">carry</th><th class="n">gain + cost + carry</th><th class="n">assumed gain Σ½σ_i²S²Γδt</th><th class="n">hedged P&amp;L</th><th class="n">(σ_r² − σ_i²) × gamma integral</th><th class="n">remainder rms</th><th class="n">2.7, cited</th></tr>
+<tr><td>0.3</td><td class="n">4096</td><td class="n">−6.08 ± 0.32</td><td class="n">−0.10 ± 0.33</td><td class="n">+4.89 ± 0.03</td><td class="n">−10.87 ± 0.05</td><td class="n">+2.18 ± 0.02</td><td class="n">−3.80 ± 0.02</td><td class="n">+8.69 ± 0.05</td><td class="n">−3.802 ± 0.020</td><td class="n">−0.07 × 54.3 = −3.802</td><td class="n">0.013</td><td class="n">−3.759 ± 0.020</td></tr>
+<tr><td>0.4</td><td class="n">4096</td><td class="n">−2.06 ± 0.45</td><td class="n">+0.07 ± 0.47</td><td class="n">+7.58 ± 0.05</td><td class="n">−9.71 ± 0.05</td><td class="n">+2.14 ± 0.02</td><td class="n">+0.003 ± 0.003</td><td class="n">+7.57 ± 0.05</td><td class="n">+0.003 ± 0.003</td><td class="n">0 × 47.3 = 0</td><td class="n">0.014</td><td class="n">−0.002 ± 0.003</td></tr>
+<tr><td>0.5</td><td class="n">4096</td><td class="n">+1.97 ± 0.63</td><td class="n">+0.32 ± 0.64</td><td class="n">+10.34 ± 0.07</td><td class="n">−8.69 ± 0.05</td><td class="n">+2.06 ± 0.02</td><td class="n">+3.72 ± 0.03</td><td class="n">+6.62 ± 0.05</td><td class="n">+3.719 ± 0.025</td><td class="n">+0.09 × 41.4 = +3.725</td><td class="n">0.019</td><td class="n">+3.740 ± 0.026</td></tr>
+<tr><td>0.4</td><td class="n">256</td><td class="n">−2.06 ± 0.45</td><td class="n">+0.08 ± 0.47</td><td class="n">+7.57 ± 0.05</td><td class="n">−9.71 ± 0.05</td><td class="n">+2.14 ± 0.02</td><td class="n">−0.005 ± 0.013</td><td class="n">+7.57 ± 0.05</td><td class="n">−0.007 ± 0.013</td><td class="n">0</td><td class="n">0.113</td><td class="n">−0.009 ± 0.013</td></tr>
+</table></div>
+<div class="cap">results.attribution.sigma_r_*.per_N[*].{option_change, delta_term, gamma_gain, theta_cost, carry, gamma_gain_plus_theta_plus_carry, gamma_dt, hedged_pnl_discounted, mean_predicted_by_vol_gap, gamma_integral_mean, remainder, pde_identity_max_abs}; params.cited_from_2_7 (2_7_delta_hedging.json, N = 4096, seed 20261101). Means ± s.e. over 4,000 paths; the "delta term" is the sum the hedge removed, shown so the option's change adds up: −6.08 = −0.10 + 4.89 − 10.87 + remainder (−0.00)</div>
+<div class="fig"><div class="title">Figure 3 — where the option's change went, per scenario (means over 4,000 paths, N = 4096): the gamma gain rises with σ_r², the theta cost does not follow it, and their sum with the carry is the hedged P&amp;L</div><canvas id="c5" width="1200" height="400"></canvas><div class="legend"><span style="--c: var(--s3)">gamma gain Σe^(−rt)½Γ(δS)²</span><span style="--c: var(--s2)">theta cost Σe^(−rt)Θδt</span><span style="--c: var(--s4)">carry Σe^(−rt)(rSΔ − rV)δt</span><span style="--c: var(--s1)">hedged P&amp;L = the three summed (+ remainder)</span><span class="dash" style="--c: var(--muted)">assumed gain Σe^(−rt)½σ_i²S²Γδt = −(theta cost + carry)</span></div></div>
+<div class="cap">results.attribution.sigma_r_*.per_N[1].{gamma_gain, theta_cost, carry, hedged_pnl_discounted, gamma_dt}.mean</div>
+<div class="col">
+<p>Three things to read off. First, at σ_r = σ_i the gamma gain (7.58 ± 0.05) is what theta and the carry cost (9.71 − 2.14 = 7.57): zero net, within 0.003. The curvature earned exactly what it was priced to earn, because the stock moved with the variance the price assumed. Second, at σ_r = 0.3 and 0.5 the gamma gain moves (4.89, 10.34) and the assumed gain does not move with it (8.69, 6.62 — it changes only because the paths visit different places); the hedged P&amp;L is their difference, −3.80 and +3.72, which is (σ_r² − σ_i²) times the gamma integral to the s.e. — 2.7's Decision 3 result, seen per step, and its own numbers −3.76 / +3.74 sit within 1.5 combined s.e. of this run's on fresh paths. Third, the remainder — what second-order Taylor misses — has rms 0.013 at N = 4096 against 0.11 at N = 256, falling like 1/N; the theta cost's spread (sd 3.3) does not fall with N at all, because it is a path integral, not a step error: how much theta you pay depends on where the stock spent the year.</p>
+<p>Who watches it: a delta-hedged book is a bet that realised variance will exceed implied, paid for daily in theta. That is what "long gamma, short theta" means on a desk, and 2.11 is where the model's one σ meets a market with a different one for every strike.</p>
+</div>
+</section>
+
+<section id="qE">
+<h2>E · The put's Greeks, from parity</h2>
+<div class="col">
+<p>2.9's parity, <span class="m">C − P = S₀e<sup>−qT</sup> − Ke<sup>−rT</sup></span>, is an identity in every input, so it can be differentiated: the put's Greek is the call's minus the forward's. The forward is linear in S, so it has delta e^(−qT), no gamma and no vega; it has theta −rKe^(−rT) + qS₀e^(−qT) and rho −KTe^(−rT). Across the 216-point grid the six identities hold to 3 × 10⁻¹⁴.</p>
+</div>
+<div class="tbl"><table>
+<tr><th>Greek</th><th>put = call − forward's</th><th class="n">call</th><th class="n">forward's</th><th class="n">put</th><th class="n">grid worst</th></tr>
+<tr><td>Δ</td><td>Δ_C − e^(−qT)</td><td class="n">0.6274</td><td class="n">1</td><td class="n">−0.3726</td><td class="n">1 × 10⁻¹⁶</td></tr>
+<tr><td>Γ</td><td>equal</td><td class="n">0.009460</td><td class="n">0</td><td class="n">0.009460</td><td class="n">0</td></tr>
+<tr><td>vega</td><td>equal</td><td class="n">37.842</td><td class="n">0</td><td class="n">37.842</td><td class="n">0</td></tr>
+<tr><td>Θ</td><td>Θ_C + rKe^(−rT) − qS₀e^(−qT)</td><td class="n">−9.804</td><td class="n">−4.756</td><td class="n">−5.048</td><td class="n">3 × 10⁻¹⁵</td></tr>
+<tr><td>ρ</td><td>ρ_C − KTe^(−rT)</td><td class="n">44.718</td><td class="n">95.123</td><td class="n">−50.405</td><td class="n">3 × 10⁻¹⁴</td></tr>
+<tr><td>∂V/∂q</td><td>+ TS₀e^(−qT)</td><td class="n">−62.741</td><td class="n">−100</td><td class="n">37.259</td><td class="n">3 × 10⁻¹⁴</td></tr>
+</table></div>
+<div class="cap">results.parity_greeks.{identities, grid.max_abs_error_*, base_case.{call, put, forward_theta, forward_rho}}</div>
+<div class="col"><p>The put's theta is less negative than the call's by the carry on the strike: the put holder is waiting to <i>receive</i> K, and discounting works for them. The put's rho is the call's minus 95.1, the forward's whole rate sensitivity, so it is negative: a higher rate makes the strike you will receive worth less today.</p></div>
+</section>
+
+<section id="qF">
+<h2>F · The oracle — all seven columns</h2>
+<div class="col"><p>2.9 read price and delta from <code>golden/bs_vanilla.json</code>. This page reads the other five for the first time on a study page: gamma, vega, theta, rho and dividend-rho, raw partials as the file carries them (per unit vol, per year, per unit rate — the T0 decision), at all 7,200 grid rows and 34 edge rows, call and put, to the file's own tolerances; and QuantLib 1.43's <code>BlackCalculator</code> live at the page's 216 points for the same seven. The closed forms in <a href="#why">why</a> are what the C++ implements in 3.1; this is the test it will face.</p></div>
+<div class="tbl"><table>
+<tr><th>comparison</th><th class="n">rows</th><th class="n">price</th><th class="n">delta</th><th class="n">gamma</th><th class="n">vega</th><th class="n">theta</th><th class="n">rho</th><th class="n">dividend-rho</th><th>tolerance</th></tr>
+<tr><td>QuantLib 1.43 <code>BlackCalculator</code> at the grid, call and put</td><td class="n">216 × 2</td><td class="n">3.6 × 10⁻¹⁴</td><td class="n">1.1 × 10⁻¹⁵</td><td class="n">1.2 × 10⁻¹⁶</td><td class="n">4.6 × 10⁻¹⁴</td><td class="n">4.9 × 10⁻¹⁴</td><td class="n">9.9 × 10⁻¹⁴</td><td class="n">1.1 × 10⁻¹³</td><td>10⁻¹⁰</td></tr>
+<tr><td>golden grid cases (QuantLib 1.43, T0)</td><td class="n">7,200</td><td class="n">1.2 × 10⁻¹³</td><td class="n">4.3 × 10⁻¹⁵</td><td class="n">1.4 × 10⁻¹⁵</td><td class="n">4.5 × 10⁻¹⁴</td><td class="n">9.8 × 10⁻¹⁴</td><td class="n">2.5 × 10⁻¹³</td><td class="n">2.8 × 10⁻¹³</td><td>10⁻¹⁰, relative above 1</td></tr>
+<tr><td>golden edge cases (one-day, near-zero and very high vol, deep in and out, negative rate, ten-year, tiny and large spot)</td><td class="n">34</td><td class="n">1.7 × 10⁻¹⁴</td><td class="n">1.0 × 10⁻¹⁴</td><td class="n">6.2 × 10⁻¹⁶</td><td class="n">2.1 × 10⁻¹⁴</td><td class="n">1.6 × 10⁻¹¹</td><td class="n">1.4 × 10⁻¹⁴</td><td class="n">1.3 × 10⁻¹⁴</td><td>10⁻⁸</td></tr>
+</table></div>
+<div class="cap">results.oracle.live.{version, n_points, max_abs_error_*}; results.oracle.golden.{oracle.version, cases.{n, worst_*_error, tolerance}, edge_cases.{n, worst_*_error, worst_*_row, tolerance}}. The edge block's worst theta (1.6 × 10⁻¹¹, relative) is the one-day deep-in-the-money call, where theta is −77 per year and the file's rule divides by it</div>
+</section>
+
+<section class="col" id="why">
+<h2>Why — the derivation, after the numbers</h2>
+<p class="note">Ten rungs. One identity (rung 2) turns five differentiations into five one-liners; everything else is reading. Notation as the course has it: N(·) the cumulative normal, φ(z) = e^(−z²/2)/√(2π) its density, d₁ and d₂ as 2.9 defined them, ∂ throughout, drift first.</p>
+
+<div class="rung"><div class="no">1</div><div class="body"><p><b>What a Greek is.</b> The price is a function of five inputs, <span class="m">C(S₀, K, r, σ, T)</span> — K is fixed by the contract, so four can move. A Greek is the partial derivative with respect to one of them, every other input held still, and it answers "how much does the price move per unit move in this input, to first order." First order is the limitation: <a href="#qA">A</a>'s 0.6321 against Δ = 0.6274 is the gap, and gamma is its name.</p></div></div>
+
+<div class="rung"><div class="no">2</div><div class="body"><p><b>The identity that does all the work.</b> Write out <span class="m">S₀φ(d₁)</span> and <span class="m">Ke<sup>−rT</sup>φ(d₂)</span> with d₂ = d₁ − σ√T: the exponents differ by <span class="m">−½d₁² + ½(d₁ − σ√T)² = −d₁σ√T + ½σ²T = −ln(S₀/K) − rT</span>, which is exactly the log of <span class="m">Ke<sup>−rT</sup>/S₀</span>. So</p>
+<div class="eq">S₀ φ(d₁) = K e<sup>−rT</sup> φ(d₂).</div>
+<p>Numerically 100 × 0.3784 = 95.12 × 0.3978 = 37.84 — and 37.84 is vega. Keep this: whenever an input moves d₁ and d₂ together (and every input except K moves them by the same amount, since they differ by σ√T), the two φ-terms the chain rule produces cancel.</p></div></div>
+
+<div class="rung"><div class="no">3</div><div class="body"><p><b>Delta, and why it is only N(d₁).</b> Differentiate C with respect to S₀: the product rule on S₀N(d₁) gives <span class="m">N(d₁) + S₀φ(d₁)·∂d₁/∂S₀</span>; the strike piece gives <span class="m">−Ke<sup>−rT</sup>φ(d₂)·∂d₂/∂S₀</span>. Both ∂d/∂S₀ are 1/(S₀σ√T), so by rung 2 the two φ-terms cancel and <span class="m">Δ = N(d₁)</span>. 2.9 measured it as a bump and as a probability; here it is the first case of the pattern.</p></div></div>
+
+<div class="rung"><div class="no">4</div><div class="body"><p><b>Gamma.</b> Differentiate Δ = N(d₁) once more: <span class="m">Γ = φ(d₁)·∂d₁/∂S₀ = φ(d₁)/(S₀σ√T)</span> = 0.3784/(100 × 0.4) = 0.00946. Always positive — the call is convex in S — and shaped like the normal density in ln S, which is why <a href="#qC">C</a>'s peak sits where d₁ = −σ√T, at <span class="m">Ke<sup>−(r + 3σ²/2)T</sup></span>, and moves to the strike as T → 0 while its height grows like 1/√T: the step in Δ is getting sharper.</p></div></div>
+
+<div class="rung"><div class="no">5</div><div class="body"><p><b>Vega.</b> Differentiate with respect to σ: the chain rule gives <span class="m">S₀φ(d₁)·∂d₁/∂σ − Ke<sup>−rT</sup>φ(d₂)·∂d₂/∂σ</span>. Now ∂d₂/∂σ = ∂d₁/∂σ − √T, so by rung 2 what survives is <span class="m">Ke<sup>−rT</sup>φ(d₂)√T = S₀φ(d₁)√T</span> = 37.84. Positive for the call and (rung 9) equal for the put: more volatility is worth more to anyone long an option, whichever way it is struck — vega has no direction in it (P4a). Grows with √T; vanishes at expiry.</p></div></div>
+
+<div class="rung"><div class="no">6</div><div class="body"><p><b>Rho.</b> Differentiate with respect to r: the chain rule gives the two φ-terms with ∂d₁/∂r = ∂d₂/∂r = √T/σ — equal, so by rung 2 they cancel — plus the derivative of the discount factor, <span class="m">+KTe<sup>−rT</sup>N(d₂)</span> = 44.72. So P5: r does enter through d₁ and d₂, and that route contributes nothing; ρ is the strike piece's derivative alone, and it is positive because paying K later is cheaper when rates are higher. The put's is negative (rung 9).</p></div></div>
+
+<div class="rung"><div class="no">7</div><div class="body"><p><b>Theta.</b> The price depends on t only through τ = T − t, so Θ = ∂V/∂t = −∂C/∂T. Differentiating with respect to T: the discount factor gives <span class="m">+rKe<sup>−rT</sup>N(d₂)</span>, and the φ-terms, with ∂d₂/∂T = ∂d₁/∂T − σ/(2√T), leave <span class="m">Ke<sup>−rT</sup>φ(d₂)·σ/(2√T) = S₀φ(d₁)σ/(2√T)</span>. Flip the sign:</p>
+<div class="eq">Θ = −S₀φ(d₁)σ/(2√T) − rKe<sup>−rT</sup>N(d₂) = −7.568 − 2.236 = −9.804.</div>
+<p>The first term is <span class="m">−½σ²S₀²Γ</span> — check: ½ × 0.16 × 10⁴ × 0.00946 = 7.57 — the gamma term; the second is the carry on the strike. Deep in the money φ(d₁) → 0 and only the carry is left, −rKe^(−rT) = −4.76: a forward's theta (P3a). Deep out both vanish.</p></div></div>
+
+<div class="rung"><div class="no">8</div><div class="body"><p><b>The PDE, re-read.</b> Put rung 7 beside <a href="https://preview.dnl8fxtcop63d.amplifyapp.com/stochastic-calculus/delta-hedging-and-the-pde">2.7</a>'s <span class="m">Θ + ½σ²S²Γ + rSΔ − rV = 0</span>: it is the same equation, because <span class="m">rSΔ − rV = rS₀N(d₁) − rC = rKe<sup>−rT</sup>N(d₂)</span>. 2.7 derived the PDE from the hedge and checked the formula against it; here the formula's theta is computed directly and the PDE is what it says. Read as money per unit time on the hedged book: <span class="m">−Θ = ½σ²S²Γ + (rSΔ − rV)</span> — what you pay in theta is what the curvature is expected to earn at the implied σ, plus the carry. <a href="#qD">D</a> measured each term along 4,000 paths: 9.71 = 7.57 + 2.14.</p></div></div>
+
+<div class="rung"><div class="no">9</div><div class="body"><p><b>The put.</b> Differentiate parity, <span class="m">P = C − S₀ + Ke<sup>−rT</sup></span>: Δ_P = Δ_C − 1, Γ and vega unchanged (the forward has neither), Θ_P = Θ_C + rKe^(−rT), ρ_P = ρ_C − KTe^(−rT). <a href="#qE">E</a>. Nothing is re-derived; the forward's Greeks are what a linear instrument has, and they can be read off <a href="https://preview.dnl8fxtcop63d.amplifyapp.com/stochastic-calculus/delta-hedging-and-the-pde">2.7</a>'s control.</p></div></div>
+
+<div class="rung"><div class="no">10</div><div class="body"><p><b>Units, and the two cousins.</b> Everything above is a raw partial: per 1.00 of σ, per year, per 1.00 of r. A desk quotes vega per vol point (÷100: 0.378), theta per day (÷365: −0.027), rho per basis point (÷10⁴: 0.0045), and the scaling belongs at the display, once, where everyone can see it — the oracle, the C++ and the TypeScript must agree on the raw number or no test means anything (the T0 decision). The dividend-rho ∂V/∂q = −TS₀e^(−qT)N(d₁) is the stock piece's T-weight as ρ is the strike piece's; the oracle carries it, the page does not name it among the five. The second-order cousins traders also watch — vanna ∂Δ/∂σ, volga ∂²V/∂σ², charm ∂Δ/∂t — are not on this page; they are where 2.11's smile makes them matter.</p></div></div>
+</section>
+
+<section class="col" id="dec">
+<h2>Decisions you may overrule</h2>
+<ul>
+<li><b>Bump sizes.</b> 5 × 10⁻⁵ relative for the first differences in S, σ, T; 10⁻⁵ absolute in r and q (they can be zero); 10⁻⁴ relative for Γ's second difference — chosen from the study in <a href="#qB">B</a>, which put the best h for Γ a hundred times smaller than the handover's 10⁻² estimate. Tolerance 10⁻⁷ for all six. The page states one sensible h per Greek and says why 3.5 exists; the systematic study is 3.5's.</li>
+<li><b>C3's scope.</b> Your Q1/a: 2.7's gamma P&amp;L is cited, not re-measured. C3 re-simulates the book only to attribute each step, and reports the σ_r = 0.3 / 0.5 totals as the per-step view with 2.7's numbers beside them as the citation (they agree within 1.5 combined s.e. on fresh paths). If you would rather the page showed only σ_r = σ_i and pointed at 2.7 for the rest, the table loses two rows and nothing else changes.</li>
+<li><b>"Theta pays for gamma", not "gamma pays for theta".</b> The course's phrase, from 2.7's ledger: the long holder pays theta and is paid gamma. Your P3b had it both ways; the page uses one direction.</li>
+<li><b>The theta trough.</b> With a year to run the most negative theta is at S = 114, not at the strike. The page says "near the strike" and gives the number rather than claiming "at the money".</li>
+<li><b>Who watches it.</b> One clause per Greek in <a href="#qA">A</a>'s table, in the course's register, with "long gamma, short theta" as the one desk phrase the page explains. The index asks for "who watches it"; this is as far as I have taken it without putting words in a trader's mouth.</li>
+<li><b>Dividend-rho and the second-order Greeks.</b> ∂V/∂q is checked (C1, C2) and named once in rung 10; vanna, volga and charm are named once as not on this page. The index's five are the page's five.</li>
+<li><b>Figures.</b> Four shape curves and the attribution bars belong to the notes and to D6; the page gets tables (2.9's F8 ruling).</li>
+<li><b>Seed 20261105</b>, the session's opening date; 4,000 paths × 4096 fine steps as 2.7; the 216-point grid as 2.9.</li>
+</ul>
+</section>
+
+<section class="col" id="checks">
+<h2>Checks Q1–Q6 (I5) — approved 2026-11-08</h2>
+<p class="note">One per section; every wrong option names its misconception. Q2, Q3, Q4 and Q6's distractors are your P2, P3 and P5 misses; the rest are the handover's listening list. As committed in <code>drafts/2.10-checks.md</code> (m/L2 e35a987); Q3's feedback there also carries the measured 7.58 against 9.71 − 2.14.</p>
+
+<div class="check"><div class="stem">Q1. Δ = 0.627 here. The stock moves from 100 to 101 and the call price moves by:</div><ol>
+<li><span class="ok">✓</span> About 0.632 — slightly more than Δ, because the second-order term ½Γ(δS)² = 0.0047 is positive <span class="why">— 18.023 → 18.655; and down to 99 the fall is 0.623, less than Δ, for the same reason.</span></li>
+<li><span class="no">✗</span> Exactly 0.627 — delta is the price change per unit of stock <span class="why">— first order mistaken for the whole; Δ is a derivative, not a difference, and it has itself moved to 0.637 by the time the stock reaches 101.</span></li>
+<li><span class="no">✗</span> About 0.632 up but 0.632 down too — the curvature cancels on the way down <span class="why">— gamma's sign misread; Γ > 0 helps both ways: more on the way up, less on the way down.</span></li>
+<li><span class="no">✗</span> 0.627 × 18.023 — delta is a percentage of the price <span class="why">— a unit error; Δ is per unit of stock, in price units per price unit, and 0.627 of a share hedges one option.</span></li>
+</ol></div>
+
+<div class="check"><div class="stem">Q2. With a year to run (S₀ = K = 100, σ = 0.4), gamma is largest:</div><ol>
+<li><span class="ok">✓</span> Below the strike, near S = 75 — Γ = φ(d₁)/(Sσ√T) peaks where d₁ = −σ√T, at Ke^(−(r + 3σ²/2)T) <span class="why">— 0.0123 there against 0.0095 at the strike; the peak moves to the strike only as T → 0.</span></li>
+<li><span class="no">✗</span> At the strike, always <span class="why">— the short-expiry picture generalised; true at τ = 0.05 (peak 98.6), not at τ = 1.</span></li>
+<li><span class="no">✗</span> Deep in the money, where the option is worth most <span class="why">— value confused with curvature; deep in the money the call is a forward, Δ = 1 and Γ = 0.</span></li>
+<li><span class="no">✗</span> It is the same everywhere — gamma is a constant like σ <span class="why">— a parameter mistaken for a function; Γ is a function of (t, S), and that is why the hedge is rebalanced.</span></li>
+</ol></div>
+
+<div class="check"><div class="stem">Q3. A hedger is long one call and short Δ shares. The stock moves by δS in either direction, and nothing else happens. The hedged book:</div><ol>
+<li><span class="ok">✓</span> Gains ½Γ(δS)², whichever way the stock went — the book is long gamma — and pays for that through theta while nothing moves <span class="why">— on average the two cancel (the PDE); on any one step they do not.</span></li>
+<li><span class="no">✗</span> Neither gains nor loses — that is what hedged means <span class="why">— the expectation mistaken for the realisation; the delta term is removed, the gamma term is not, and the measured gamma gain is 7.58 on the year.</span></li>
+<li><span class="no">✗</span> Gains if the stock rose and loses if it fell <span class="why">— that is the unhedged option; the hedge removes direction and leaves curvature, which has no sign.</span></li>
+<li><span class="no">✗</span> Loses, because the hedge is stale and must be re-set <span class="why">— re-hedging confused with P&amp;L; resetting Δ costs nothing in itself and does not remove the ½Γ(δS)² already earned.</span></li>
+</ol></div>
+
+<div class="check"><div class="stem">Q4. Theta for a one-year call at σ = 0.4 is −9.80 per year at the money. It is most negative:</div><ol>
+<li><span class="ok">✓</span> Near the strike, where gamma is large — Θ = −½σ²S²Γ − rKe^(−rT)N(d₂), and the first term is −7.57 of the −9.80 <span class="why">— the trough is −10.20 at S = 114, a little above the strike because of the carry term.</span></li>
+<li><span class="no">✗</span> Deep in the money, where there is the most value to lose <span class="why">— value confused with decay; deep in the money the call is a forward and its theta is the carry alone, −rKe^(−rT) = −4.76.</span></li>
+<li><span class="no">✗</span> Deep out of the money, where the option is all time value <span class="why">— "time value" misread; far from the strike φ(d₁) → 0 and so does theta: there is nothing left to decay.</span></li>
+<li><span class="no">✗</span> It is −9.80 everywhere — theta is the option's decay rate <span class="why">— a point value mistaken for a constant; Θ is a function of S, like Γ.</span></li>
+</ol></div>
+
+<div class="check"><div class="stem">Q5. Vega = S₀φ(d₁)√T = 37.8 per unit of σ here. As expiry T grows, vega at the money:</div><ol>
+<li><span class="ok">✓</span> Grows, like √T — 27.5 at T = ½, 37.8 at 1, 50.8 at 2 <span class="why">— more time is more that volatility can do; vega vanishes at expiry.</span></li>
+<li><span class="no">✗</span> Shrinks — a longer option is less sensitive to anything <span class="why">— the direction reversed; it is gamma and theta that shrink with T, like 1/√T.</span></li>
+<li><span class="no">✗</span> Depends on whether the stock is expected to rise <span class="why">— drift smuggled back in; vega is ∂C/∂σ, a sensitivity to the size of moves, not their direction, and μ is not in the formula.</span></li>
+<li><span class="no">✗</span> 37.8 means a 1 % rise in σ moves the price by 37.8 <span class="why">— a unit error; 37.8 is per 1.00 of σ, so one vol point is 0.378 — measured 0.3783.</span></li>
+</ol></div>
+
+<div class="check"><div class="stem">Q6. ρ = ∂C/∂r for the call. In C = S₀N(d₁) − Ke^(−rT)N(d₂), r appears in the discount factor and inside d₁ and d₂. Rho is:</div><ol>
+<li><span class="ok">✓</span> +KTe^(−rT)N(d₂) = 44.7: the discount factor's derivative alone, because the two d-terms cancel through S₀φ(d₁) = Ke^(−rT)φ(d₂) <span class="why">— positive: a higher rate makes the strike cheaper to pay; the put's is −50.4.</span></li>
+<li><span class="no">✗</span> Negative for the call — a higher rate discounts the payoff more <span class="why">— the stock piece forgotten; the discount hits the strike you pay, not the stock you receive, and the forward rises with r.</span></li>
+<li><span class="no">✗</span> The sum of a discount effect and a drift effect through d₁, d₂, both non-zero <span class="why">— the cancellation missed; the d-terms are there in the differentiation and gone in the result, exactly as in Δ = N(d₁).</span></li>
+<li><span class="no">✗</span> Zero — the hedge removes the rate as it removes the drift <span class="why">— r confused with μ; the hedge removes the stock's expected return, and r is what the hedged book earns.</span></li>
+</ol></div>
+</section>
+
+<section id="ledger">
+<h2>Ledger — the S10 batch, approved 2026-11-08</h2>
+<div class="col"><p class="note">Rows born from the five derivatives and the owner's questions in session. Symbol and name divided by a dash. Rows marked ↺ revisit an S7 row (Δ, Γ, Θ) in its new role: computed from the formula rather than taken as a black box. As committed in <code>drafts/notation.md</code> (m/L2 e35a987), where 2.9 is linked (it routes) and 2.10 is plain (tbc).</p></div>
+<div class="tbl"><table>
+<tr><th>Symbol</th><th>Say it</th><th>Here it means</th><th>Watch out</th></tr>
+<tr><td>Greek — a partial derivative of the price</td><td>"the Greeks", "a Greek"</td><td>∂V/∂(one input), every other input held still: the first-order answer to "if this moves and nothing else does, how much does my book move?" Five on this page — Δ, Γ, vega, Θ, ρ — all from 2.9's formula by one identity</td><td>first order only: the actual change on a finite move is Δ·δS + ½Γ(δS)² + …, and the gap (0.632 against 0.627) is the next Greek's job. A Greek is a function of (t, S), not a number; "the delta" is its value now</td></tr>
+<tr><td>Δ = ∂C/∂S₀ = N(d₁) — delta ↺</td><td>"delta"</td><td>[2.7](…)'s hedge ratio, now differentiated out of the formula: the S₀φ(d₁) and Ke^(−rT)φ(d₂) terms the chain rule produces cancel, leaving N(d₁) = 0.627. Put: N(d₁) − 1 = −0.373</td><td>moves with the stock — 0.637 at S = 101 — which is Γ. Not a probability of exercise (that is N(d₂), 2.9) though it is one under the stock-weighted measure</td></tr>
+<tr><td>Γ = ∂²C/∂S² = φ(d₁)/(S₀σ√T) — gamma ↺</td><td>"gamma"</td><td>the delta's own sensitivity to spot; 0.00946 here. The normal density in ln S: peaks below the strike at long expiry (74.8 at T = 1), at it as T → 0, growing like 1/√T. Same for the put</td><td>"largest at the strike" is a short-expiry statement. Long the option is long gamma: ½Γ(δS)² ≥ 0 on a move either way — the term the hedge does not remove</td></tr>
+<tr><td>S₀φ(d₁) = Ke^(−rT)φ(d₂) — the identity</td><td>—</td><td>the two density terms are equal (37.84 both), because the exponents differ by exactly ln(Ke^(−rT)/S₀). Every input but K moves d₁ and d₂ together, so the chain-rule pair cancels — delta, vega, rho and theta each fall out in one line</td><td>not a coincidence of the base case: an identity in every input. The reason rho is "discount only" even though r sits in d₁, d₂</td></tr>
+<tr><td>vega = ∂C/∂σ = S₀φ(d₁)√T — vega</td><td>"vega"</td><td>how much the price moves per 1.00 of volatility: 37.84 here, 0.378 per vol point. Positive, no direction in it, equal for call and put, largest near the strike (103.0), growing like √T</td><td>not a Greek letter; the one the vol trader watches, because an option is a position in σ. Per unit on this page and in the oracle; a desk's "vega" is usually per point — ask which</td></tr>
+<tr><td>Θ = ∂V/∂t — theta ↺</td><td>"theta"</td><td>computed: −S₀φ(d₁)σ/(2√T) − rKe^(−rT)N(d₂) = −7.568 − 2.236 = −9.804 per year, −0.027 per day. Most negative near the strike (−10.20 at S = 114); the carry alone deep in the money (−4.76); zero deep out. Put: −5.05</td><td>∂/∂t at fixed S = −∂/∂T. The first term is −½σ²S²Γ: theta is gamma's bill. Per year here; per day on a desk</td></tr>
+<tr><td>ρ = ∂C/∂r = KTe^(−rT)N(d₂) — rho</td><td>"rho"</td><td>the discount factor's derivative, the d-terms having cancelled: +44.72 per unit of r, 0.0045 per basis point. The strike piece's T-weight. Put: −KTe^(−rT)N(−d₂) = −50.40</td><td>positive for the call (paying K later is cheaper when rates are higher), negative for the put. Not zero — the hedge removes μ, not r. Small for short equity options; the rates desk's Greek</td></tr>
+<tr><td>bump-and-revalue</td><td>"bump", "finite-difference Greek"</td><td>(V(x + h) − V(x − h))/2h, and Γ by the second difference. The check on every analytic form here (10⁻⁷ at 216 × 2 points); the only Greek there is when there is no formula (3.5)</td><td>two errors in tension: truncation ∝ h², round-off ∝ ε/h (or ε/h² for Γ). Γ's best h here is 10⁻⁴ × S, not the 10⁻² a hand estimate gives; the study is 3.5's</td></tr>
+<tr><td>theta pays for gamma — the PDE as P&amp;L</td><td>"theta pays for gamma", "long gamma, short theta"</td><td>[2.7](…)'s Θ + ½σ²S²Γ + rSΔ − rV = 0 read per unit time on the hedged book: −Θ = ½σ²S²Γ + carry — the theta paid is what the curvature is priced to earn at σ_i. Measured per step on 4,000 paths: gamma gain 7.58 ± 0.05 against theta cost 9.71 less carry 2.14</td><td>an identity in expectation, not per step: the gamma gain depends on how the stock actually moves, the theta cost does not. Their difference is 2.7's gamma P&amp;L, (σ_r² − σ_i²) × the gamma integral — −3.80 / +3.72 at σ_r = 0.3 / 0.5</td></tr>
+<tr><td>gamma gain · theta cost · carry — the step attribution</td><td>—</td><td>Σe^(−rt)½Γ(δS)², Σe^(−rt)Θδt, Σe^(−rt)(rSΔ − rV)δt along a path: the three pieces of the hedged book's P&amp;L once ΔδS is removed, plus Taylor's remainder (rms 0.013 at N = 4096, 0.11 at 256)</td><td>the remainder falls like 1/N; the theta cost's spread (sd 3.3) does not — it is a path integral, and how much theta you pay depends on where the stock spent the year</td></tr>
+<tr><td>raw partials — the units</td><td>"per unit", "raw"</td><td>vega per 1.00 of σ, Θ per year, ρ per 1.00 of r: what the formula gives, what the golden file stores, what the C++ returns. The T0 decision</td><td>a desk scales at display — ÷100, ÷365, ÷10⁴ — and only there; a convention factor inside the oracle would have to match in three places. "Vega 37.8" and "vega 0.378" are the same number</td></tr>
+<tr><td>∂V/∂q = −TS₀e^(−qT)N(d₁) — the dividend-rho</td><td>"dividend rho"</td><td>the stock piece's T-weight, as ρ is the strike piece's: −62.74 here. Carried by the oracle and checked (C1, C2)</td><td>not one of the page's five; named once so the golden file's seventh column has a home</td></tr>
+</table></div>
+</section>
+
+<section class="col" id="plan">
+<h2>The interview — nine questions for drafts/2.10.md</h2>
+<p class="note">Answered in one burst 2026-11-08; transcribed, audited against the JSON, eleven flags raised and all ruled "A" ("accept recommendations"); "2.10 approved" the same morning; committed as m/L2 e35a987. The page's order is the sections' order. Standing rules: GBM written out at first use, ∂ throughout, drift first, every reference a link (2.9 plain until it routes), N(·) and φ, raw units with the desk scaling named once, max(x, 0).</p>
+<ol class="plan">
+<li><b>The hook.</b> In two or three sentences: what the page is for. 2.9 gave the price; what question does a Greek answer, and why does a developer need five of them?</li>
+<li><b>The plan</b> — "what this page shows, and how", one bold run-in line per section (five numbers; bump; shapes; theta pays for gamma; the put; the oracle), as 2.9's.</li>
+<li><b>What was done</b> — the experiment in a paragraph: the closed forms, the bump at 216 points, 2.7's book re-run with every step attributed, the shapes, parity, the oracle's seven columns.</li>
+<li><b>Five numbers</b> (<a href="#qA">A</a>): the table of the Greeks at the base case, and the one-unit moves. What does each measure, and who watches it? Say what Δ × 1 misses and what fills the gap.</li>
+<li><b>Bump-and-revalue</b> (<a href="#qB">B</a>): what a bump Greek is, the two errors, why one h per Greek is stated and the study left to 3.5.</li>
+<li><b>Shapes</b> (<a href="#qC">C</a>): each Greek against spot and against expiry — where it is largest, what it does at expiry. Say in your words why Γ peaks below the strike at long expiry and why vega grows with T.</li>
+<li><b>Theta pays for gamma</b> (<a href="#qD">D</a>): the PDE as a P&amp;L statement, the step attribution, the three pieces, the identity, and 2.7's gamma P&amp;L cited and seen per step. What does "long gamma, short theta" mean?</li>
+<li><b>The put</b> (<a href="#qE">E</a>) and <b>the oracle</b> (<a href="#qF">F</a>): parity differentiated; the seven columns at 7,234 rows.</li>
+<li><b>Into 2.11.</b> Where it breaks: one σ in the formula, a different implied σ for every strike in the market; what the Greeks become a language for. Previewed, not claimed.</li>
+</ol>
+</section>
+
+</div>
+
+<script>
+const DATA = {"S":[40.0,41.0,42.0,43.0,44.0,45.0,46.0,47.0,48.0,49.0,50.0,51.0,52.0,53.0,54.0,55.0,56.0,57.0,58.0,59.0,60.0,61.0,62.0,63.0,64.0,65.0,66.0,67.0,68.0,69.0,70.0,71.0,72.0,73.0,74.0,75.0,76.0,77.0,78.0,79.0,80.0,81.0,82.0,83.0,84.0,85.0,86.0,87.0,88.0,89.0,90.0,91.0,92.0,93.0,94.0,95.0,96.0,97.0,98.0,99.0,100.0,101.0,102.0,103.0,104.0,105.0,106.0,107.0,108.0,109.0,110.0,111.0,112.0,113.0,114.0,115.0,116.0,117.0,118.0,119.0,120.0,121.0,122.0,123.0,124.0,125.0,126.0,127.0,128.0,129.0,130.0,131.0,132.0,133.0,134.0,135.0,136.0,137.0,138.0,139.0,140.0,141.0,142.0,143.0,144.0,145.0,146.0,147.0,148.0,149.0,150.0,151.0,152.0,153.0,154.0,155.0,156.0,157.0,158.0,159.0,160.0,161.0,162.0,163.0,164.0,165.0,166.0,167.0,168.0,169.0,170.0,171.0,172.0,173.0,174.0,175.0,176.0,177.0,178.0,179.0,180.0,181.0,182.0,183.0,184.0,185.0,186.0,187.0,188.0,189.0,190.0,191.0,192.0,193.0,194.0,195.0,196.0,197.0,198.0,199.0,200.0],"taus":[1.0,0.5,0.25,0.05],"curves":{"tau_1":{"tau":1.0,"call":{"delta":[0.024665,0.028455,0.03261,0.037137,0.042043,0.047334,0.053012,0.059078,0.065532,0.072369,0.079585,0.087175,0.095129,0.103439,0.112094,0.121082,0.130391,0.140005,0.14991,0.160092,0.170532,0.181216,0.192126,0.203244,0.214554,0.226038,0.237679,0.249459,0.261361,0.273368,0.285463,0.297631,0.309855,0.322121,0.334412,0.346715,0.359015,0.3713,0.383556,0.395772,0.407935,0.420036,0.432062,0.444005,0.455854,0.467603,0.479242,0.490763,0.502161,0.513428,0.524559,0.535548,0.54639,0.557081,0.567617,0.577995,0.588211,0.598262,0.608147,0.617863,0.627409,0.636784,0.645986,0.655015,0.663871,0.672554,0.681063,0.689399,0.697562,0.705555,0.713376,0.721029,0.728513,0.735831,0.742983,0.749973,0.756801,0.76347,0.769982,0.776338,0.782541,0.788594,0.794498,0.800256,0.80587,0.811344,0.816678,0.821877,0.826942,0.831876,0.836682,0.841361,0.845917,0.850353,0.85467,0.858871,0.862959,0.866937,0.870806,0.874569,0.878229,0.881788,0.885249,0.888613,0.891884,0.895062,0.898152,0.901154,0.904071,0.906906,0.90966,0.912335,0.914933,0.917457,0.919908,0.922289,0.9246,0.926845,0.929024,0.93114,0.933194,0.935188,0.937123,0.939002,0.940825,0.942595,0.944313,0.945979,0.947597,0.949166,0.950689,0.952167,0.9536,0.954991,0.956341,0.95765,0.95892,0.960152,0.961347,0.962506,0.963631,0.964721,0.965779,0.966806,0.967801,0.968766,0.969703,0.970611,0.971491,0.972346,0.973174,0.973977,0.974756,0.975512,0.976245,0.976955,0.977644,0.978313,0.978961,0.979589,0.980199],"gamma":[0.003612,0.003971,0.004339,0.004716,0.005098,0.005484,0.005872,0.00626,0.006646,0.007028,0.007404,0.007773,0.008134,0.008485,0.008824,0.00915,0.009464,0.009762,0.010046,0.010314,0.010565,0.0108,0.011017,0.011217,0.0114,0.011565,0.011713,0.011844,0.011957,0.012054,0.012134,0.012199,0.012247,0.012281,0.012299,0.012304,0.012295,0.012273,0.012238,0.012191,0.012133,0.012065,0.011986,0.011898,0.011801,0.011695,0.011581,0.011461,0.011333,0.0112,0.011061,0.010916,0.010767,0.010614,0.010457,0.010297,0.010134,0.009969,0.009801,0.009631,0.00946,0.009289,0.009116,0.008943,0.008769,0.008596,0.008422,0.00825,0.008078,0.007907,0.007737,0.007568,0.007401,0.007235,0.007071,0.006909,0.006748,0.00659,0.006434,0.006279,0.006128,0.005978,0.005831,0.005686,0.005544,0.005404,0.005266,0.005131,0.004999,0.004869,0.004742,0.004617,0.004495,0.004376,0.004259,0.004144,0.004032,0.003923,0.003816,0.003711,0.003609,0.003509,0.003412,0.003317,0.003224,0.003134,0.003045,0.002959,0.002876,0.002794,0.002714,0.002636,0.002561,0.002487,0.002416,0.002346,0.002278,0.002212,0.002147,0.002085,0.002024,0.001964,0.001907,0.001851,0.001796,0.001743,0.001692,0.001642,0.001593,0.001546,0.0015,0.001455,0.001412,0.00137,0.001329,0.001289,0.001251,0.001213,0.001177,0.001142,0.001107,0.001074,0.001042,0.001011,0.00098,0.000951,0.000922,0.000894,0.000867,0.000841,0.000816,0.000791,0.000767,0.000744,0.000722,0.0007,0.000679,0.000658,0.000638,0.000619,0.0006],"vega":[2.311508,2.669883,3.061857,3.48784,3.947991,4.442217,4.970172,5.531272,6.124694,6.749398,7.404133,8.087456,8.79775,9.533238,10.292006,11.072022,11.871149,12.687175,13.517819,14.360761,15.21365,16.074126,16.939836,17.808442,18.677643,19.545183,20.40886,21.266541,22.116166,22.955761,23.783437,24.597405,25.39597,26.177545,26.940644,27.683892,28.406019,29.105865,29.782378,30.434613,31.061729,31.66299,32.23776,32.785501,33.305771,33.798219,34.26258,34.698675,35.106406,35.485748,35.836751,36.159531,36.454269,36.721203,36.960628,37.172892,37.358386,37.517549,37.650856,37.758819,37.841983,37.900922,37.936234,37.94854,37.938482,37.906716,37.853913,37.780756,37.687933,37.576143,37.446087,37.298468,37.133989,36.953352,36.757257,36.546398,36.321464,36.083134,35.832082,35.568971,35.294454,35.009172,34.713754,34.408817,34.094965,33.772785,33.442854,33.105732,32.761965,32.412082,32.056599,31.696014,31.330812,30.961461,30.588412,30.212103,29.832955,29.451373,29.067748,28.682455,28.295854,27.908292,27.520098,27.131589,26.74307,26.354827,25.967138,25.580264,25.194455,24.809948,24.426968,24.045727,23.666428,23.289261,22.914403,22.542026,22.172286,21.805332,21.441304,21.080331,20.722533,20.368024,20.016906,19.669276,19.325221,18.984823,18.648155,18.315283,17.986269,17.661165,17.34002,17.022876,16.70977,16.400733,16.095792,15.794968,15.498278,15.205735,14.917349,14.633122,14.353058,14.077153,13.805401,13.537794,13.274319,13.014963,12.759707,12.508532,12.261416,12.018335,11.779261,11.544168,11.313024,11.085799,10.862459,10.642968,10.427293,10.215394,10.007234,9.802774,9.601973],"theta":[-0.505094,-0.584446,-0.671463,-0.766281,-0.868985,-0.979604,-1.098114,-1.224439,-1.358451,-1.499974,-1.648783,-1.804612,-1.967155,-2.136069,-2.310976,-2.491474,-2.677131,-2.867497,-3.062105,-3.260475,-3.462115,-3.666529,-3.87322,-4.081687,-4.291438,-4.501982,-4.712841,-4.923546,-5.13364,-5.342684,-5.550251,-5.755937,-5.959352,-6.160128,-6.357919,-6.552396,-6.743256,-6.930215,-7.113011,-7.291404,-7.465176,-7.634131,-7.798092,-7.956903,-8.11043,-8.258556,-8.401183,-8.538233,-8.669644,-8.795369,-8.915379,-9.029659,-9.13821,-9.241043,-9.338184,-9.42967,-9.515549,-9.595879,-9.670728,-9.740173,-9.804296,-9.863191,-9.916954,-9.965689,-10.009505,-10.048517,-10.08284,-10.112598,-10.137913,-10.158912,-10.175723,-10.188478,-10.197306,-10.202341,-10.203713,-10.201556,-10.196001,-10.18718,-10.175224,-10.160262,-10.142423,-10.121832,-10.098616,-10.072896,-10.044795,-10.01443,-9.981919,-9.947375,-9.91091,-9.872634,-9.832653,-9.791069,-9.747985,-9.703499,-9.657705,-9.610697,-9.562564,-9.513393,-9.463268,-9.41227,-9.360479,-9.307968,-9.254812,-9.201081,-9.146842,-9.09216,-9.037097,-8.981714,-8.926067,-8.870211,-8.8142,-8.758081,-8.701905,-8.645716,-8.589557,-8.53347,-8.477494,-8.421666,-8.366022,-8.310595,-8.255415,-8.200515,-8.14592,-8.091658,-8.037753,-7.984229,-7.931107,-7.878407,-7.82615,-7.774351,-7.723028,-7.672196,-7.621868,-7.572057,-7.522775,-7.474032,-7.425838,-7.378202,-7.331131,-7.284633,-7.238712,-7.193376,-7.148626,-7.104469,-7.060906,-7.01794,-6.975573,-6.933806,-6.892639,-6.852073,-6.812107,-6.77274,-6.733972,-6.695799,-6.65822,-6.621232,-6.584833,-6.549019,-6.513786,-6.479131,-6.44505]}},"tau_0.5":{"tau":0.5,"call":{"delta":[0.001307,0.001736,0.002275,0.002943,0.003761,0.004752,0.005941,0.007352,0.009011,0.010945,0.013181,0.015745,0.018663,0.021962,0.025663,0.029792,0.034367,0.039409,0.044934,0.050956,0.057486,0.064533,0.072104,0.080199,0.088821,0.097964,0.107625,0.117793,0.128457,0.139604,0.151217,0.163278,0.175765,0.188656,0.201927,0.215553,0.229507,0.243761,0.258288,0.273057,0.288039,0.303206,0.318528,0.333974,0.349518,0.365129,0.380781,0.396446,0.412099,0.427713,0.443265,0.458732,0.474091,0.489323,0.504407,0.519325,0.534061,0.548598,0.562922,0.57702,0.59088,0.604491,0.617844,0.630929,0.643741,0.656272,0.668517,0.680472,0.692134,0.7035,0.714569,0.72534,0.735812,0.745987,0.755865,0.76545,0.774742,0.783744,0.792461,0.800896,0.809054,0.816937,0.824552,0.831904,0.838997,0.845837,0.85243,0.858782,0.864898,0.870784,0.876447,0.881892,0.887126,0.892155,0.896984,0.90162,0.906069,0.910337,0.91443,0.918352,0.922112,0.925712,0.929161,0.932462,0.935621,0.938643,0.941534,0.944298,0.946941,0.949466,0.951878,0.954183,0.956383,0.958484,0.960489,0.962403,0.964228,0.96597,0.96763,0.969213,0.970723,0.972161,0.973532,0.974838,0.976082,0.977267,0.978395,0.97947,0.980492,0.981466,0.982392,0.983273,0.984112,0.98491,0.985668,0.98639,0.987076,0.987729,0.988349,0.988939,0.989499,0.990032,0.990538,0.991019,0.991476,0.99191,0.992322,0.992714,0.993086,0.993439,0.993775,0.994093,0.994396,0.994683,0.994956,0.995214,0.99546,0.995693,0.995915,0.996125,0.996324],"gamma":[0.00038,0.000481,0.0006,0.000739,0.000901,0.001086,0.001295,0.001531,0.001792,0.002081,0.002396,0.002737,0.003104,0.003496,0.003911,0.004349,0.004806,0.005281,0.005771,0.006274,0.006788,0.007308,0.007833,0.008359,0.008883,0.009403,0.009916,0.010418,0.010908,0.011383,0.01184,0.012277,0.012693,0.013085,0.013453,0.013795,0.014109,0.014395,0.014652,0.014881,0.01508,0.015249,0.015389,0.0155,0.015582,0.015636,0.015663,0.015663,0.015637,0.015587,0.015513,0.015417,0.015299,0.015161,0.015004,0.01483,0.014639,0.014433,0.014213,0.013981,0.013737,0.013483,0.01322,0.01295,0.012672,0.012389,0.012101,0.011809,0.011514,0.011218,0.01092,0.010622,0.010324,0.010026,0.009731,0.009438,0.009147,0.008859,0.008575,0.008295,0.00802,0.007749,0.007482,0.007221,0.006966,0.006716,0.006471,0.006233,0.006,0.005774,0.005553,0.005339,0.00513,0.004928,0.004732,0.004542,0.004357,0.004179,0.004007,0.00384,0.003679,0.003524,0.003374,0.003229,0.00309,0.002956,0.002827,0.002702,0.002583,0.002468,0.002358,0.002252,0.00215,0.002052,0.001959,0.001869,0.001783,0.0017,0.001621,0.001546,0.001473,0.001404,0.001338,0.001275,0.001214,0.001156,0.001101,0.001048,0.000998,0.000949,0.000904,0.00086,0.000818,0.000778,0.00074,0.000704,0.000669,0.000636,0.000605,0.000575,0.000546,0.000519,0.000493,0.000469,0.000445,0.000423,0.000402,0.000382,0.000363,0.000344,0.000327,0.00031,0.000295,0.00028,0.000266,0.000252,0.000239,0.000227,0.000216,0.000205,0.000194],"vega":[0.121726,0.161647,0.211636,0.273412,0.348806,0.439745,0.54822,0.676256,0.825877,0.999074,1.197763,1.42375,1.678695,1.964076,2.281158,2.630965,3.014252,3.431488,3.882842,4.368168,4.887004,5.438569,6.02177,6.63521,7.277205,7.945796,8.638776,9.35371,10.087963,10.838729,11.603061,12.377896,13.160094,13.94646,14.733781,15.518849,16.298491,17.069595,17.829132,18.574181,19.301945,20.00977,20.695161,21.355794,21.989524,22.594398,23.168657,23.710741,24.219292,24.693151,25.13136,25.533158,25.897972,26.225419,26.515292,26.767556,26.982337,27.159915,27.300714,27.40529,27.474322,27.5086,27.509019,27.476561,27.412292,27.317348,27.192925,27.04027,26.860673,26.655457,26.425971,26.173579,25.899658,25.605583,25.292732,24.962468,24.616143,24.255088,23.88061,23.493989,23.096473,22.689276,22.273574,21.850505,21.421167,20.986612,20.547851,20.105848,19.661526,19.215757,18.769371,18.32315,17.877834,17.434115,16.992643,16.554023,16.118818,15.687553,15.260707,14.838724,14.422011,14.010935,13.605831,13.207,12.814709,12.429196,12.05067,11.679311,11.315274,10.958686,10.609654,10.26826,9.934568,9.608619,9.290438,8.980032,8.677393,8.382498,8.095308,7.815776,7.543839,7.279426,7.022456,6.772839,6.530477,6.295266,6.067093,5.845843,5.631393,5.423619,5.222389,5.027572,4.839033,4.656634,4.480236,4.3097,4.144885,3.985649,3.831852,3.683352,3.54001,3.401685,3.268239,3.139536,3.015438,2.895812,2.780526,2.669449,2.562453,2.459412,2.360201,2.2647,2.17279,2.084353,1.999276,1.917447,1.838757,1.7631,1.690373,1.620475,1.553306],"theta":[-0.051111,-0.067948,-0.089062,-0.115192,-0.14713,-0.185713,-0.231807,-0.286303,-0.350093,-0.424063,-0.509074,-0.605944,-0.715439,-0.83825,-0.974987,-1.126161,-1.292176,-1.473316,-1.669743,-1.88149,-2.108453,-2.350399,-2.60696,-2.877638,-3.16181,-3.458738,-3.767569,-4.087354,-4.41705,-4.755537,-5.101626,-5.454075,-5.811596,-6.172875,-6.536577,-6.901363,-7.265897,-7.628863,-7.988968,-8.344957,-8.695619,-9.039796,-9.376388,-9.70436,-10.022746,-10.330655,-10.62727,-10.911856,-11.183755,-11.442392,-11.687271,-11.917977,-12.134172,-12.335596,-12.522063,-12.693456,-12.84973,-12.990902,-13.117051,-13.228313,-13.324878,-13.406984,-13.474914,-13.528994,-13.569584,-13.597079,-13.611902,-13.6145,-13.605343,-13.584917,-13.553723,-13.512273,-13.461087,-13.40069,-13.331609,-13.254371,-13.169501,-13.077519,-12.97894,-12.874267,-12.763998,-12.648617,-12.528597,-12.404396,-12.27646,-12.145217,-12.011083,-11.874455,-11.735715,-11.595227,-11.453338,-11.31038,-11.166666,-11.022492,-10.878138,-10.733867,-10.589926,-10.446547,-10.303943,-10.162315,-10.021849,-9.882715,-9.745069,-9.609056,-9.474806,-9.342438,-9.212058,-9.083761,-8.957632,-8.833746,-8.712166,-8.592948,-8.47614,-8.361778,-8.249895,-8.140514,-8.033652,-7.929319,-7.82752,-7.728255,-7.631517,-7.537295,-7.445576,-7.356341,-7.269566,-7.185227,-7.103294,-7.023737,-6.946521,-6.871612,-6.798971,-6.728558,-6.660333,-6.594254,-6.530277,-6.468358,-6.408453,-6.350517,-6.294503,-6.240365,-6.188058,-6.137535,-6.08875,-6.041656,-5.99621,-5.952364,-5.910074,-5.869296,-5.829985,-5.792098,-5.755593,-5.720427,-5.686559,-5.653948,-5.622555,-5.59234,-5.563266,-5.535294,-5.508389,-5.482514,-5.457635]}},"tau_0.25":{"tau":0.25,"call":{"delta":[5e-06,9e-06,1.5e-05,2.5e-05,4e-05,6.4e-05,0.0001,0.000152,0.000226,0.000332,0.000478,0.000677,0.000945,0.001298,0.001759,0.002352,0.003104,0.004047,0.005217,0.006649,0.008387,0.010472,0.012951,0.01587,0.019276,0.023218,0.027741,0.032892,0.038714,0.045245,0.052522,0.060577,0.069434,0.079114,0.089632,0.100994,0.1132,0.126245,0.140114,0.154788,0.17024,0.186436,0.203339,0.220903,0.239079,0.257816,0.277054,0.296736,0.3168,0.337181,0.357816,0.37864,0.39959,0.420602,0.441615,0.462568,0.483405,0.504071,0.524514,0.544687,0.564544,0.584045,0.603152,0.621831,0.640054,0.657794,0.67503,0.691742,0.707915,0.723539,0.738605,0.753107,0.767043,0.780413,0.793219,0.805466,0.817161,0.828313,0.838931,0.849026,0.858613,0.867704,0.876314,0.884458,0.892153,0.899414,0.906258,0.912702,0.918763,0.924458,0.929802,0.934814,0.939508,0.943901,0.948009,0.951846,0.955427,0.958767,0.961879,0.964776,0.967471,0.969977,0.972304,0.974464,0.976468,0.978325,0.980045,0.981638,0.983111,0.984473,0.985732,0.986894,0.987966,0.988956,0.989868,0.990708,0.991482,0.992194,0.99285,0.993452,0.994006,0.994515,0.994983,0.995412,0.995805,0.996166,0.996497,0.996801,0.997079,0.997333,0.997566,0.997779,0.997974,0.998153,0.998316,0.998465,0.998601,0.998725,0.998839,0.998942,0.999037,0.999123,0.999202,0.999274,0.999339,0.999399,0.999453,0.999503,0.999548,0.999589,0.999627,0.999661,0.999692,0.99972,0.999745,0.999769,0.99979,0.999809,0.999827,0.999843,0.999857],"gamma":[3e-06,5e-06,8e-06,1.2e-05,1.9e-05,2.9e-05,4.3e-05,6.2e-05,8.9e-05,0.000124,0.00017,0.000231,0.000307,0.000403,0.000522,0.000668,0.000842,0.00105,0.001294,0.001578,0.001904,0.002274,0.002691,0.003155,0.003666,0.004225,0.00483,0.005479,0.00617,0.006899,0.007661,0.008452,0.009266,0.010097,0.010939,0.011785,0.012627,0.01346,0.014276,0.015068,0.01583,0.016556,0.017241,0.017879,0.018466,0.018997,0.019471,0.019883,0.020233,0.020519,0.02074,0.020898,0.020991,0.021022,0.020993,0.020904,0.02076,0.020563,0.020316,0.020022,0.019685,0.01931,0.018899,0.018456,0.017985,0.017491,0.016976,0.016445,0.015901,0.015346,0.014785,0.014219,0.013653,0.013087,0.012526,0.01197,0.011422,0.010883,0.010355,0.009839,0.009336,0.008848,0.008375,0.007917,0.007475,0.00705,0.006641,0.00625,0.005875,0.005517,0.005175,0.00485,0.004541,0.004248,0.00397,0.003707,0.003458,0.003223,0.003002,0.002794,0.002598,0.002414,0.002242,0.00208,0.001929,0.001787,0.001655,0.001532,0.001416,0.001309,0.001209,0.001116,0.00103,0.00095,0.000875,0.000806,0.000742,0.000683,0.000628,0.000578,0.000531,0.000488,0.000448,0.000411,0.000377,0.000346,0.000317,0.00029,0.000266,0.000243,0.000223,0.000204,0.000186,0.00017,0.000156,0.000142,0.00013,0.000119,0.000108,9.9e-05,9e-05,8.2e-05,7.5e-05,6.9e-05,6.2e-05,5.7e-05,5.2e-05,4.7e-05,4.3e-05,3.9e-05,3.6e-05,3.2e-05,3e-05,2.7e-05,2.4e-05,2.2e-05,2e-05,1.8e-05,1.7e-05,1.5e-05,1.4e-05],"vega":[0.000459,0.000805,0.001374,0.002284,0.003701,0.005858,0.009066,0.01374,0.020412,0.029756,0.042607,0.059978,0.083078,0.11332,0.152328,0.201932,0.264159,0.341217,0.43546,0.549359,0.685447,0.846276,1.034349,1.25206,1.501629,1.785031,2.103933,2.459636,2.853012,3.284465,3.753888,4.26064,4.803526,5.380802,5.990175,6.628833,7.293472,7.980341,8.685298,9.403864,10.131292,10.862639,11.592834,12.316757,13.029308,13.725481,14.400425,15.049514,15.668392,16.253034,16.79978,17.305369,17.76697,18.182199,18.549125,18.866282,19.132659,19.347693,19.511255,19.623627,19.685481,19.697849,19.662092,19.579872,19.453109,19.283957,19.074759,18.82802,18.546369,18.232527,17.88928,17.519441,17.125834,16.711261,16.278481,15.830195,15.369021,14.897484,14.418,13.932868,13.44426,12.954214,12.464631,11.97727,11.49375,11.015548,10.544,10.080305,9.625529,9.180609,8.746355,8.323462,7.91251,7.513974,7.128231,6.755563,6.396169,6.050167,5.717603,5.398461,5.09266,4.800072,4.520518,4.253779,3.9996,3.757696,3.527754,3.30944,3.102402,2.906274,2.720679,2.545233,2.379547,2.22323,2.07589,1.937138,1.806591,1.683867,1.568594,1.460408,1.358953,1.263882,1.17486,1.091562,1.013675,0.940897,0.872937,0.809519,0.750375,0.695251,0.643904,0.596104,0.55163,0.510273,0.471836,0.436131,0.40298,0.372216,0.343681,0.317226,0.29271,0.270001,0.248975,0.229516,0.211514,0.194867,0.179478,0.165259,0.152125,0.139997,0.128802,0.118473,0.108945,0.10016,0.092061,0.084597,0.077722,0.071389,0.065559,0.060192,0.055254],"theta":[-0.000377,-0.000661,-0.001129,-0.001878,-0.003046,-0.004824,-0.007472,-0.011332,-0.016847,-0.024578,-0.03522,-0.04962,-0.068789,-0.093912,-0.126351,-0.16765,-0.21952,-0.283832,-0.36259,-0.457901,-0.571942,-0.706915,-0.864996,-1.048288,-1.258761,-1.498196,-1.768136,-2.069828,-2.404179,-2.771714,-3.172544,-3.60634,-4.072318,-4.569233,-5.095387,-5.64864,-6.226433,-6.825828,-7.443541,-8.075993,-8.719359,-9.36963,-10.022666,-10.674259,-11.32019,-11.95629,-12.578494,-13.182891,-13.765772,-14.323675,-14.853414,-15.352116,-15.817243,-16.246605,-16.63838,-16.99111,-17.303707,-17.575446,-17.805956,-17.995203,-18.143474,-18.251358,-18.319719,-18.349674,-18.342565,-18.299934,-18.22349,-18.115088,-17.976699,-17.810383,-17.618267,-17.402518,-17.165322,-16.908866,-16.635316,-16.3468,-16.045398,-15.733122,-15.411913,-15.083623,-14.750013,-14.412747,-14.073384,-13.733377,-13.394073,-13.05671,-12.722418,-12.392221,-12.067037,-11.747687,-11.434889,-11.129273,-10.831376,-10.541651,-10.260473,-9.988142,-9.724889,-9.470879,-9.226221,-8.990969,-8.765127,-8.548655,-8.341476,-8.143476,-7.954509,-7.774403,-7.602965,-7.439978,-7.285213,-7.138423,-6.999355,-6.867743,-6.743318,-6.625808,-6.514935,-6.410426,-6.312005,-6.2194,-6.132342,-6.05057,-5.973823,-5.90185,-5.834406,-5.771253,-5.712162,-5.656908,-5.60528,-5.55707,-5.512082,-5.470127,-5.431024,-5.394601,-5.360694,-5.329147,-5.299812,-5.272548,-5.247222,-5.223709,-5.201889,-5.18165,-5.162886,-5.145498,-5.129392,-5.114479,-5.100678,-5.087911,-5.076104,-5.065191,-5.055106,-5.045791,-5.03719,-5.029251,-5.021926,-5.015168,-5.008938,-5.003194,-4.997901,-4.993024,-4.988533,-4.984398,-4.980592]}},"tau_0.05":{"tau":0.05,"call":{"delta":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1e-06,2e-06,5e-06,1.1e-05,2.3e-05,4.5e-05,8.6e-05,0.000159,0.000285,0.000494,0.000834,0.001369,0.00219,0.003413,0.005192,0.007715,0.011208,0.015933,0.022186,0.030282,0.04055,0.053309,0.068861,0.087462,0.109308,0.134516,0.163111,0.195015,0.230047,0.26792,0.308254,0.350589,0.394399,0.43912,0.484169,0.528967,0.572962,0.615649,0.656581,0.695385,0.731766,0.76551,0.796481,0.824622,0.849938,0.872497,0.892411,0.909833,0.92494,0.937928,0.949003,0.958368,0.966227,0.972771,0.97818,0.982618,0.986233,0.989159,0.99151,0.993388,0.994878,0.996053,0.996974,0.997692,0.998248,0.998676,0.999005,0.999255,0.999445,0.999588,0.999696,0.999776,0.999836,0.99988,0.999913,0.999937,0.999955,0.999967,0.999977,0.999983,0.999988,0.999992,0.999994,0.999996,0.999997,0.999998,0.999999,0.999999,0.999999,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],"gamma":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1e-06,2e-06,4e-06,8e-06,1.6e-05,3e-05,5.4e-05,9.5e-05,0.000161,0.000266,0.000425,0.000661,0.000999,0.001473,0.002116,0.002967,0.004063,0.005438,0.00712,0.009127,0.011461,0.014109,0.017038,0.020197,0.023515,0.026905,0.030271,0.033507,0.036508,0.039175,0.041417,0.043164,0.044362,0.044982,0.045018,0.044485,0.043421,0.041878,0.039924,0.037635,0.035091,0.032374,0.02956,0.026722,0.023922,0.021214,0.01864,0.016233,0.014014,0.011997,0.010186,0.008579,0.00717,0.005948,0.004897,0.004003,0.00325,0.002621,0.002099,0.001671,0.001321,0.001039,0.000812,0.000631,0.000487,0.000374,0.000286,0.000218,0.000165,0.000124,9.3e-05,6.9e-05,5.1e-05,3.8e-05,2.8e-05,2e-05,1.5e-05,1.1e-05,8e-06,6e-06,4e-06,3e-06,2e-06,1e-06,1e-06,1e-06,1e-06,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"vega":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1e-06,2e-06,5e-06,1.3e-05,3.2e-05,7.5e-05,0.000169,0.000366,0.00076,0.00152,0.002932,0.005463,0.009847,0.017189,0.029093,0.047798,0.07631,0.118511,0.179214,0.264137,0.379774,0.533127,0.731317,0.98105,1.287999,1.65612,2.086993,2.579236,3.128083,3.725186,4.358672,5.013504,5.672104,6.315212,6.922922,7.47579,7.955938,8.348055,8.640216,8.82446,8.897096,8.858722,8.713982,8.471093,8.141197,7.737611,7.275017,6.768673,6.233684,5.684374,5.133787,4.593325,4.07252,3.578948,3.118236,2.694177,2.308903,1.963104,1.656272,1.386949,1.152967,0.951666,0.780091,0.635153,0.51376,0.41292,0.329813,0.261839,0.206649,0.162156,0.126531,0.098194,0.075798,0.058207,0.044473,0.033812,0.025584,0.019267,0.014444,0.01078,0.00801,0.005927,0.004368,0.003205,0.002343,0.001706,0.001238,0.000895,0.000645,0.000463,0.000331,0.000236,0.000168,0.000119,8.4e-05,5.9e-05,4.1e-05,2.9e-05,2e-05,1.4e-05,1e-05,7e-06,5e-06,3e-06,2e-06,2e-06,1e-06,1e-06,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"theta":[-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-1e-06,-3e-06,-8e-06,-2.1e-05,-5.3e-05,-0.00013,-0.000305,-0.000686,-0.001481,-0.003076,-0.006156,-0.011881,-0.022152,-0.03995,-0.069773,-0.118159,-0.194244,-0.310314,-0.482256,-0.729811,-1.07649,-1.549067,-2.176545,-2.988568,-4.013301,-5.274905,-6.790777,-8.568828,-10.605074,-12.881858,-15.366948,-18.013713,-20.762447,-23.54282,-26.277287,-28.885196,-31.287257,-33.410003,-35.189861,-36.576521,-37.535362,-38.048773,-38.116351,-37.754021,-36.992232,-35.873453,-34.449189,-32.776799,-30.916336,-28.92762,-26.867711,-24.78886,-22.737026,-20.750925,-18.861603,-17.092456,-15.459613,-13.972599,-12.635176,-11.446289,-10.401038,-9.49162,-8.708198,-8.039669,-7.474318,-7.00034,-6.606253,-6.281194,-6.015123,-5.79894,-5.62454,-5.484813,-5.373608,-5.285671,-5.216565,-5.162584,-5.120665,-5.088295,-5.063436,-5.044447,-5.030018,-5.019107,-5.010897,-5.00475,-5.000167,-4.996766,-4.994254,-4.992405,-4.991051,-4.990063,-4.989344,-4.988824,-4.988449,-4.988179,-4.987986,-4.987848,-4.987749,-4.98768,-4.987631,-4.987596,-4.987572,-4.987554,-4.987542,-4.987534,-4.987528,-4.987524,-4.987522,-4.98752,-4.987518,-4.987518,-4.987517,-4.987516,-4.987516,-4.987516,-4.987516,-4.987516,-4.987516,-4.987516,-4.987516,-4.987516,-4.987516,-4.987516,-4.987516,-4.987516,-4.987516,-4.987516,-4.987516,-4.987516,-4.987516,-4.987516,-4.987516,-4.987516,-4.987516,-4.987516,-4.987516,-4.987516,-4.987516,-4.987516,-4.987516,-4.987516,-4.987516,-4.987516]}}},"attr":{"sigma_r_0.3":{"sr":0.3,"gamma":4.887960607976517,"theta":-10.868527427726491,"carry":2.1790168744567437,"gdt":8.689510553269745,"hedged":-3.8018894718438414,"se":0.019685319512245367},"sigma_r_0.4":{"sr":0.4,"gamma":7.575769937200494,"theta":-9.710410085551004,"carry":2.138018315805809,"gdt":7.572391769745189,"hedged":0.0031710440789362152,"se":0.0033123441880988434},"sigma_r_0.5":{"sr":0.5,"gamma":10.34213930180103,"theta":-8.685913068780277,"carry":2.063006809662129,"gdt":6.622906259118144,"hedged":3.7185634954704363,"se":0.02531637366222887}},"study":[[0.1,9.568786657237344e-06],[0.03,8.215696729336336e-07],[0.01,9.089647987244043e-08],[0.003,8.176292233541549e-09],[0.001,9.063347607141115e-10],[0.0001,1.616109728680426e-10],[1e-05,1.1246077650725606e-08],[1e-06,1.8018137717679128e-06]]};
+
+
+(function () {
+  const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  function setup(id) {
+    const c = document.getElementById(id); const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const cssW = c.clientWidth || 1200; const ratio = +c.getAttribute('height') / +c.getAttribute('width');
+    const cssH = Math.round(cssW * ratio);
+    c.width = Math.round(cssW * dpr); c.height = Math.round(cssH * dpr); c.style.height = cssH + 'px';
+    const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { c, g, W: cssW, H: cssH };
+  }
+  function frame(g, W, H, xs, ys, opts) {
+    const pad = Object.assign({ l: 58, r: 18, t: 16, b: 38 }, opts.pad || {});
+    const fx = opts.xlog ? (v) => Math.log10(v) : (v) => v, fy = opts.ylog ? (v) => Math.log10(v) : (v) => v;
+    const x = (v) => pad.l + (fx(v) - fx(xs[0])) / (fx(xs[1]) - fx(xs[0])) * (W - pad.l - pad.r);
+    const y = (v) => H - pad.b - (fy(v) - fy(ys[0])) / (fy(ys[1]) - fy(ys[0])) * (H - pad.t - pad.b);
+    g.font = '12px "IBM Plex Mono", monospace'; g.fillStyle = css('--muted'); g.strokeStyle = css('--grid'); g.lineWidth = 1;
+    (opts.yticks || []).forEach((v) => { g.beginPath(); g.moveTo(pad.l, y(v)); g.lineTo(W - pad.r, y(v)); g.stroke(); g.textAlign = 'right'; g.textBaseline = 'middle'; g.fillStyle = css('--muted'); g.fillText(opts.yfmt ? opts.yfmt(v) : v, pad.l - 8, y(v)); });
+    (opts.xticks || []).forEach((v) => { g.textAlign = 'center'; g.textBaseline = 'top'; g.fillStyle = css('--muted'); g.fillText(opts.xfmt ? opts.xfmt(v) : v, x(v), H - pad.b + 8); });
+    g.strokeStyle = css('--rule'); g.beginPath(); g.moveTo(pad.l, y(ys[0])); g.lineTo(W - pad.r, y(ys[0])); g.stroke();
+    if (opts.xlabel) { g.textAlign = 'right'; g.textBaseline = 'bottom'; g.fillStyle = css('--muted'); g.fillText(opts.xlabel, W - pad.r, H - 4); }
+    if (opts.ylabel) { g.textAlign = 'left'; g.textBaseline = 'top'; g.fillStyle = css('--muted'); g.fillText(opts.ylabel, pad.l + 6, pad.t); }
+    return { x, y, pad };
+  }
+  function line(g, pts, color, width, dash) { g.save(); g.strokeStyle = color; g.lineWidth = width || 2; g.setLineDash(dash || []); g.lineJoin = 'round'; g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.stroke(); g.restore(); }
+  function label(g, text, x, y, color, align) { g.save(); g.font = '12px "IBM Plex Sans", sans-serif'; g.fillStyle = color; g.textAlign = align || 'left'; g.textBaseline = 'middle'; g.fillText(text, x, y); g.restore(); }
+  const ramps = ['--ramp4', '--ramp3', '--ramp2', '--ramp1'];
+  const tauKeys = ['tau_1', 'tau_0.5', 'tau_0.25', 'tau_0.05'];
+
+  function fig0() {
+    const { g, W, H } = setup('c0');
+    const st = DATA.study;
+    const f = frame(g, W, H, [1e-6, 1e-1], [1e-11, 1e-4], { xlog: true, ylog: true, pad: { l: 64 },
+      yticks: [1e-10, 1e-8, 1e-6, 1e-4], yfmt: (v) => '1e' + Math.round(Math.log10(v)), xticks: [1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1], xfmt: (v) => '1e' + Math.round(Math.log10(v)), xlabel: 'h / S' });
+    // guides: truncation ~ h^2 through the h=0.1 point, round-off ~ 1/h^2 through the h=1e-6 point
+    const p0 = st[0], pN = st[st.length - 1];
+    line(g, [[f.x(1e-4), f.y(p0[1] * Math.pow(1e-4 / p0[0], 2))], [f.x(0.1), f.y(p0[1])]], css('--muted'), 1.2, [5, 4]);
+    line(g, [[f.x(1e-6), f.y(pN[1])], [f.x(1e-4), f.y(pN[1] * Math.pow(1e-6 / 1e-4, 2))]], css('--muted'), 1.2, [5, 4]);
+    const pts = st.map((r) => [f.x(r[0]), f.y(Math.max(r[1], 1e-11))]);
+    line(g, pts, css('--s1'), 2);
+    g.fillStyle = css('--s1'); pts.forEach((p) => { g.beginPath(); g.arc(p[0], p[1], 4, 0, 6.3); g.fill(); });
+    label(g, 'truncation ∝ h²', f.x(2e-2), f.y(3e-7) , css('--muted'), 'left');
+    label(g, 'round-off ∝ 1/h²', f.x(1.3e-6), f.y(8e-9), css('--muted'), 'left');
+    label(g, 'best: h = 10⁻⁴ S, error 1.6 × 10⁻¹⁰', f.x(1.4e-4), f.y(2.2e-11), css('--fg-2'), 'left');
+  }
+
+  function shape(id, key, ys, yticks, yfmt, lab) {
+    const { g, W, H } = setup(id);
+    const S = DATA.S;
+    const f = frame(g, W, H, [40, 200], ys, { yticks, yfmt, xticks: [40, 60, 80, 100, 120, 140, 160, 180, 200], xlabel: 'S', ylabel: lab, pad: { l: 64 } });
+    line(g, [[f.x(100), f.y(ys[0])], [f.x(100), f.y(ys[1])]], css('--muted'), 1.2, [5, 4]);
+    tauKeys.forEach((k, i) => {
+      const v = DATA.curves[k].call[key];
+      line(g, S.map((s, j) => [f.x(s), f.y(Math.max(ys[0], Math.min(ys[1], v[j])))]), css(ramps[i]), i === 0 ? 2.4 : 1.8);
+    });
+    return f;
+  }
+  function fig1() { shape('c1', 'delta', [0, 1], [0, 0.25, 0.5, 0.75, 1], (v) => v.toFixed(2), 'Δ'); }
+  function fig2() { const f = shape('c2', 'gamma', [0, 0.05], [0, 0.01, 0.02, 0.03, 0.04, 0.05], (v) => v.toFixed(2), 'Γ');
+    const g = document.getElementById('c2').getContext('2d');
+    label(g, 'peak 74.8 at τ = 1', f.x(75), f.y(0.0145), css('--ramp4'), 'center'); }
+  function fig3() { shape('c3', 'vega', [0, 40], [0, 10, 20, 30, 40], (v) => v, 'vega'); }
+  function fig4() { const f = shape('c4', 'theta', [-40, 0], [-40, -30, -20, -10, 0], (v) => v, 'Θ');
+    const g = document.getElementById('c4').getContext('2d');
+    line(g, [[f.x(40), f.y(-4.756)], [f.x(200), f.y(-4.756)]], css('--muted'), 1, [2, 4]);
+    label(g, '−rKe^(−rτ) at τ = 1', f.x(196), f.y(-3.2), css('--muted'), 'right'); }
+
+  function fig5() {
+    const { g, W, H } = setup('c5');
+    const keys = ['sigma_r_0.3', 'sigma_r_0.4', 'sigma_r_0.5'];
+    const f = frame(g, W, H, [0, 3], [-12, 12], { yticks: [-12, -8, -4, 0, 4, 8, 12], xticks: [0.5, 1.5, 2.5], xfmt: (v) => 'σ_r = ' + [0.3, 0.4, 0.5][Math.floor(v)], pad: { l: 64 } });
+    const cols = ['--s3', '--s2', '--s4', '--s1'];
+    keys.forEach((k, i) => {
+      const a = DATA.attr[k];
+      const vals = [a.gamma, a.theta, a.carry, a.hedged];
+      const bw = (f.x(1) - f.x(0)) / 6;
+      vals.forEach((v, j) => {
+        const x0 = f.x(i + 0.5) + (j - 2) * bw + bw * 0.1;
+        g.fillStyle = css(cols[j]); g.fillRect(x0, Math.min(f.y(v), f.y(0)), bw * 0.8, Math.abs(f.y(v) - f.y(0)));
+        label(g, (v >= 0 ? '+' : '') + v.toFixed(2), x0 + bw * 0.4, f.y(v) + (v >= 0 ? -10 : 10), css('--fg-2'), 'center');
+      });
+      // the assumed gain = -(theta + carry): dashed marker over the gamma bar
+      const xa = f.x(i + 0.5) - 2 * bw + bw * 0.1;
+      line(g, [[xa, f.y(a.gdt)], [xa + bw * 0.8, f.y(a.gdt)]], css('--muted'), 2, [4, 3]);
+    });
+    line(g, [[f.pad.l, f.y(0)], [W - f.pad.r, f.y(0)]], css('--rule'), 1);
+  }
+
+  function drawAll() { fig0(); fig1(); fig2(); fig3(); fig4(); fig5(); }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawAll); else drawAll();
+  let t; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(drawAll, 120); });
+  if (window.matchMedia) { try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll); } catch (e) {} }
+})();
+</script>
