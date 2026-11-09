@@ -1,0 +1,497 @@
+<title>S11 notes · 2.11 Where it breaks</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column (68ch), tables and figures may widen to the shell (88rem); section-map card and tables set in Plex Mono for the digits. Same system as the S4–S10 notes. */
+:root {
+  --bg: #f7f7f4; --surface: #fdfdfb; --fg: #16181d; --fg-2: #4b4f58; --muted: #868a93;
+  --rule: #dcdcd5; --grid: #e4e4de; --accent: #1c5cab; --accent-soft: #e3ecf8;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #6250d6;
+  --ok: #006300; --warn: #a35e00; --bad: #b02a2a;
+  --display: "Newsreader", "Iowan Old Style", Georgia, serif;
+  --body: "IBM Plex Sans", "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono: "IBM Plex Mono", "SF Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #15161a; --surface: #1d1f24; --fg: #ecece7; --fg-2: #b9bbb4; --muted: #868a93;
+  --rule: #2f3238; --grid: #2a2d33; --accent: #7fb0ee; --accent-soft: #1f2d42;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #9085e9;
+  --ok: #4ec04e; --warn: #e2a64a; --bad: #e66767; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #15161a; --surface: #1d1f24; --fg: #ecece7; --fg-2: #b9bbb4; --muted: #868a93;
+  --rule: #2f3238; --grid: #2a2d33; --accent: #7fb0ee; --accent-soft: #1f2d42;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #9085e9;
+  --ok: #4ec04e; --warn: #e2a64a; --bad: #e66767; color-scheme: dark; }
+
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 4rem; }
+.shell { max-width: 88rem; margin: 0 auto; }
+.col { max-width: 68ch; }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.15; text-wrap: balance; margin: 0; }
+h1 { font-size: 2.1rem; }
+h2 { font-size: 1.55rem; margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--rule); }
+h3 { font-size: 1.2rem; margin-top: 1.8rem; }
+p { margin: 0.8rem 0; max-width: 68ch; }
+.lede { font-size: 1.05rem; color: var(--fg-2); }
+.eyebrow { font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+header { padding-block: 2.2rem 0.6rem; display: grid; gap: 0.5rem; }
+header .meta { font-family: var(--mono); font-size: 0.8rem; color: var(--fg-2); display: flex; flex-wrap: wrap; gap: 0.4rem 1.4rem; }
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.m { font-family: var(--display); font-style: italic; font-size: 1.04em; white-space: nowrap; }
+.m b { font-style: normal; font-weight: 400; }
+.eq { font-family: var(--display); font-size: 1.12rem; margin: 0.9rem 0 0.9rem 1.5rem; overflow-x: auto; white-space: nowrap; padding-bottom: 2px; }
+.eq.sm { font-size: 1.02rem; }
+sub, sup { font-size: 0.72em; line-height: 0; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.card { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 1rem 1.2rem; margin: 1.2rem 0; max-width: 68ch; }
+.map { display: grid; grid-template-columns: max-content 1fr; gap: 0.35rem 1rem; font-size: 0.92rem; }
+.map .k { font-family: var(--mono); color: var(--accent); white-space: nowrap; }
+.map .k a { text-decoration: none; }
+.pred { display: grid; gap: 0.3rem; margin: 1rem 0; max-width: 68ch; }
+.pred .q { font-weight: 600; }
+.pred .a { border-left: 3px solid var(--rule); padding-left: 0.9rem; color: var(--fg-2); white-space: pre-wrap; }
+.pred .s { font-size: 0.95rem; }
+.score { font-family: var(--mono); font-size: 0.78rem; padding: 0.05rem 0.45rem; border-radius: 3px; border: 1px solid var(--rule); }
+.score.r { color: var(--ok); } .score.h { color: var(--warn); } .score.w { color: var(--bad); }
+.tbl { overflow-x: auto; margin: 1rem 0; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); }
+table { border-collapse: collapse; font-size: 0.86rem; min-width: 100%; }
+th, td { padding: 0.45rem 0.7rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--rule); }
+th { font-weight: 600; color: var(--fg-2); font-size: 0.8rem; background: var(--bg); }
+tr:last-child td { border-bottom: 0; }
+td.n, th.n { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.cap { font-size: 0.8rem; color: var(--muted); font-family: var(--mono); margin: -0.5rem 0 1.2rem; max-width: 88rem; overflow-wrap: anywhere; }
+.fig { margin: 1.2rem 0 0.4rem; max-width: 60rem; }
+.fig .title { font-weight: 600; font-size: 0.95rem; margin-bottom: 0.3rem; }
+.fig canvas { width: 100%; height: auto; display: block; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); touch-action: pan-y; }
+.fig .legend { display: flex; flex-wrap: wrap; gap: 0.3rem 1.1rem; font-size: 0.8rem; color: var(--fg-2); margin: 0.4rem 0 0; }
+.fig .legend span::before { content: ""; display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; background: var(--c); }
+.fig .legend span.dash::before { height: 0; border-top: 2px dashed var(--c); background: none; }
+.rung { display: grid; grid-template-columns: 3.2rem 1fr; gap: 0.4rem 0.8rem; margin: 1rem 0; max-width: 72ch; }
+.rung .no { font-family: var(--mono); color: var(--accent); font-size: 0.85rem; padding-top: 0.25rem; }
+.rung .body p:first-child { margin-top: 0; }
+.rung .body { min-width: 0; }
+.check { margin: 1.2rem 0; max-width: 72ch; }
+.check .stem { font-weight: 600; }
+.check ol { margin: 0.4rem 0 0; padding-left: 1.3rem; }
+.check li { margin: 0.35rem 0; }
+.check .ok { color: var(--ok); font-weight: 600; font-family: var(--mono); font-size: 0.8rem; }
+.check .no { color: var(--bad); font-family: var(--mono); font-size: 0.8rem; }
+.check .why { color: var(--fg-2); font-size: 0.92rem; }
+ol.plan { max-width: 72ch; padding-left: 1.4rem; }
+ol.plan li { margin: 0.5rem 0; }
+ul { max-width: 72ch; padding-left: 1.3rem; }
+li { margin: 0.3rem 0; }
+@media (max-width: 760px) { .map { grid-template-columns: 1fr; gap: 0.1rem 0; } .map .k { margin-top: 0.4rem; } h1 { font-size: 1.7rem; } .rung { grid-template-columns: 2.4rem 1fr; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+code { font-family: var(--mono); font-size: 0.86em; background: var(--accent-soft); padding: 0.05em 0.3em; border-radius: 3px; }
+.note { font-size: 0.9rem; color: var(--fg-2); }
+</style>
+
+<div class="shell">
+<header>
+  <div class="eyebrow">Touchstone · study track · session S11 · teaching notes v2 (close)</div>
+  <h1>2.11 Where it breaks</h1>
+  <div class="meta"><span>2026-11-08</span><span>experiment <code>2_11_where_it_breaks.py</code> · seed 20261108 · 157/157 checks · 44 s on the workstation (QuantLib 1.43), 27 s in the container (1.44), agreement 2 × 10⁻⁹</span><span>S₀ = K = 100 · r = 0.05 · T = 1 · q = 0 · σ = 0.4 where one vol is meant · C = 18.023 · vega 37.84</span></div>
+</header>
+
+<section class="col" id="about">
+<h2 style="border-top:0;margin-top:1rem">What this page is about, and what it is trying to achieve</h2>
+<p class="lede">Pages <a href="https://preview.dnl8fxtcop63d.amplifyapp.com/stochastic-calculus/sdes-and-gbm">2.6</a> to 2.10 built the Black–Scholes model on three assumptions and used each of them: one known volatility σ for the life of the option; rebalancing that is continuous and costs nothing; and lognormal returns. This page breaks the three in turn, on a market built so that every price is still a closed form, and measures what breaks with them. Then it shows why the formula survives anyway: not as a model of the stock but as the way prices are quoted. "40 vol" is a price in different units, and the units are the point.</p>
+<p>What the page achieves, in order: (1) one price has exactly one implied vol, because vega is positive everywhere, and the solver that finds it round-trips every row of the golden file; (2) a market where the stock's vol is 0.2 or 0.6 with equal chance has Black–Scholes implied vols that are not constant: a smile, lowest at the forward (0.398), rising to 0.48 at K = 60, and below the rms vol 0.447 at the money; (3) the mixture's returns have excess kurtosis 1.8 against the lognormal's 0, and 2.6's test battery catches it at the fourth moment, not the second; (4) hedged with Black–Scholes deltas at the implied vol, the book's spread stops falling at 8.1 while <a href="https://preview.dnl8fxtcop63d.amplifyapp.com/stochastic-calculus/delta-hedging-and-the-pde">2.7</a>'s falls to 0.21, and 7.54 of the 8.1 is uncertainty about which vol state the option was sold in, fixed before the state became known: incompleteness, not a hedge failing; (5) a 10 bp fee makes the rebalancing cost grow like √N, doubling for every fourfold N, so the trade-off has an interior optimum; (6) when the stock moves from 100 to 110 the price quote 18.02 is stale and the vol quote 0.40 is not.</p>
+<p>Why a developer cares: every pricer in production takes a vol surface in, not a σ, and every risk system reports against it. The implied-vol solver is the first root finder in the course and the piece of Part 3 (3.4) that every desk tool calls most. Knowing which assumption breaks which number is what separates a pricer that is wrong from one that is wrong in a known direction.</p>
+</section>
+
+<div class="card" id="map">
+<div class="eyebrow" style="margin-bottom:0.6rem">What each section shows, and why it is there</div>
+<div class="map">
+  <span class="k"><a href="#setup">Setup</a></span><span>your four rulings before any code: the mixture market, one hedging break measured, one expiry's smile, the bridge</span>
+  <span class="k"><a href="#pred">Predictions</a></span><span>your P1–P5 as posed and answered, scored — five right; the traps become check distractors</span>
+  <span class="k"><a href="#ran">What ran</a></span><span>the experiment: claims C1–C5, 157 checks, both machines, two oracles</span>
+  <span class="k"><a href="#qA">A · one price, one vol</a></span><span>the implied-vol solver: Newton in four steps, the bounds that say which prices have a vol at all, the golden file inverted row by row — and where the vol is not recoverable</span>
+  <span class="k"><a href="#qB">B · the smile</a></span><span>the mixture market priced, its implied vols backed out: a smile with its bottom at the forward, the Jensen gap at the money, the asymmetric mixture's skew</span>
+  <span class="k"><a href="#qC">C · lognormal vs reality</a></span><span>the fourth moment: kurtosis 1.8, five times the normal's mass beyond 3 sd, 2.6's battery passing on the moments it matched and failing on the ones it did not</span>
+  <span class="k"><a href="#qD">D · the hedge</a></span><span>2.7's hedge on the mixture: the spread's floor, split into the unobserved state (7.54) and the wrong Greeks (2.8); the oracle hedge that removes only the second</span>
+  <span class="k"><a href="#qE">E · costs</a></span><span>a fee on every share traded: cost ∝ √N, the trade-off table, the N where spread + cost is smallest</span>
+  <span class="k"><a href="#qF">F · the unit of price</a></span><span>the stock at 110: which quote is stale, and what quoting in vol strips out</span>
+  <span class="k"><a href="#why">Why</a></span><span>the reasoning after the numbers: vega and uniqueness, the symmetric smile, the law of total variance, the √N law</span>
+  <span class="k"><a href="#dec">Decisions</a></span><span>what I chose that you may overrule</span>
+  <span class="k"><a href="#checks">Checks</a></span><span>Q1–Q6, approved 2026-11-09</span>
+  <span class="k"><a href="#ledger">Ledger</a></span><span>the S11 batch, eleven rows, approved 2026-11-09</span>
+  <span class="k"><a href="#plan">Interview</a></span><span>the nine questions, answered 2026-11-09 and transcribed into drafts/2.11.md; thirteen flags, all ruled A</span>
+</div>
+</div>
+
+<section class="col" id="setup">
+<h2>Setup — your rulings, 2026-11-08</h2>
+<p class="note">Asked before any code; answered "I accept your recommendations". The experiment is built on them.</p>
+<ul>
+  <li><b>Q1/a — the synthetic market is a two-component lognormal mixture.</b> The stock is Geometric Brownian motion (GBM) at σ<sub>low</sub> with probability p and at σ<sub>high</sub> with probability 1 − p, the state fixed for the life of the option and unknown when it is sold. The component forwards are tied so the mixture's forward is F = S₀e<sup>rT</sup>, and every price is p·C(σ<sub>low</sub>) + (1 − p)·C(σ<sub>high</sub>), one line of <a href="https://preview.dnl8fxtcop63d.amplifyapp.com/stochastic-calculus/black-scholes-formula">2.9</a>'s formula. The symmetric case has p = ½, σ = 0.2 / 0.6, equal forwards; the skewed case p = ¾ / ¼, σ = 0.3 / 0.6, with the high-vol component's forward at 0.85 F and the low-vol component's at 1.05 F (¾ × 1.05 + ¼ × 0.85 = 1).</li>
+  <li><b>Q2/a — one hedging break measured, the cost break tabled.</b> 2.7's hedge with Black–Scholes deltas at the implied vol, on the mixture's paths, the spread against N; and a 10 bp fee on every share traded, the cost against N in one table. Leland's adjusted σ is named for v2, not derived.</li>
+  <li><b>Q3/a — one expiry's smile</b> on the page, at T = 1. The smiles at τ = ½, ¼ and 0.05 are D9 fixtures only; the surface as an object is 3.4's; vanna and volga are named, not computed.</li>
+  <li><b>Q4/a — the page ends Part 2 with a bridge</b>: what Part 3 builds, what v2 revisits.</li>
+</ul>
+</section>
+
+<section class="col" id="pred">
+<h2>Predictions, as posed and as answered</h2>
+<p class="note">Your words verbatim, 2026-11-08, with the tripled LaTeX re-set (P2 "0.447"; P3 "N → ∞"; P4 "√N", "each trade ∼ 1/√N, N of them, N × 1/√N = √N", "1/√N"; P5 "S, t, r, σ", "σ = 40 %") — confirmed by you 2026-11-08 ("confirmed"). Scored against the JSON; the numbers are in the sections linked.</p>
+
+<div class="pred"><div class="q">P1 — A market quotes that call at 18.02. Is there exactly one σ for which the Black–Scholes formula gives that price? Which Greek decides it? What range of prices has an implied vol at all?</div>
+<div class="a">One call price corresponds to exactly one implied volatility.  The Greek that decides this is vega</div>
+<div class="s"><span class="score r">right</span> on both parts answered: vega = S₀φ(d₁)√T = 37.84 here and positive everywhere, so the price is strictly increasing in σ and 18.02 is hit once, at σ = 0.400000000000 in four Newton steps (<a href="#qA">A</a>). The third part went unanswered; the measurement is that the price runs from S₀ − Ke<sup>−rT</sup> = 4.877 (σ → 0) to S₀ = 100 (σ → ∞), every price strictly between has one vol, and the solver refuses 4.0 and 101. The trap listened for ("there could be two") you did not fall into; it is Q1's distractor.</div></div>
+
+<div class="pred"><div class="q">P2 — The stock is not lognormal: with probability ½ its volatility over the year is 0.2, with probability ½ it is 0.6, same forward. Price every strike from the mixture and back out the Black–Scholes implied vol at each. Shape against strike — flat, smile or skew? Is the at-the-money implied vol above, below or equal to the rms vol √(½·0.2² + ½·0.6²) = 0.447?</div>
+<div class="a">Smile. A mixture of lognormals has fatter tails than a single lognormal, so wings are overpriced relative to ATM. Implied vol is highest for low/high strikes and lowest near ATM. ATM implied vol is below the rms vol 0.447 (volatility enters convexly; ATM option values average vols, not variances).</div>
+<div class="s"><span class="score r">right</span> throughout, and sharper than the handover expected. The smile bottoms at the forward, 0.398 at K = 105.13, and is 0.399 at the spot; it reaches 0.477 at K = 60 and 0.452 at K = 160 (<a href="#qB">B</a>). Near the money the price is approximately linear in σ, so averaging prices is approximately averaging vols (your ruling 2026-11-09: approximate, not exact — the Jensen gap in <a href="#qB">B</a> is the precise statement): ½ × 10.451 + ½ × 25.523 = 17.987 sits just under C(0.40) = 18.023, an implied vol of 0.399 against C(0.447) = 19.807. The two traps ("flat at 0.447", "the ATM vol equals the rms") are Q2's distractors.</div></div>
+
+<div class="pred"><div class="q">P3 — 2.7 found the hedged book's spread falling like 1/√N. Now the stock switches between the two vols (or jumps). You hedge with the Black–Scholes delta at the implied vol, rebalancing N times. As N → ∞ does the spread still go to zero? If not, what is left?</div>
+<div class="a">No. With stochastic volatility, jumps, or other incompleteness, continuous hedging cannot perfectly replicate the payoff. As N → ∞, the discretisation error disappears, but a residual unhedgeable risk remains (vol risk, jump risk, model risk).</div>
+<div class="s"><span class="score r">right</span> The spread goes 10.5, 8.7, 8.2, 8.14, 8.09, 8.08 at N = 4 … 4096 and the control's goes 6.05 … 0.21 (<a href="#qD">D</a>). What is left splits in two: 7.54 is uncertainty about which state the option was sold in, C(0.6) − C(0.2) = 15.07 halved, fixed before the state became known — incompleteness, not a hedge failing (your ruling 2026-11-09); 2.83 on top is the Black–Scholes Greeks being wrong for the path, which the oracle hedge (the path's own vol) removes at the 1/√N rate. The trap ("1/√N always") is Q4's distractor.</div></div>
+
+<div class="pred"><div class="q">P4 — Each rebalance costs a proportional fee k on the shares traded. Doubling N: by roughly what factor does the total hedging cost change, and why does 1/√N not win?</div>
+<div class="a">Total transaction cost grows roughly like √N. Each trade gets smaller (∼ 1/√N), but there are N of them, so N × 1/√N = √N. Hence trading costs eventually dominate and 1/√N hedging-error reduction does not win.</div>
+<div class="s"><span class="score r">right</span>, with the argument the page uses. Measured on the control: the rebalancing cost goes 0.048, 0.116, 0.240, 0.485, 0.970, 1.940 for N = 4 … 4096, the ratio for each fourfold N 2.42, 2.07, 2.016, 2.001, 2.000, the log-log slope +0.502 (<a href="#qE">E</a>). Spread + cost is smallest at N = 256 on the grid; by N = 4096 the cost (2.07) is ten times the spread (0.21). The traps ("costs double", "costs don't matter in the limit") are Q5's distractors.</div></div>
+
+<div class="pred"><div class="q">P5 — The desk quotes the option as "40 vol" rather than "18.02". The stock moves from 100 to 110. Which quote has gone stale, and what would the trader do to each to keep it honest? In what sense is vol "the unit of price"?</div>
+<div class="a">The 18.02 quote goes stale immediately because price depends on S, t, r, σ. The trader must continuously recompute it. The 40 vol quote is much more portable: after the stock moves to 110, plug σ = 40 % into Black-Scholes with the new inputs to get the new price. Vol is the "unit of price" because traders quote, compare, interpolate and manage options primarily in implied-vol space rather than currency space.</div>
+<div class="s"><span class="score r">right</span> At S = 110 and 40 vol the call is worth 24.74 (I said "about 25.4" when scoring; the JSON says 24.74 and the notes follow the JSON); read the stale 18.02 at S = 110 as a vol and it means 0.211 (<a href="#qF">F</a>). The trap ("the vol quote is the stale one") is Q6's distractor.</div></div>
+</section>
+
+<section class="col" id="ran">
+<h2>What ran</h2>
+<p><code>experiments/2_11_where_it_breaks.py</code>, seed 20261108, 157 checks: 44 s on the workstation via <code>uv run --frozen</code> (QuantLib 1.43, numpy 2.5.2 — the committed JSON), 27 s in the container (QuantLib 1.44, numpy 2.5.3). The two JSONs agree to 2 parts in 10⁹ at worst (one Newton intermediate), to 3 × 10⁻¹² everywhere the page quotes. Five claims:</p>
+<ul>
+  <li><b>C1</b> the implied-vol solver — Newton on σ with 2.10's vega, bisection-safeguarded on [10⁻⁶, 5]; round trips on 2.9's 216-point grid (call and put) and on all 7,234 golden rows; the no-arbitrage bounds and the refusals; QuantLib's <code>blackFormulaImpliedStdDev</code> as the second oracle.</li>
+  <li><b>C2</b> the mixture market — prices at strikes 60–160, implied vols backed out, the smile measured; parity across it; the skewed mixture; the terminal distribution's kurtosis on 10⁶ draws against the mixture-of-normals closed form.</li>
+  <li><b>C3</b> lognormal returns vs reality — 2.6's seven-check battery on the mixture's draws; daily returns on 20,000 paths; each vol state alone Gaussian.</li>
+  <li><b>C4</b> the hedge under the wrong model — 2.7's hedge as a bank account (checked against 2.7's telescoped formula per path to 10⁻¹²): the control at σ = 0.4, the mixture hedged at the implied vol, the oracle hedge at the path's own vol; 4,000 paths × 4,096 fine steps, N = 4 … 4096.</li>
+  <li><b>C5</b> costs — k = 10 bp on every share traded, tracked in every book; the √N law; the trade-off table.</li>
+</ul>
+<p>Fixtures for D9 (the solver and smile viewer): the smile at τ = 1, ½, ¼, 0.05 for both mixtures (strike, call and put price, implied vol), the solver's trace, the kurtosis table, the P5 quotes.</p>
+</section>
+
+<section class="col" id="qA">
+<h2>A · One price, one vol: the implied-vol solver</h2>
+<p>Hand the solver the market's price and 2.9's formula; it returns the σ that makes them agree. Newton's step is σ<sub>k+1</sub> = σ<sub>k</sub> − (C(σ<sub>k</sub>) − C<sub>mkt</sub>) / vega(σ<sub>k</sub>), with the bracket [10⁻⁶, 5] narrowed by the sign of the price error and a bisection whenever Newton would leave it. From σ₀ = 0.2 at the base case:</p>
+<div class="tbl"><table>
+<tr><th>iteration</th><th class="n">σ</th><th class="n">C(σ)</th><th class="n">C(σ) − 18.02295</th></tr>
+<tr><td>1</td><td class="n">0.2000000000</td><td class="n">10.4506</td><td class="n">−7.572</td></tr>
+<tr><td>2</td><td class="n">0.4018004711</td><td class="n">18.0911</td><td class="n">+0.0681</td></tr>
+<tr><td>3</td><td class="n">0.3999999002</td><td class="n">18.022948</td><td class="n">−3.8 × 10⁻⁶</td></tr>
+<tr><td>4</td><td class="n">0.4000000000</td><td class="n">18.022951</td><td class="n">−7 × 10⁻¹⁵</td></tr>
+</table></div>
+<p class="cap">results.solver.base_case.trace · the error squares each step (7.6 → 0.068 → 3.8e-6 → 7e-15): Newton's quadratic tail. No bisection needed.</p>
+<p><b>Which prices have a vol at all.</b> As σ → 0 the call tends to max(S₀ − Ke<sup>−rT</sup>, 0) = 4.877; as σ → ∞ it tends to S₀ = 100. Every price strictly between is hit exactly once; outside, no σ works and the solver says so: 4.0 → <code>below_lower_bound</code>, 101 → <code>above_upper_bound</code>, both with σ = NaN. A price inside the bounds but beyond the search cap (99.5; the price at σ = 5 is 98.79) reports <code>above_sigma_hi</code>. Two legitimate extremes: 4.9 → σ = 0.0254, 60 → σ = 1.647.</p>
+<p><b>Round trips.</b> On 2.9's 216-point grid, call and put (432 solves): every one converged, mean 3.1 iterations, at most 9, the recovered σ within 7.3 × 10⁻¹³ of the one that made the price. QuantLib's <code>blackFormulaImpliedStdDev</code> at the same 432 points agrees with ours to 7.3 × 10⁻¹³ (its answer is exact at our worst point).</p>
+<p><b>The golden file, inverted.</b> All 7,200 grid rows and 34 edge rows of <code>golden/bs_vanilla.json</code> lie inside the bounds (677 + 10 of them <i>on</i> the lower bound: no time value at double precision), and every solve converged. What comes back depends on the row's vega:</p>
+<div class="tbl"><table>
+<tr><th>rows by vega (per 1.00 of σ)</th><th class="n">grid</th><th class="n">edge</th><th>vol recovered to</th><th>price reproduced to</th></tr>
+<tr><td>vega ≥ 1</td><td class="n">5,354</td><td class="n">20</td><td>4.6 × 10⁻¹¹ (≤ 10 iterations)</td><td>10⁻¹² (relative above 1)</td></tr>
+<tr><td>10⁻⁸ ≤ vega &lt; 1</td><td class="n">1,146</td><td class="n">2</td><td>the price error ÷ vega: worst 8 × 10⁻⁴ at vega 10⁻⁹; never more than 0.98 × that bound</td><td>10⁻¹²</td></tr>
+<tr><td>vega &lt; 10⁻⁸</td><td class="n">700</td><td class="n">12</td><td>not recoverable — up to 0.15 off (a row at σ = 0.05 and price 4 × 10⁻³² comes back as 0.083)</td><td>10⁻¹²</td></tr>
+</table></div>
+<p class="cap">results.solver.oracle.golden.{cases, edge_cases} · the vol error is the price error divided by vega, so a 10⁻¹² price fixes σ to 10⁻¹² / vega: 10⁻¹⁰ where vega is above 1, nothing where vega has vanished.</p>
+<p>The third row is the lesson, not a defect. Where vega is zero the price does not move with σ, so the price contains no information about σ: the solver reproduces the price to 10⁻¹² and returns <i>a</i> vol that does so, not <i>the</i> vol that made it. On the one-day deep rows vega is exactly 0.0 and the first guess already matches the price, so the solver stops at σ₀ = 0.2 and the answer is the guess. 3.4 owns the general theory (Brent, a rational first guess, what to do at the bounds); this page states one working method and its guard.</p>
+</section>
+
+<section class="col" id="qB">
+<h2>B · The smile: a market with two vols, priced by a formula with one</h2>
+<p>The symmetric mixture: with probability ½ the stock is GBM at 0.2, with probability ½ at 0.6, both with forward F = 105.13. Its call price at every strike is ½C(0.2) + ½C(0.6); the implied vol is what the solver returns from that price.</p>
+<div class="tbl"><table>
+<tr><th class="n">K</th><th class="n">60</th><th class="n">80</th><th class="n">90</th><th class="n">100</th><th class="n">105.13 = F</th><th class="n">110</th><th class="n">120</th><th class="n">140</th><th class="n">160</th></tr>
+<tr><td>mixture price</td><td class="n">45.008</td><td class="n">29.670</td><td class="n">23.243</td><td class="n">17.987</td><td class="n">—</td><td class="n">13.959</td><td class="n">11.008</td><td class="n">7.326</td><td class="n">5.235</td></tr>
+<tr><td>implied vol</td><td class="n">0.4768</td><td class="n">0.4254</td><td class="n">0.4077</td><td class="n">0.3990</td><td class="n">0.3980</td><td class="n">0.3989</td><td class="n">0.4051</td><td class="n">0.4277</td><td class="n">0.4524</td></tr>
+</table></div>
+<p class="cap">results.market.symmetric.features.points, .at_forward · 101 strikes 60–160 in the JSON, every one with a vol · parity C − P = S₀ − Ke^(−rT) holds at every strike to 1.4e-14, and the put's implied vol equals the call's to 9.7e-13 at all 101</p>
+<div class="fig"><div class="title">Figure 1 — implied vol against strike at T = 1: the symmetric mixture's smile and the skewed mixture's skew</div><canvas id="c1" width="1200" height="520"></canvas>
+<div class="legend"><span style="--c:var(--s1)">symmetric mixture (½ · 0.2, ½ · 0.6)</span><span style="--c:var(--s2)">skewed mixture (¾ · 0.3 at 1.05 F, ¼ · 0.6 at 0.85 F)</span><span class="dash" style="--c:var(--muted)">rms vol 0.447 · mean vol 0.40</span><span class="dash" style="--c:var(--s1)">the forward F = 105.13</span></div></div>
+<p><b>What the smile measures.</b> Its minimum is at the forward, not the spot: 0.3980 at K = 105.127, the slope there zero to 10⁻¹⁴. It is symmetric in log-moneyness: σ(K) = σ(F²/K) at K = 70, 80, 90, 95 to 4 × 10⁻¹⁶ (three pairs) and 3 × 10⁻¹³ (the fourth). It crosses the rms vol 0.447 at K = 71.0 and K = 155.6 and rises towards σ<sub>high</sub> = 0.6 in the wings without reaching it on 60–160. The put's implied vol is the call's at every strike, because parity holds exactly: the mixture's forward is F, so no-arbitrage survives the broken model even though the model's one-σ assumption does not.</p>
+<p><b>The Jensen gap at the money.</b> At K = 100: the components price at 10.451 and 25.523, the mixture at 17.987; C(0.40) = 18.023 and C(0.447) = 19.807. So the implied vol is 0.399, a little under the mean vol and well under the rms. Your P2 reason is the right one: near the money the price is almost linear in σ, so averaging two prices is almost averaging two vols. Slightly concave, so slightly under 0.40. Concave in σ², so well under 0.447.</p>
+<p><b>Skew.</b> The asymmetric mixture tilts the curve: 0.448 at K = 60, 0.403 at 80, 0.380 at the spot, 0.370 at 120, 0.369 at the minimum (K = 131, 1.25 F), 0.372 at 160. The slope at the forward is −0.062 per unit of log-moneyness and the symmetry is broken by 0.035 at K = 80. Parity still holds to 1.8 × 10⁻¹⁴. This is the index's check — back out implied vols from a synthetic skewed market, observe they are not constant — and the variation is 0.08 across the strikes.</p>
+</section>
+
+<section class="col" id="qC">
+<h2>C · Lognormal returns vs reality: the fourth moment</h2>
+<p>The mixture's log S<sub>T</sub> is a mixture of two normals. Its excess kurtosis has a closed form (the fourth central moment of a mixture, over the variance squared, less 3) of 1.8009; on 10⁶ draws it measures 1.816 ± 0.012. The single lognormal at σ = 0.4 measures 0.001 ± 0.004 against its exact 0. Mass beyond 3 sd: 1.23 % for the mixture against the normal's 0.27 %. The symmetric mixture is not symmetric in log S<sub>T</sub>: the two components' means differ by ½(0.6² − 0.2²)T = 0.16, so its skewness is −0.41 (exact −0.4095, measured −0.412).</p>
+<p><b>2.6's battery, run on the mixture.</b> 2.6 tested its simulator by seven checks on the draws at one horizon. Run them on the mixture's 10⁶ draws against the lognormal that matches the mixture's first two log moments (σ<sub>fit</sub> = 0.4543):</p>
+<div class="tbl"><table>
+<tr><th>2.6's check</th><th class="n">measured</th><th class="n">lognormal</th><th class="n">z (s.e.)</th><th>verdict</th></tr>
+<tr><td>log-return mean</td><td class="n">−0.05025</td><td class="n">−0.05000</td><td class="n">−0.6</td><td>pass — matched by construction</td></tr>
+<tr><td>log-return variance</td><td class="n">0.20615</td><td class="n">0.20640</td><td class="n">−0.9</td><td>pass — matched by construction</td></tr>
+<tr><td>log-return skewness</td><td class="n">−0.412</td><td class="n">0</td><td class="n">−168</td><td>fail</td></tr>
+<tr><td>log-return excess kurtosis</td><td class="n">1.788</td><td class="n">0</td><td class="n">+365</td><td>fail</td></tr>
+<tr><td>E[S<sub>T</sub>]</td><td class="n">105.08</td><td class="n">105.13 = F</td><td class="n">−0.9</td><td>pass — the forward belongs to both models</td></tr>
+<tr><td>median S<sub>T</sub></td><td class="n">98.98</td><td class="n">95.12</td><td class="n">+71</td><td>fail</td></tr>
+<tr><td>sd of S<sub>T</sub> (2.6's rule: to 3 %)</td><td class="n">51.04</td><td class="n">50.33</td><td class="n">+1.4 %</td><td>pass — the second moment in price space is too blunt</td></tr>
+</table></div>
+<p class="cap">results.returns.battery_2_6.rows · 10⁶ draws, seed 20261108 · each vol state alone: excess kurtosis −0.004 and −0.005, Gaussian within 5 s.e. — the fat tails are the mixing, not the components</p>
+<p><b>Daily returns.</b> 20,000 paths × 252 steps (the state fixed per path; 9,928 low, 10,072 high). Pooled, the daily log-returns have excess kurtosis 1.892 against the scale-mixture closed form 3E[σ⁴]/E[σ²]² − 3 = 1.898 at the realised state fractions (1.92 at p = ½), and 1.26 % of them lie beyond 3 sd, 4.7 times the normal's share. Within each state the returns are Gaussian (kurtosis −0.005, −0.002; 0.264 % beyond 3 sd) with annualised sd 0.2001 and 0.5994. 2.7's realised-vol statistic, computed per path, is bimodal: 0.200 ± 0.009 on the low paths, 0.599 ± 0.026 on the high, nothing near the rms 0.447 (Figure 2). The hedger sees which state the path was in only after the fact.</p>
+<div class="fig"><div class="title">Figure 2 — realised volatility per path over 252 daily steps, 20,000 mixture paths</div><canvas id="c2" width="1200" height="380"></canvas>
+<div class="legend"><span style="--c:var(--s1)">paths per bin (width 0.02)</span><span class="dash" style="--c:var(--muted)">rms vol 0.447 — the single-σ model that matches the pooled variance</span></div></div>
+</section>
+
+<section class="col" id="qD">
+<h2>D · The hedge under the wrong model</h2>
+<p>2.7's hedge, written as a bank account: buy the call at P₀, short Δ shares, keep the cash at r, rebalance N times with Black–Scholes deltas, liquidate at T. Per path this equals 2.7's Σe<sup>−rt</sup>[δV − ΔδS − carry] to 10⁻¹² (the bookkeeping identity, checked at every N in every book). Three books, each 4,000 paths read off one 4,096-step grid, drift r on every path (Decision D1):</p>
+<ul>
+  <li><b>the control</b> — GBM at σ = 0.4, hedged at 0.4, bought at C(0.4) = 18.023: 2.7's base case re-run;</li>
+  <li><b>the mixture, Black–Scholes hedge</b> — the state drawn per path, hedged at the implied vol σ<sub>i</sub> = 0.3990, bought at the mixture's price 17.987;</li>
+  <li><b>the mixture, oracle hedge</b> — the same paths, the deltas at the path's own σ<sub>j</sub>, still bought at 17.987.</li>
+</ul>
+<div class="tbl"><table>
+<tr><th class="n">N</th><th class="n">control sd</th><th class="n">control sd·√N</th><th class="n">BS hedge sd</th><th class="n">BS within-state sd</th><th class="n">oracle sd</th><th class="n">oracle within-state sd</th></tr>
+<tr><td class="n">4</td><td class="n">6.048</td><td class="n">12.10</td><td class="n">10.515</td><td class="n">7.538</td><td class="n">10.138</td><td class="n">7.012</td></tr>
+<tr><td class="n">16</td><td class="n">3.169</td><td class="n">12.68</td><td class="n">8.712</td><td class="n">4.404</td><td class="n">8.249</td><td class="n">3.486</td></tr>
+<tr><td class="n">64</td><td class="n">1.645</td><td class="n">13.16</td><td class="n">8.209</td><td class="n">3.349</td><td class="n">7.705</td><td class="n">1.837</td></tr>
+<tr><td class="n">256</td><td class="n">0.835</td><td class="n">13.37</td><td class="n">8.136</td><td class="n">2.964</td><td class="n">7.602</td><td class="n">0.927</td></tr>
+<tr><td class="n">1024</td><td class="n">0.416</td><td class="n">13.32</td><td class="n">8.091</td><td class="n">2.863</td><td class="n">7.552</td><td class="n">0.467</td></tr>
+<tr><td class="n">4096</td><td class="n">0.206</td><td class="n">13.21</td><td class="n">8.080</td><td class="n">2.832</td><td class="n">7.542</td><td class="n">0.230</td></tr>
+</table></div>
+<p class="cap">results.hedging.{control, mixture_bs_hedge, mixture_oracle_hedge}.per_N · sd of the discounted hedged P&amp;L, gross of fees · 2.7 had sd·√N = 13.54 at N = 4096 (seed 20261101, μ = 0); the control's 13.21 is within 2.5 % · log-log slopes over N ≥ 64: control −0.499, BS hedge −0.004, oracle within-state −0.4995</p>
+<div class="fig"><div class="title">Figure 3 — the hedged book's spread against N (log–log)</div><canvas id="c3" width="1200" height="560"></canvas>
+<div class="legend"><span style="--c:var(--s1)">control: GBM at 0.4, hedged at 0.4</span><span style="--c:var(--s2)">mixture, Black–Scholes hedge at σ<sub>i</sub> = 0.399</span><span class="dash" style="--c:var(--s2)">… within each vol state</span><span style="--c:var(--s3)">mixture, oracle hedge at the path's σ<sub>j</sub></span><span class="dash" style="--c:var(--s3)">… within each vol state</span><span class="dash" style="--c:var(--muted)">13.2/√N · the between-state sd 7.54</span></div></div>
+<p><b>The floor, and what it is made of.</b> The control's spread falls as 1/√N, as on 2.7. The Black–Scholes hedge on the mixture stops at 8.08 and is still at 8.08 at N = 4096, forty times the control. Split the paths by their state: on the low-vol paths the mean P&amp;L is −7.530 ± 0.042 and on the high-vol paths +7.624 ± 0.080, against the two states' price gaps C(0.2) − 17.987 = −7.536 and C(0.6) − 17.987 = +7.536, at every N (within 5 s.e. at all six). Those two means are ±7.54 apart, and a coin toss between them has sd 7.536. That is the <b>between-state spread</b>: uncertainty about which state the option was sold in, settled before the state became known. The option was bought at a price that was right on average and wrong in both states; with only the stock to trade, the state is a risk nothing in the market spans. It is incompleteness, not a hedge failing. The remaining <b>within-state spread</b> is 2.83 for the Black–Scholes hedge (1.90 on the low paths, 3.53 on the high), and it too has stopped falling: it is 2.7's gamma P&amp;L with a wrong σ<sub>i</sub>, (σ<sub>j</sub>² − σ<sub>i</sub>²) × the gamma integral, a path integral that does not shrink with the step. Overall 8.08² ≈ 7.54² + 2.83².</p>
+<p><b>The oracle hedge separates the two.</b> Knowing the path's vol and hedging at it, the within-state spread falls like 1/√N (0.927, 0.467, 0.230 at N = 256, 1024, 4096: slope −0.4995, 2.7's replication working perfectly in each state), and the overall spread converges to 7.542, within 0.1 % of the between-state 7.536. The right Greeks remove the hedging error; the between-state piece is not a hedging error, so no Greeks touch it. The mean P&amp;L is zero in all three books at every N (−0.16 ± 0.13 for the Black–Scholes hedge at N = 4096), which is 2.8's statement that the price is the expectation under the pricing drift whatever you do afterwards.</p>
+<p>2.7 saw this floor one vol at a time: its off-vol scenarios (σ<sub>r</sub> = 0.3 and 0.5 at σ<sub>i</sub> = 0.4) had spreads that stopped at about 1.2 and 1.6. Here the two states sit inside one book, so the floor has the price gap in it as well.</p>
+</section>
+
+<section class="col" id="qE">
+<h2>E · Transaction costs: √N against 1/√N</h2>
+<p>A fee of k = 10 basis points on the value of every share traded, at setup, at each rebalance and at the unwind, tracked in every book. On the control:</p>
+<div class="tbl"><table>
+<tr><th class="n">N</th><th class="n">spread (sd, gross)</th><th class="n">rebalancing cost (mean)</th><th class="n">ratio to N/4</th><th class="n">total cost (mean)</th><th class="n">spread + cost</th><th class="n">net P&amp;L sd</th><th class="n">shares turned over</th></tr>
+<tr><td class="n">4</td><td class="n">6.048</td><td class="n">0.048</td><td class="n">—</td><td class="n">0.173</td><td class="n">6.221</td><td class="n">6.032</td><td class="n">112</td></tr>
+<tr><td class="n">16</td><td class="n">3.169</td><td class="n">0.116</td><td class="n">2.42</td><td class="n">0.242</td><td class="n">3.410</td><td class="n">3.157</td><td class="n">182</td></tr>
+<tr><td class="n">64</td><td class="n">1.645</td><td class="n">0.240</td><td class="n">2.07</td><td class="n">0.366</td><td class="n">2.011</td><td class="n">1.636</td><td class="n">309</td></tr>
+<tr><td class="n">256</td><td class="n">0.835</td><td class="n">0.485</td><td class="n">2.016</td><td class="n">0.610</td><td class="n"><b>1.445</b></td><td class="n">0.846</td><td class="n">560</td></tr>
+<tr><td class="n">1024</td><td class="n">0.416</td><td class="n">0.970</td><td class="n">2.001</td><td class="n">1.095</td><td class="n">1.511</td><td class="n"><b>0.553</b></td><td class="n">1,058</td></tr>
+<tr><td class="n">4096</td><td class="n">0.206</td><td class="n">1.940</td><td class="n">2.000</td><td class="n">2.065</td><td class="n">2.272</td><td class="n">0.761</td><td class="n">2,052</td></tr>
+</table></div>
+<p class="cap">results.hedging.control.per_N, .trade_off · setup 0.063 and unwind 0.063 are the same at every N · the mixture book's rebalancing cost is 0.044 … 1.794, slope +0.501 · the turnover is in units of the stock's value, undiscounted</p>
+<div class="fig"><div class="title">Figure 4 — the trade-off on the control: spread falls as 1/√N, cost rises as √N</div><canvas id="c4" width="1200" height="520"></canvas>
+<div class="legend"><span style="--c:var(--s1)">spread (sd of the gross P&amp;L)</span><span style="--c:var(--s2)">mean cost at 10 bp</span><span style="--c:var(--s4)">spread + cost</span><span class="dash" style="--c:var(--s3)">sd of the net P&amp;L</span></div></div>
+<p>Each rebalance trades |δΔ| ≈ ΓS|δS| shares and |δS| ∝ √δt, so one trade shrinks like 1/√N while the count grows like N: the cost grows like √N. Measured: the ratio for every fourfold N settles at 2.000, the log-log slope is +0.502. By N = 4096 the fee (2.07) is ten times the spread (0.21), and even the net P&amp;L's spread has turned round, because the cost is itself a random quantity (sd 0.74 at N = 4096): 0.846 → 0.553 → 0.761 at N = 256, 1024, 4096. On this grid the sum of spread and cost is smallest at N = 256, the net spread at N = 1024. Leland (1985) put this trade-off into an adjusted σ; that is v2's.</p>
+</section>
+
+<section class="col" id="qF">
+<h2>F · Vol is the unit of price</h2>
+<p>The desk quotes the one-year 100 call at "40 vol" rather than "18.02". The stock moves from 100 to 110. At 40 vol the call is now worth 24.74, so the price quote is 6.72 stale; read the stale 18.02 at the new spot as a vol and it says 0.211, which nobody believes. The vol quote has not moved: if the market still thinks 40 vol, 40 is still right, and the price follows from it with the new inputs. Quoting in vol removes the inputs that are usually observable (S, K, r, T) and leaves volatility, the quantity options are primarily quoted and compared in (your wording, 2026-11-09). It makes a 60-strike and a 160-strike comparable (0.477 against 0.452: the market pays more, in vol terms, for the low strike), and it is why the market's real object is the surface of implied vols, which 3.4 builds and D9 draws.</p>
+<p class="cap">results.quotes · price_at_110_vol_0.40 = 24.741 · implied_vol_of_18.02_at_110 = 0.2114</p>
+</section>
+
+<section class="col" id="why">
+<h2>Why — the reasoning, after the numbers</h2>
+<div class="rung"><div class="no">1</div><div class="body"><p><b>One price, one vol.</b> ∂C/∂σ = vega = S₀φ(d₁)√T, and φ is positive everywhere, so C is strictly increasing in σ. As σ → 0, d₁ and d₂ run to ±∞ together with the sign of ln(S₀/K) + rT and C → max(S₀ − Ke<sup>−rT</sup>, 0); as σ → ∞, d₁ → +∞ and d₂ → −∞ and C → S₀. A continuous, strictly increasing function hits each value between its limits once. Newton converges quadratically because vega is smooth and does not vanish near the root; the bisection guard is for the wings, where vega is tiny and a Newton step can overshoot the bracket.</p></div></div>
+<div class="rung"><div class="no">2</div><div class="body"><p><b>Why the mixture smiles, and why its bottom is at the forward.</b> Far from the money the low-vol component is worth almost nothing, so the mixture's price is close to half the high-vol component's and its implied vol climbs towards 0.6. At the forward, C(F) = e<sup>−rT</sup>F(2N(σ√T/2) − 1) is almost linear in σ and slightly concave, so the average of the two prices sits just under the price at the average vol, 0.398 against 0.40; it is concave in σ² (a square root), so it sits well under the price at the rms vol. The symmetry σ(K) = σ(F²/K) is the lognormal's reflection symmetry about its forward, which each component has and the mixture, being a weighted sum of components with the same forward, inherits. Break the equal forwards (the skewed mixture) and the symmetry goes with them: that is skew.</p></div></div>
+<div class="rung"><div class="no">3</div><div class="body"><p><b>Why 2.6's battery catches it at the fourth moment.</b> A mixture of two normals with the same mean has the same first two moments as a normal with the pooled variance: by construction. Its fourth moment is 3E[σ⁴] against the normal's 3E[σ²]², and E[σ⁴] > E[σ²]² whenever σ varies (Jensen again): excess kurtosis 3E[σ⁴]/E[σ²]² − 3 = 1.92 for daily returns, 1.80 at the one-year horizon where the two means also differ. That is why "mean and variance match" says nothing about the tails, and why the smile exists: option prices are integrals against the tails.</p></div></div>
+<div class="rung"><div class="no">4</div><div class="body"><p><b>Why the floor, and why it splits.</b> Under the pricing drift the discounted stock is a martingale, so every trading strategy's discounted gains have mean zero and E[P&amp;L | state j] = C(σ<sub>j</sub>) − P₀ for any hedge and any N. The law of total variance then reads Var(P&amp;L) = Var(E[P&amp;L | j]) + E[Var(P&amp;L | j)]: the first term is √(p(1 − p))·|C(0.6) − C(0.2)| = 7.54, the unspanned state — incompleteness, which no strategy in the stock alone touches; the second is the replication error within a state. For the oracle hedge the second term is 2.7's 1/√N error and vanishes. For the Black–Scholes hedge at σ<sub>i</sub> it is 2.7's gamma P&amp;L, (σ<sub>j</sub>² − σ<sub>i</sub>²)∫e<sup>−rt</sup>½Γ<sub>i</sub>S²dt, a path integral whose spread does not fall with N: 2.83 here.</p></div></div>
+<div class="rung"><div class="no">5</div><div class="body"><p><b>Why √N.</b> One rebalance trades |Δ<sub>i+1</sub> − Δ<sub>i</sub>| ≈ Γ S |δS| shares, and |δS| ≈ Sσ√δt·|Z| has mean Sσ√(T/N)·√(2/π). N of them: cost ≈ k·Γ·S²·σ·√(2T/π)·√N on average, with Γ and S along the path. The ratio for N → 4N is 2 exactly in the limit; the measured 2.42 at the first step is the setup and unwind not yet negligible against four trades.</p></div></div>
+</section>
+
+<section class="col" id="dec">
+<h2>Decisions you may overrule</h2>
+<ul>
+  <li><b>D1 — drift μ = r on every path set</b>, not 2.7's μ = 0. Under the pricing drift the mean hedged P&amp;L is zero for every N and every hedge (2.8), so the per-state means are the price gaps exactly and the spread carries the whole story. 2.7 showed the hedge is drift-blind in the limit, so the choice costs nothing; its sd·√N = 13.54 at μ = 0 and the control's 13.21 at μ = r agree within the seeds' noise. Alternative: μ = 0 as on 2.7, at the cost of a small drift leakage in the per-state means at low N.</li>
+  <li><b>D2 — the skewed mixture's parameters</b>: p = ¾ / ¼, σ = 0.3 / 0.6, forwards 1.05 F / 0.85 F. Chosen so the forward is preserved and the tilt is visible (0.08 across the strikes) without a wing going beyond the solver's cap. Any other asymmetric pair tells the same story.</li>
+  <li><b>D3 — k = 10 basis points</b> per unit of stock traded, charged at setup, each rebalance and the unwind; the setup and unwind reported separately so the √N law is seen on the rebalancing alone.</li>
+  <li><b>D4 — the golden file's three vega classes</b> (≥ 1; 10⁻⁸ to 1; &lt; 10⁻⁸) with the check on the middle class being the error bound price_tol × max(1, price) / vega. The handover asked for 10⁻¹⁰ "where vega is not vanishing"; vega ≥ 1 is where that holds for a 10⁻¹² price, and the bound is the honest statement in between.</li>
+  <li><b>D5 — "spread + cost"</b> adds an sd to a mean; it is a reading aid, not a risk measure. The net P&amp;L's sd is also tabled, and its minimum (N = 1024) differs from the sum's (N = 256). Leland's criterion is v2's.</li>
+  <li><b>D6 — 2.6's battery against the lognormal fitted to the first two log moments</b> (σ<sub>fit</sub> = 0.454), not against σ = 0.4 or the rms 0.447. Fitting the two moments is what makes "which check catches it" a fair question.</li>
+  <li><b>D7 — the oracle hedge</b> is on the page as the device that separates the two pieces of the floor. It is not a strategy anyone can run; it is the measurement that says what the Black–Scholes hedge is paying for.</li>
+  <li><b>D8 — the figures</b> belong to these notes; the page gets tables and D9. Figure 2's realised-vol histogram is in the JSON for D9 if wanted.</li>
+</ul>
+</section>
+
+<section class="col" id="checks">
+<h2>Checks Q1–Q6 (I5) — approved 2026-11-09</h2>
+<p class="note">One per section A–F. Every wrong option names the misconception it encodes; the feedback says why it is wrong. Your P1–P5 traps are the distractors marked ⚑.</p>
+
+<div class="check"><div class="stem">Q1 · A market quotes the one-year 100-strike call at 18.02 (S₀ = 100, r = 0.05). How many values of σ make the Black–Scholes formula return that price?</div>
+<ol>
+<li><span class="ok">✓</span> Exactly one — vega = S₀φ(d₁)√T is positive at every σ, so the price is strictly increasing in σ and crosses 18.02 once. <span class="why">The solver finds 0.4000 in four Newton steps.</span></li>
+<li><span class="no">✗ ⚑</span> Two — the price curve in σ is a bowl and a horizontal line cuts it twice. <span class="why">— vega's sign misread. The price is monotone in σ; it is vega that has a hump, not the price.</span></li>
+<li><span class="no">✗</span> One for any positive price. <span class="why">— the bounds forgotten. Only prices between S₀ − Ke^(−rT) = 4.88 (σ → 0) and S₀ = 100 (σ → ∞) have a vol; the solver refuses 4.0 and 101.</span></li>
+<li><span class="no">✗</span> It depends on the starting guess — Newton can land on different roots. <span class="why">— the root finder blamed for the function. There is one root; a bad guess slows Newton down or needs a bisection step, it does not change the answer.</span></li>
+</ol></div>
+
+<div class="check"><div class="stem">Q2 · With probability ½ the stock's vol is 0.2, with probability ½ it is 0.6, same forward. You back out Black–Scholes implied vols from the mixture's prices at every strike. The curve against strike is:</div>
+<ol>
+<li><span class="ok">✓</span> A smile, lowest at the forward (0.398) and rising in both wings — and the at-the-money vol is below the rms vol 0.447. <span class="why">0.477 at K = 60, 0.452 at K = 160; the fat tails make the wings dear.</span></li>
+<li><span class="no">✗ ⚑</span> Flat at 0.447 — the mixture has the same variance as a lognormal at the rms vol. <span class="why">— variance averaged, prices not. Prices are concave in σ² near the money and the wings weigh the tails; the same second moment does not give the same prices.</span></li>
+<li><span class="no">✗</span> Flat at 0.40 — the market is just the average-vol model. <span class="why">— the mixture mistaken for its mean. At the money the price is nearly the price at 0.40 (0.399), but at K = 60 the implied vol is 0.477: the mixture is not any single lognormal.</span></li>
+<li><span class="no">✗</span> A skew sloping down to the right — high vol goes with low prices. <span class="why">— asymmetry assumed. With equal forwards the smile is symmetric in log-moneyness to 10⁻¹⁵; skew needs the high-vol state to carry a lower forward.</span></li>
+</ol></div>
+
+<div class="check"><div class="stem">Q3 · The mixture passes 2.6's checks on the mean and variance of log S<sub>T</sub> against a lognormal fitted to them. Which of 2.6's checks catches it?</div>
+<ol>
+<li><span class="ok">✓</span> The excess-kurtosis check — 1.79 against 0, 365 standard errors away (and the skewness and median checks fail with it). <span class="why">Each vol state alone is Gaussian; the fat tails are the mixing.</span></li>
+<li><span class="no">✗</span> None — two models with the same mean and variance price every option the same. <span class="why">— two moments mistaken for the whole distribution. Option prices are integrals against the tails; the smile is the difference made visible.</span></li>
+<li><span class="no">✗</span> E[S<sub>T</sub>] = S₀e^(rT). <span class="why">— the forward mistaken for a model property. Both models have forward F by no-arbitrage; the check passes (z = −0.9) and says nothing about which model is right.</span></li>
+<li><span class="no">✗</span> The sd of S<sub>T</sub> to 3 %. <span class="why">— price-space variance too blunt. The mixture's sd of S_T is 1.4 % above the fitted lognormal's and passes 2.6's 3 % rule.</span></li>
+</ol></div>
+
+<div class="check"><div class="stem">Q4 · You hedge the mixture market with Black–Scholes deltas at the implied vol 0.399, rebalancing N times. As N → ∞ the hedged P&amp;L's spread:</div>
+<ol>
+<li><span class="ok">✓</span> Stops at about 8.1 — 7.5 of it is uncertainty about which vol state the option was sold in, fixed before the state became known, and 2.8 is the Greeks being wrong for the path. <span class="why">8.136, 8.091, 8.080 at N = 256, 1024, 4096.</span></li>
+<li><span class="no">✗ ⚑</span> Falls like 1/√N to zero, as on 2.7. <span class="why">— discreteness taken for the only error. 2.7's rate needs the model's σ to be the path's σ; here it is neither 0.2 nor 0.6.</span></li>
+<li><span class="no">✗</span> Falls to zero, only more slowly. <span class="why">— a floor misread as a slower rate. The log-log slope over N ≥ 64 is −0.004: the spread is not falling at all.</span></li>
+<li><span class="no">✗</span> Stops at a floor that knowing each path's true vol would remove entirely. <span class="why">— incompleteness confused with hedging error. The oracle hedge brings the within-state spread to 0.23 and the overall spread to 7.54: the option was bought before the state was known, and the stock alone cannot span the state.</span></li>
+</ol></div>
+
+<div class="check"><div class="stem">Q5 · A fee of k on every share traded. You double the number of rebalances N. The total rebalancing cost is multiplied by about:</div>
+<ol>
+<li><span class="ok">✓</span> √2 ≈ 1.41 — each trade is ∝ 1/√N smaller and there are twice as many. <span class="why">Measured: a fourfold N doubles the cost (ratio 2.000 from N = 256 on), so a doubling multiplies it by √2.</span></li>
+<li><span class="no">✗ ⚑</span> 2 — twice as many trades. <span class="why">— the trades assumed the same size. A rebalance trades |δΔ| ≈ ΓS|δS| and |δS| shrinks like √δt.</span></li>
+<li><span class="no">✗</span> 1 — the trades shrink as fast as they multiply. <span class="why">— 1/√N mistaken for 1/N. The size falls like 1/√N, the count rises like N; N × 1/√N = √N grows.</span></li>
+<li><span class="no">✗ ⚑</span> It does not matter — in the limit the spread goes to zero and that is what counts. <span class="why">— the limit taken without the fee. At N = 4096 the fee is 2.07 against a spread of 0.21; spread + cost is smallest at N = 256.</span></li>
+</ol></div>
+
+<div class="check"><div class="stem">Q6 · The desk quotes the one-year 100 call at "40 vol" rather than "18.02". The stock moves from 100 to 110. Which quote has gone stale?</div>
+<ol>
+<li><span class="ok">✓</span> The price — at 40 vol the call is now worth 24.74; the vol quote still stands if the market still thinks 40 vol. <span class="why">Vol removes the inputs that are usually observable, S, K, r and T, and leaves volatility, the quantity options are quoted and compared in.</span></li>
+<li><span class="no">✗ ⚑</span> The vol — 40 % was right when the stock was at 100. <span class="why">— the vol treated as a function of the spot. The implied vol is the market's view of σ; the spot is an input, not a reason for it to change. Re-read at 110, the stale 18.02 would mean 0.211.</span></li>
+<li><span class="no">✗</span> Both — every input moved, so every quote is stale. <span class="why">— the two quotes treated as the same thing. One is a price; the other is a price with the known inputs divided out.</span></li>
+<li><span class="no">✗</span> Neither — a quote is a quote until it is withdrawn. <span class="why">— the market's convention ignored. A price quote without its spot is meaningless a minute later; that is why desks quote in vol.</span></li>
+</ol></div>
+</section>
+
+<section class="col" id="ledger">
+<h2>Ledger — the S11 batch, approved 2026-11-09</h2>
+<p class="note">Eleven rows for 0.3 Conventions. Symbol and name divided by a dash (S7's ruling); "↺" marks a symbol first met earlier and revisited. Links to routed pages only.</p>
+<div class="tbl"><table>
+<tr><th>Symbol</th><th>Say it</th><th>Here it means</th><th>Watch out</th></tr>
+<tr><td>σ<sub>i</sub> — implied volatility ↺</td><td>"the implied vol", "implied"</td><td>the σ that makes <a href="https://preview.dnl8fxtcop63d.amplifyapp.com/stochastic-calculus/black-scholes-formula">2.9</a>'s formula return the market's price: 0.400 for 18.02. Unique because vega &gt; 0 everywhere; found by Newton on σ in four steps here. 2.7's σ<sub>i</sub>, now backed out of a price rather than assumed</td><td>a price in different units, not a forecast of σ<sub>r</sub>. Defined only for prices strictly inside the bounds; not recoverable where vega has vanished (the deep and one-day rows)</td></tr>
+<tr><td>(S₀ − Ke<sup>−rT</sup>)⁺ &lt; C &lt; S₀ — the bounds</td><td>"the no-arbitrage bounds"</td><td>the call's range as σ runs from 0 to ∞: 4.877 to 100 at the base case (put: (Ke<sup>−rT</sup> − S₀)⁺ to Ke<sup>−rT</sup>). Every price between has one implied vol; a price outside has none and the solver refuses it</td><td>687 golden rows sit on the lower bound (within 10⁻¹²): no time value at double precision, so no vol</td></tr>
+<tr><td>the smile</td><td>"the smile", "the vol smile"</td><td>σ<sub>i</sub> against K at one expiry when it is not flat: for the fair mixture a U with its bottom at the forward (0.398), 0.477 at K = 60, 0.452 at K = 160</td><td>its minimum is at the forward, not the spot; symmetric in ln(K/F), not in K. A single-σ model has none</td></tr>
+<tr><td>the skew</td><td>"skew", "the skew"</td><td>a tilted smile: higher σ<sub>i</sub> at lower strikes (0.448 at K = 60 against 0.372 at 160) when the high-vol state carries the lower forward</td><td>the fair mixture has none; direction comes from asymmetry between the states, not from fat tails alone</td></tr>
+<tr><td>σ<sub>i</sub>(K, T) — the volatility surface</td><td>"the surface", "the vol surface"</td><td>the smile at every expiry, as one object: what a production pricer takes in instead of a σ. Named here; built on 3.4, drawn by D9</td><td>this page measures one expiry. The surface's own Greeks (vanna, volga) are named, not computed</td></tr>
+<tr><td>the lognormal mixture — the synthetic market</td><td>"the mixture"</td><td>S<sub>T</sub> drawn from one of two <a href="https://preview.dnl8fxtcop63d.amplifyapp.com/stochastic-calculus/sdes-and-gbm">2.6</a> models, σ = 0.2 or 0.6 with equal chance, the state fixed for the life of the option and unknown when it is sold; forwards tied so E[S<sub>T</sub>] = F. Every price is ½C(0.2) + ½C(0.6)</td><td>a market built to break one assumption at a time, not a model of any stock. Each component alone passes every test on 2.6</td></tr>
+<tr><td>excess kurtosis — fat tails</td><td>"kurtosis", "fat tails"</td><td>the fourth central moment over the variance squared, less the normal's 3: 1.80 for the mixture's log S<sub>T</sub>, 1.92 for its daily returns, 0 for any lognormal. Mass beyond 3 sd: 1.23 % against 0.27 %</td><td>the check that catches the mixture where mean and variance do not. Within each vol state the returns are Gaussian: the fat tails are the mixing</td></tr>
+<tr><td>√(p(1 − p))·|C(σ<sub>high</sub>) − C(σ<sub>low</sub>)| — the between-state spread</td><td>"the unhedgeable piece", "incompleteness"</td><td>7.54 here: the sd of a coin toss between the two states' prices — uncertainty about which state the option was sold in, fixed before the state became known. What is left of the hedged book's spread when the Greeks are right (the oracle hedge: 7.542 at N = 4096)</td><td>incompleteness, not a hedge failing: with only the stock to trade, the state is a risk nothing spans. The Black–Scholes hedge adds a within-state 2.83 on top: 2.7's gamma P&amp;L with the wrong σ<sub>i</sub></td></tr>
+<tr><td>k — the proportional cost</td><td>"ten basis points", "the fee"</td><td>the charge per unit of stock traded: 0.001 here, on every share at setup, each rebalance and the unwind. The rebalancing cost is k·Σ|δΔ|·S and grows like √N: 0.485 at N = 256, 1.94 at 4096</td><td>a fee, not a bid–ask model; spread + cost is smallest at an interior N (256 on the grid). Leland (1985) folds it into an adjusted σ — v2</td></tr>
+<tr><td>"vol is the unit of price"</td><td>"forty vol", "quoted in vol"</td><td>quoting σ<sub>i</sub> instead of C: the stock moves 100 → 110 and the price quote 18.02 is stale (the call is worth 24.74 at 40 vol) while the vol quote is not. Vol removes the inputs that are usually observable (S, K, r, T) and leaves the quantity options are quoted and compared in</td><td>comparable across strikes, expiries and days; the reason the surface, not a price list, is the market's object</td></tr>
+<tr><td>vanna, volga — the surface's Greeks</td><td>"vanna", "volga"</td><td>∂Δ/∂σ and ∂vega/∂σ: how the hedge and the vega exposure move when the surface moves. Named on this page as where the Greeks go next</td><td>not computed here; 3.4 and v2</td></tr>
+</table></div>
+</section>
+
+<section class="col" id="plan">
+<h2>The interview — nine questions for drafts/2.11.md</h2>
+<p class="note">Answered in one burst as an attached file on 2026-11-09, transcribed verbatim into <code>drafts/2.11.md</code> with the notation re-set (confirmed) and eight tables from the JSON. The I1 audit raised thirteen flags, all wording and none a wrong number — "every production pricer" softened; the control book on its own paths; the two machines' agreement as 2 parts in 10⁹; the 700 flat golden rows as both kinds; σ₀ = 0.2; the wings named at K = 60 and 160; the skewed mixture's weights and vols; the lognormal fitted to the mixture, not the reverse; the median among the failing checks; 1.26 % against 0.27 %; random walks before Brownian motion and GBM written out; "you gave in P2" removed — ruled "accept recommendations" and applied. Committed from the session's cloud clone as the owner: <code>touchstone-learn</code> <code>m/L2</code> 497cc91, <code>preview</code> fast-forwarded. 2.10 routes since L2 batch 10, so the draft links it; 3.x stay plain.</p>
+<ol class="plan">
+<li><b>The hook.</b> Why does this page exist, in two or three sentences, before any mechanics? 2.10 ended: everything so far assumes one σ, the market does not. What is the reader about to find out, and why should a developer care that the model is wrong in a known way?</li>
+<li><b>What this page shows, and how.</b> One bold run-in line per section A–F, as 2.7–2.10 have them.</li>
+<li><b>The experiment, in brief.</b> What ran: the solver, the mixture market, the three hedged books, the fee; seed, checks, both machines.</li>
+<li><b>One price, one vol.</b> Why exactly one σ (vega), which prices have one at all (the bounds, 4.877 and 100), how Newton finds it in four steps, and what happens where vega has vanished (the golden file's 700 rows). Where does the general theory live (3.4)?</li>
+<li><b>The smile.</b> Describe the mixture market in your words, read the smile table: the minimum at the forward and its level 0.398, the wings 0.477 and 0.452, the symmetry, the ATM vol 0.399 against the mean 0.40 and the rms 0.447, and why (your P2 reason). Then the skewed mixture and what it adds.</li>
+<li><b>Lognormal returns vs reality.</b> The kurtosis 1.8 against 0; 2.6's battery passing on what it matched and failing on the fourth moment; the daily returns; each state Gaussian. What does "the fat tails are the mixing" mean for a developer testing a simulator?</li>
+<li><b>The hedge under the wrong model.</b> Read the spread table: the control's 1/√N, the floor at 8.08, the split into 7.54 and 2.83, the oracle hedge. What is a trader actually exposed to when the vol is not known?</li>
+<li><b>Transaction costs.</b> The √N law in your words (your P4), the trade-off table, the N where the sum is smallest, and why "hedge continuously" is not advice anyone can take.</li>
+<li><b>Vol is the unit of price, and the bridge.</b> The stock at 110: which quote is stale and why (your P5); what quoting in vol divides out; then the bridge that ends Part 2: what Part 3 builds (3.1 the closed form in code, 3.2 Monte Carlo, 3.3 finite differences, 3.4 implied vol and the surface, 3.5 Greeks without a formula) and what v2 revisits (Leland, jumps, stochastic vol, vanna and volga).</li>
+</ol>
+</section>
+</div>
+
+<script>
+const DATA = {"strikes":[60.0,61.0,62.0,63.0,64.0,65.0,66.0,67.0,68.0,69.0,70.0,71.0,72.0,73.0,74.0,75.0,76.0,77.0,78.0,79.0,80.0,81.0,82.0,83.0,84.0,85.0,86.0,87.0,88.0,89.0,90.0,91.0,92.0,93.0,94.0,95.0,96.0,97.0,98.0,99.0,100.0,101.0,102.0,103.0,104.0,105.0,106.0,107.0,108.0,109.0,110.0,111.0,112.0,113.0,114.0,115.0,116.0,117.0,118.0,119.0,120.0,121.0,122.0,123.0,124.0,125.0,126.0,127.0,128.0,129.0,130.0,131.0,132.0,133.0,134.0,135.0,136.0,137.0,138.0,139.0,140.0,141.0,142.0,143.0,144.0,145.0,146.0,147.0,148.0,149.0,150.0,151.0,152.0,153.0,154.0,155.0,156.0,157.0,158.0,159.0,160.0],"iv_sym":[0.476832,0.474161,0.471474,0.468777,0.466071,0.463361,0.460651,0.457945,0.455248,0.452564,0.449898,0.447255,0.444641,0.44206,0.439518,0.43702,0.434571,0.432175,0.429838,0.427563,0.425356,0.423219,0.421158,0.419174,0.417272,0.415453,0.413721,0.412077,0.410522,0.409058,0.407687,0.406408,0.405222,0.40413,0.403131,0.402224,0.401409,0.400685,0.400051,0.399505,0.399047,0.398675,0.398386,0.39818,0.398054,0.398006,0.398034,0.398136,0.398309,0.398552,0.398862,0.399236,0.399672,0.400169,0.400722,0.401331,0.401992,0.402703,0.403461,0.404265,0.405112,0.405999,0.406924,0.407885,0.40888,0.409905,0.41096,0.412042,0.413149,0.414279,0.41543,0.4166,0.417787,0.418989,0.420205,0.421433,0.422671,0.423918,0.425172,0.426432,0.427696,0.428964,0.430233,0.431503,0.432773,0.434042,0.435308,0.436571,0.43783,0.439084,0.440332,0.441574,0.442809,0.444036,0.445254,0.446464,0.447665,0.448856,0.450037,0.451208,0.452368],"iv_skew":[0.44838,0.445548,0.442769,0.440045,0.437377,0.434767,0.432217,0.429729,0.427303,0.424939,0.422639,0.420403,0.41823,0.416121,0.414076,0.412093,0.410173,0.408314,0.406516,0.404778,0.403098,0.401477,0.399911,0.398402,0.396946,0.395543,0.394191,0.392889,0.391636,0.390431,0.389272,0.388157,0.387086,0.386057,0.38507,0.384121,0.383212,0.38234,0.381504,0.380703,0.379937,0.379203,0.378501,0.377831,0.37719,0.376579,0.375996,0.37544,0.374911,0.374408,0.37393,0.373477,0.373047,0.37264,0.372256,0.371893,0.371551,0.37123,0.370929,0.370648,0.370385,0.370141,0.369916,0.369707,0.369516,0.369342,0.369184,0.369043,0.368916,0.368806,0.36871,0.368628,0.368561,0.368508,0.368469,0.368443,0.368431,0.368431,0.368444,0.36847,0.368507,0.368557,0.368618,0.368691,0.368775,0.36887,0.368976,0.369093,0.369221,0.369358,0.369506,0.369664,0.369832,0.370009,0.370196,0.370392,0.370598,0.370812,0.371036,0.371267,0.371508],"F":105.1271,"rms":0.447214,"Ns":[4,16,64,256,1024,4096],"sd_ctrl":[6.0483,3.169,1.6449,0.8354,0.4161,0.2064],"sd_bs":[10.5148,8.7117,8.2087,8.1356,8.0914,8.0797],"sd_orc":[10.1379,8.2494,7.7051,7.6015,7.5523,7.5421],"win_bs":[7.5384,4.4042,3.3491,2.9637,2.8629,2.8319],"win_orc":[7.0116,3.4858,1.8369,0.9275,0.4674,0.2295],"between":7.5363,"cost_ctrl":[0.1731,0.2415,0.366,0.6101,1.0953,2.0654],"rebal_ctrl":[0.048,0.1161,0.2405,0.4848,0.97,1.94],"net_sd_ctrl":[6.0323,3.1569,1.6358,0.8458,0.5526,0.7614],"rv_edges":[0.1,0.12000000000000001,0.14,0.16,0.18,0.2,0.22,0.24000000000000002,0.26,0.28,0.30000000000000004,0.32,0.33999999999999997,0.36,0.38,0.4,0.42000000000000004,0.44000000000000006,0.45999999999999996,0.48,0.5,0.52,0.54,0.56,0.58,0.6,0.62,0.64,0.66,0.6799999999999999,0.7,0.72,0.74,0.76,0.78,0.8],"rv_counts":[0,0,0,121,4904,4769,134,0,0,0,0,0,0,0,0,0,0,0,0,1,8,105,593,1716,2835,2672,1526,516,91,9,0,0,0,0,0],"trace":[[1,0.2,7.572367878031116],[2,0.4018004711,0.0681296393085304],[3,0.3999999002,3.7776384048e-06],[4,0.4,7.1e-15]]};
+</script>
+<script>
+(function () {
+  const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  function setup(id) {
+    const c = document.getElementById(id); const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const cssW = c.clientWidth || 1200; const ratio = +c.getAttribute('height') / +c.getAttribute('width');
+    const cssH = Math.round(cssW * ratio);
+    c.width = Math.round(cssW * dpr); c.height = Math.round(cssH * dpr); c.style.height = cssH + 'px';
+    const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { c, g, W: cssW, H: cssH };
+  }
+  function frame(g, W, H, xs, ys, opts) {
+    const pad = Object.assign({ l: 58, r: 18, t: 16, b: 38 }, opts.pad || {});
+    const fx = opts.xlog ? (v) => Math.log10(v) : (v) => v, fy = opts.ylog ? (v) => Math.log10(v) : (v) => v;
+    const x = (v) => pad.l + (fx(v) - fx(xs[0])) / (fx(xs[1]) - fx(xs[0])) * (W - pad.l - pad.r);
+    const y = (v) => H - pad.b - (fy(v) - fy(ys[0])) / (fy(ys[1]) - fy(ys[0])) * (H - pad.t - pad.b);
+    g.font = '12px "IBM Plex Mono", monospace'; g.lineWidth = 1;
+    (opts.yticks || []).forEach((v) => { g.strokeStyle = css('--grid'); g.beginPath(); g.moveTo(pad.l, y(v)); g.lineTo(W - pad.r, y(v)); g.stroke(); g.textAlign = 'right'; g.textBaseline = 'middle'; g.fillStyle = css('--muted'); g.fillText(opts.yfmt ? opts.yfmt(v) : v, pad.l - 8, y(v)); });
+    (opts.xticks || []).forEach((v) => { g.textAlign = 'center'; g.textBaseline = 'top'; g.fillStyle = css('--muted'); g.fillText(opts.xfmt ? opts.xfmt(v) : v, x(v), H - pad.b + 8); });
+    g.strokeStyle = css('--rule'); g.beginPath(); g.moveTo(pad.l, y(ys[0])); g.lineTo(W - pad.r, y(ys[0])); g.stroke();
+    if (opts.xlabel) { g.textAlign = 'right'; g.textBaseline = 'bottom'; g.fillStyle = css('--muted'); g.fillText(opts.xlabel, W - pad.r, H - 4); }
+    if (opts.ylabel) { g.textAlign = 'left'; g.textBaseline = 'top'; g.fillStyle = css('--muted'); g.fillText(opts.ylabel, pad.l + 6, pad.t); }
+    return { x, y, pad };
+  }
+  function line(g, pts, color, width, dash) { g.save(); g.strokeStyle = color; g.lineWidth = width || 2; g.setLineDash(dash || []); g.lineJoin = 'round'; g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.stroke(); g.restore(); }
+  function dots(g, pts, color, r) { g.save(); g.fillStyle = color; pts.forEach((p) => { g.beginPath(); g.arc(p[0], p[1], r || 4, 0, 6.3); g.fill(); }); g.restore(); }
+  function label(g, text, x, y, color, align) { g.save(); g.font = '12px "IBM Plex Sans", sans-serif'; g.fillStyle = color; g.textAlign = align || 'left'; g.textBaseline = 'middle'; g.fillText(text, x, y); g.restore(); }
+
+  function fig1() {
+    const { g, W, H } = setup('c1');
+    const f = frame(g, W, H, [60, 160], [0.34, 0.50], { yticks: [0.34, 0.36, 0.38, 0.40, 0.42, 0.44, 0.46, 0.48, 0.50], yfmt: (v) => v.toFixed(2), xticks: [60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160], xlabel: 'K', ylabel: 'implied vol', pad: { l: 64 } });
+    line(g, [[f.x(60), f.y(DATA.rms)], [f.x(160), f.y(DATA.rms)]], css('--muted'), 1.2, [5, 4]);
+    line(g, [[f.x(60), f.y(0.40)], [f.x(160), f.y(0.40)]], css('--muted'), 1.2, [5, 4]);
+    line(g, [[f.x(DATA.F), f.y(0.34)], [f.x(DATA.F), f.y(0.50)]], css('--s1'), 1.2, [3, 4]);
+    line(g, DATA.strikes.map((k, i) => [f.x(k), f.y(DATA.iv_sym[i])]), css('--s1'), 2.4);
+    line(g, DATA.strikes.map((k, i) => [f.x(k), f.y(DATA.iv_skew[i])]), css('--s2'), 2.2);
+    label(g, 'rms vol 0.447', f.x(128), f.y(DATA.rms) + 11, css('--muted'), 'left');
+    label(g, 'mean vol 0.40', f.x(128), f.y(0.40) + 11, css('--muted'), 'left');
+    label(g, 'F = 105.13: the minimum, 0.398', f.x(DATA.F) - 6, f.y(0.355), css('--s1'), 'right');
+    label(g, 'crosses 0.447 at K = 71.0 and 155.6', f.x(110), f.y(0.463), css('--s1'), 'left');
+    label(g, 'skew: minimum 0.369 at K = 131', f.x(131), f.y(0.3605), css('--s2'), 'center');
+    label(g, '0.477 at K = 60', f.x(63), f.y(0.462), css('--s1'), 'left');
+    label(g, '0.452 at K = 160', f.x(159), f.y(0.4524) - 12, css('--s1'), 'right');
+  }
+
+  function fig2() {
+    const { g, W, H } = setup('c2');
+    const edges = DATA.rv_edges, counts = DATA.rv_counts;
+    const ymax = 5500;
+    const f = frame(g, W, H, [0.1, 0.8], [0, ymax], { yticks: [0, 1000, 2000, 3000, 4000, 5000], xticks: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8], xfmt: (v) => v.toFixed(1), xlabel: 'realised vol of the path', ylabel: 'paths', pad: { l: 64 } });
+    g.fillStyle = css('--s1');
+    counts.forEach((c, i) => { const x0 = f.x(edges[i]) + 1, x1 = f.x(edges[i + 1]) - 1; g.fillRect(x0, f.y(c), x1 - x0, f.y(0) - f.y(c)); });
+    line(g, [[f.x(DATA.rms), f.y(0)], [f.x(DATA.rms), f.y(ymax)]], css('--muted'), 1.2, [5, 4]);
+    label(g, 'rms 0.447: no path is here', f.x(DATA.rms) + 6, f.y(4300), css('--muted'), 'left');
+    label(g, '9,928 paths at 0.200 ± 0.009', f.x(0.215), f.y(5200), css('--fg-2'), 'left');
+    label(g, '10,072 paths at 0.599 ± 0.026', f.x(0.62), f.y(3200), css('--fg-2'), 'left');
+  }
+
+  function fig3() {
+    const { g, W, H } = setup('c3');
+    const f = frame(g, W, H, [3, 6000], [0.1, 20], { xlog: true, ylog: true, pad: { l: 64 }, yticks: [0.1, 0.2, 0.5, 1, 2, 5, 10, 20], yfmt: (v) => v, xticks: [4, 16, 64, 256, 1024, 4096], xfmt: (v) => v, xlabel: 'N rebalances', ylabel: 'sd of the hedged P&L' });
+    // 13.2/sqrt N guide and the between-state floor
+    line(g, [[f.x(3), f.y(13.21 / Math.sqrt(3))], [f.x(6000), f.y(13.21 / Math.sqrt(6000))]], css('--muted'), 1.2, [5, 4]);
+    line(g, [[f.x(3), f.y(DATA.between)], [f.x(6000), f.y(DATA.between)]], css('--muted'), 1.2, [5, 4]);
+    const P = (arr) => DATA.Ns.map((n, i) => [f.x(n), f.y(arr[i])]);
+    line(g, P(DATA.sd_ctrl), css('--s1'), 2.4); dots(g, P(DATA.sd_ctrl), css('--s1'));
+    line(g, P(DATA.sd_bs), css('--s2'), 2.4); dots(g, P(DATA.sd_bs), css('--s2'));
+    line(g, P(DATA.win_bs), css('--s2'), 1.6, [6, 4]); dots(g, P(DATA.win_bs), css('--s2'), 3);
+    line(g, P(DATA.sd_orc), css('--s3'), 2.4); dots(g, P(DATA.sd_orc), css('--s3'));
+    line(g, P(DATA.win_orc), css('--s3'), 1.6, [6, 4]); dots(g, P(DATA.win_orc), css('--s3'), 3);
+    label(g, 'Black–Scholes hedge: 8.08 and not falling', f.x(4096), f.y(11.5), css('--s2'), 'right');
+    label(g, 'oracle hedge → 7.54, the between-state sd', f.x(4096), f.y(5.6), css('--s3'), 'right');
+    label(g, 'within-state, BS hedge: 2.83', f.x(4096), f.y(3.6), css('--s2'), 'right');
+    label(g, 'control: 13.2/√N', f.x(40), f.y(0.55), css('--s1'), 'left');
+    label(g, 'within-state, oracle hedge: also 1/√N', f.x(500), f.y(1.3), css('--s3'), 'left');
+  }
+
+  function fig4() {
+    const { g, W, H } = setup('c4');
+    const f = frame(g, W, H, [3, 6000], [0, 7], { xlog: true, pad: { l: 64 }, yticks: [0, 1, 2, 3, 4, 5, 6, 7], xticks: [4, 16, 64, 256, 1024, 4096], xfmt: (v) => v, xlabel: 'N rebalances', ylabel: 'currency units' });
+    const P = (arr) => DATA.Ns.map((n, i) => [f.x(n), f.y(arr[i])]);
+    const sum = DATA.Ns.map((n, i) => DATA.sd_ctrl[i] + DATA.cost_ctrl[i]);
+    line(g, P(DATA.sd_ctrl), css('--s1'), 2.2); dots(g, P(DATA.sd_ctrl), css('--s1'));
+    line(g, P(DATA.cost_ctrl), css('--s2'), 2.2); dots(g, P(DATA.cost_ctrl), css('--s2'));
+    line(g, P(sum), css('--s4'), 2.2); dots(g, P(sum), css('--s4'));
+    line(g, P(DATA.net_sd_ctrl), css('--s3'), 1.6, [6, 4]); dots(g, P(DATA.net_sd_ctrl), css('--s3'), 3);
+    label(g, 'spread + cost: smallest at N = 256, back to 2.27 at N = 4096', f.x(4096), f.y(3.2), css('--s4'), 'right');
+    label(g, 'min 1.445', f.x(256), f.y(1.445) + 15, css('--s4'), 'center');
+    label(g, 'cost at 10 bp: ×2 per fourfold N', f.x(4.5), f.y(0.75), css('--s2'), 'left');
+    label(g, 'spread 0.21', f.x(4096) - 12, f.y(0.206), css('--s1'), 'right');
+    label(g, 'net sd turns up: 0.55 → 0.76', f.x(4096) - 14, f.y(0.45), css('--s3'), 'right');
+  }
+
+  function draw() { fig1(); fig2(); fig3(); fig4(); }
+  draw();
+  let t; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(draw, 120); });
+  const mq = window.matchMedia('(prefers-color-scheme: dark)'); if (mq.addEventListener) mq.addEventListener('change', draw);
+  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+})();
+</script>

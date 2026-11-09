@@ -231,7 +231,7 @@ review.
 - ☑ S8 · 2.8 Risk-neutral pricing — evidence: `docs/evidence/S8/summary.md`
 - ☑ S9 · 2.9 The Black–Scholes formula — evidence: `docs/evidence/S9/summary.md`
 - ☑ S10 · 2.10 Greeks — evidence: `docs/evidence/S10/summary.md`
-- ☐ S11 · 2.11 Where it breaks
+- ☑ S11 · 2.11 Where it breaks — evidence: `docs/evidence/S11/summary.md`
 
 ## Later (v2 — enters only by amendment, constitution I21)
 
