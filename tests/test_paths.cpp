@@ -9,7 +9,9 @@
 // count, and the Monte Carlo's per-path functions are this generator read at
 // the end of a path.
 
+#include "errors.hpp"
 #include "json_file.hpp"
+#include "rng_fixture.hpp"
 
 #include <touchstone/monte_carlo.hpp>
 #include <touchstone/paths.hpp>
@@ -42,11 +44,8 @@ using touchstone::Xoshiro128SS;
 
 constexpr const char* fixture_schema = "touchstone/golden/paths@1";
 
-/// `|value - reference| / max(1, |reference|)`: the fixture's own rule.
-[[nodiscard]] double scaled_difference(double value, double reference) noexcept
-{
-    return std::abs(value - reference) / std::max(1.0, std::abs(reference));
-}
+/// The fixture's own rule is SCHEMA.md's: `|value - reference| / max(1, |reference|)`.
+using touchstone::testing::scaled_error;
 
 [[nodiscard]] Scheme read_scheme(const nlohmann::json& row)
 {
@@ -74,7 +73,7 @@ struct Agreement {
     {
         REQUIRE(got.size() == want.size());
         for (std::size_t k = 0; k < want.size(); ++k) {
-            const double difference = scaled_difference(got[k], want[k]);
+            const double difference = scaled_error(got[k], want[k]);
             if (difference > worst) {
                 worst = difference;
                 worst_at = what + " at step " + std::to_string(k);
@@ -207,11 +206,7 @@ TEST_SUITE("paths")
             constexpr std::size_t steps = 64;
             std::vector<double> euler(steps + 1, 0.0);
             touchstone::gbm_path(grid, dynamics, Scheme::EulerMaruyama, euler);
-            Xoshiro128SS same(seed);
-            std::vector<double> normals(steps, 0.0);
-            for (double& z : normals) {
-                z = same.next_normal();
-            }
+            const std::vector<double> normals = touchstone::testing::normals_from(seed, steps);
             const double terminal = touchstone::terminal_spot_euler(market, expiry, normals);
             CHECK(std::abs(euler[steps] - terminal) / terminal <= 1e-14);
         }

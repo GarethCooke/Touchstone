@@ -83,6 +83,8 @@ private:
     struct Stepping {
         double theta{};
         double dt{};
+        double lower_weight{};  ///< `theta dt a`: how much the low boundary value enters the system.
+        double upper_weight{};  ///< `theta dt c`: the same for the high boundary.
         std::vector<double> sub;
         std::vector<double> diag;
         std::vector<double> sup;

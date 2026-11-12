@@ -56,7 +56,7 @@ using touchstone::testing::GoldenCase;
 
 [[nodiscard]] QuotedMarket quoted(const GoldenCase& row)
 {
-    return QuotedMarket{row.market.spot, row.market.rate, row.market.dividend_yield};
+    return QuotedMarket::of(row.market);
 }
 
 #ifndef TOUCHSTONE_EXPERIMENT_2_11_PATH
@@ -107,12 +107,9 @@ struct BaseCase {
 
 /// The experiment's closed form evaluates N(x) by a different polynomial than
 /// `std::erfc`, so a price there and a price here agree to the last few digits
-/// rather than to the bit. One part in 1e12 -- the solver's own stopping rule --
-/// is the measure of "the same iterate".
-[[nodiscard]] double scaled(double a, double b) noexcept
-{
-    return std::abs(a - b) / std::max(1.0, std::abs(b));
-}
+/// rather than to the bit. One part in 1e12 of `scaled_error` -- the solver's own
+/// stopping rule -- is the measure of "the same iterate".
+using touchstone::testing::scaled_error;
 
 }  // namespace
 
@@ -198,8 +195,7 @@ TEST_SUITE("implied-vol")
         // anything, and required to be inside 1e-8.
         const auto& file = touchstone::testing::golden_file();
 
-        double worst = 0.0;
-        std::string worst_at;
+        touchstone::testing::Largest<GoldenCase> worst;
         std::size_t solved = 0;
         std::size_t refused = 0;
         std::size_t unconverged = 0;
@@ -236,10 +232,7 @@ TEST_SUITE("implied-vol")
                 const double repriced = touchstone::price(row.option, market.at(found.vol));
                 const double error =
                     touchstone::testing::scaled_error(repriced, row.reference.price);
-                if (error > worst) {
-                    worst = error;
-                    worst_at = touchstone::testing::describe(row);
-                }
+                worst.observe(error, row);
             }
         };
         walk(file.cases);
@@ -249,18 +242,18 @@ TEST_SUITE("implied-vol")
         report << "price round trip over " << solved << " rows (" << refused
                << " refused as below the zero-volatility price)"
                << "\n    worst scaled |repriced - golden|  " << std::scientific
-               << std::setprecision(3) << worst << "   (criterion 1e-8)"
+               << std::setprecision(3) << worst.value() << "   (criterion 1e-8)"
                << "\n    Newton " << by_newton << ", Brent " << by_brent << ", exact at zero "
                << at_zero << ", not converged " << unconverged << "\n    worst iteration count "
-               << worst_iterations << "\n    worst at " << worst_at;
+               << worst_iterations << "\n    worst at " << worst.at();
         MESSAGE(report.str());
 
         CHECK(solved > 7000u);
         CHECK(unconverged == 0u);
-        CHECK_MESSAGE(worst <= 1e-8, worst_at);
+        CHECK_MESSAGE(worst.value() <= 1e-8, worst.at());
         // Tighter than the criterion, so a regression that stayed inside 1e-8
         // still fails here rather than quietly consuming the margin.
-        CHECK(worst <= 1e-11);
+        CHECK(worst.value() <= 1e-11);
     }
 
     TEST_CASE("the volatility round trip, where the price identifies a volatility")
@@ -273,10 +266,8 @@ TEST_SUITE("implied-vol")
         const auto& file = touchstone::testing::golden_file();
         const ImpliedVolSettings settings{};
 
-        double worst_absolute = 0.0;
-        double worst_against_bound = 0.0;
-        std::string worst_at;
-        std::string bound_worst_at;
+        touchstone::testing::Largest<GoldenCase> worst_absolute;
+        touchstone::testing::Largest<GoldenCase> worst_against_bound;
         std::size_t identifiable = 0;
         std::size_t dead = 0;
         double worst_identifiable = 0.0;
@@ -291,10 +282,7 @@ TEST_SUITE("implied-vol")
             }
 
             const double error = std::abs(found.vol - row.market.vol);
-            if (error > worst_absolute) {
-                worst_absolute = error;
-                worst_at = touchstone::testing::describe(row);
-            }
+            worst_absolute.observe(error, row);
 
             // What the price affords: the tolerance the solver stopped at, divided
             // by the slope available between where it stopped and where it should
@@ -322,10 +310,7 @@ TEST_SUITE("implied-vol")
             const double bound = std::max(affordable, 8.0 * std::numeric_limits<double>::epsilon()
                                                           * std::max(row.market.vol, 1.0));
             const double against = error / bound;
-            if (against > worst_against_bound) {
-                worst_against_bound = against;
-                bound_worst_at = touchstone::testing::describe(row);
-            }
+            worst_against_bound.observe(against, row);
 
             if (found.vega > 1e-6) {
                 ++identifiable;
@@ -340,9 +325,9 @@ TEST_SUITE("implied-vol")
                << "\n    " << identifiable << " with vega above 1e-6: worst |sigma - sigma| "
                << std::scientific << std::setprecision(3) << worst_identifiable << "\n    " << dead
                << " with vega at or below 1e-6, where the price carries no volatility"
-               << "\n    worst over all rows               " << worst_absolute << "\n        at "
-               << worst_at << "\n    worst as a multiple of what the price affords  " << std::fixed
-               << std::setprecision(3) << worst_against_bound << "\n        at " << bound_worst_at;
+               << "\n    worst over all rows               " << worst_absolute.value() << "\n        at "
+               << worst_absolute.at() << "\n    worst as a multiple of what the price affords  " << std::fixed
+               << std::setprecision(3) << worst_against_bound.value() << "\n        at " << worst_against_bound.at();
         MESSAGE(report.str());
 
         CHECK(identifiable > 4000u);
@@ -355,7 +340,7 @@ TEST_SUITE("implied-vol")
         // out at 1.00, which is the solver sitting exactly on the resolution its
         // input affords — the bound is tight, and a factor of two is the room the
         // linearisation needs rather than room the solver is using.
-        CHECK_MESSAGE(worst_against_bound <= 2.0, bound_worst_at);
+        CHECK_MESSAGE(worst_against_bound.value() <= 2.0, worst_against_bound.at());
         // And where the volatility is identifiable at all, it comes back.
         CHECK(worst_identifiable < 1e-6);
     }
@@ -376,8 +361,7 @@ TEST_SUITE("implied-vol")
 
         std::size_t rows = 0;
         std::size_t fell_back = 0;
-        double worst = 0.0;
-        std::string worst_at;
+        touchstone::testing::Largest<GoldenCase> worst;
 
         for (std::size_t i = 0; i < file.cases.size(); i += 7) {
             const GoldenCase& row = file.cases[i];
@@ -394,20 +378,17 @@ TEST_SUITE("implied-vol")
             }
             const double repriced = touchstone::price(row.option, market.at(found.vol));
             const double error = touchstone::testing::scaled_error(repriced, row.reference.price);
-            if (error > worst) {
-                worst = error;
-                worst_at = touchstone::testing::describe(row);
-            }
+            worst.observe(error, row);
         }
 
         MESSAGE("with one Newton step allowed: " << fell_back << " of " << rows
                                                  << " rows finished in Brent; worst scaled reprice "
-                                                 << std::scientific << std::setprecision(3) << worst
-                                                 << "\n    at " << worst_at);
+                                                 << std::scientific << std::setprecision(3) << worst.value()
+                                                 << "\n    at " << worst.at());
         CHECK(fell_back > rows * 9 / 10);
         // Brent alone, on one iteration of Newton's budget, still round-trips
         // inside the criterion.
-        CHECK(worst <= 1e-8);
+        CHECK(worst.value() <= 1e-8);
     }
 
     TEST_CASE("prices no volatility produces are refused")
@@ -530,8 +511,8 @@ TEST_SUITE("implied-vol-safeguarded")
             CAPTURE(i);
             CHECK(ours.iteration == step.at("iteration").get<std::size_t>());
             worst = std::max({worst, std::abs(ours.vol - step.at("sigma").get<double>()),
-                              scaled(ours.price, step.at("price").get<double>()),
-                              scaled(ours.price_error, step.at("price_error").get<double>())});
+                              scaled_error(ours.price, step.at("price").get<double>()),
+                              scaled_error(ours.price_error, step.at("price_error").get<double>())});
             table << "\n    " << ours.iteration << "    " << std::setprecision(17)
                   << std::setw(20) << ours.vol << "  " << std::setw(20)
                   << step.at("sigma").get<double>() << "  " << std::scientific
@@ -585,7 +566,7 @@ TEST_SUITE("implied-vol-safeguarded")
                     break;
                 default:
                     CHECK(std::abs(result.vol - committed.at("sigma").get<double>()) <= 1e-12);
-                    CHECK(scaled(result.price_residual, committed.at("price_error").get<double>())
+                    CHECK(scaled_error(result.price_residual, committed.at("price_error").get<double>())
                           <= 1e-12);
                     break;
             }
@@ -601,8 +582,8 @@ TEST_SUITE("implied-vol-safeguarded")
         // has an answer here.
         const auto& file = touchstone::testing::golden_file();
 
-        double worst = 0.0;
-        std::string worst_at;
+        touchstone::testing::Largest<GoldenCase> worst;
+        std::string worst_status;
         std::size_t rows = 0;
         std::size_t not_converged = 0;
         std::size_t bisected = 0;
@@ -621,10 +602,8 @@ TEST_SUITE("implied-vol-safeguarded")
                 const double repriced = touchstone::price(row.option, market.at(found.vol));
                 const double error =
                     touchstone::testing::scaled_error(repriced, row.reference.price);
-                if (error > worst) {
-                    worst = error;
-                    worst_at = touchstone::testing::describe(row) + ", status "
-                               + touchstone::to_string(found.status);
+                if (worst.observe(error, row)) {
+                    worst_status = touchstone::to_string(found.status);
                 }
             }
         };
@@ -633,13 +612,13 @@ TEST_SUITE("implied-vol-safeguarded")
 
         MESSAGE("safeguarded price round trip over "
                 << rows << " rows\n    worst scaled |repriced - golden|  " << std::scientific
-                << std::setprecision(3) << worst << "   (criterion 1e-8)\n    not converged "
+                << std::setprecision(3) << worst.value() << "   (criterion 1e-8)\n    not converged "
                 << not_converged << ", rows that bisected " << bisected
                 << ", worst iteration count " << worst_iterations << "\n    worst at "
-                << worst_at);
+                << worst.at() << ", status " << worst_status);
 
         CHECK(not_converged == 0u);
-        CHECK_MESSAGE(worst <= 1e-8, worst_at);
+        CHECK_MESSAGE(worst.value() <= 1e-8, worst.at());
     }
 
     TEST_CASE("every status has the experiment's word")

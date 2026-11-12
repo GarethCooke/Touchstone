@@ -31,6 +31,12 @@ struct QuotedMarket {
     double rate{};
     double dividend_yield{};
 
+    /// The market, quoted: everything but its volatility.
+    [[nodiscard]] static QuotedMarket of(const BlackScholesMarket& market) noexcept
+    {
+        return QuotedMarket{market.spot, market.rate, market.dividend_yield};
+    }
+
     [[nodiscard]] BlackScholesMarket at(double vol) const noexcept
     {
         return BlackScholesMarket{spot, vol, rate, dividend_yield};
@@ -120,12 +126,18 @@ public:
     /// that does not involve the volatility.
     ClosedFormQuote(const EuropeanVanilla& option, const QuotedMarket& market);
 
-    /// The closed form at one volatility. Throws `std::invalid_argument` if the
-    /// volatility is outside the domain: negative, not finite, or large enough
-    /// that `½σ²T` or `σ√T` overflows.
+    /// Throws `std::invalid_argument` for the volatility's half of the domain:
+    /// a volatility that is negative, not finite, or large enough that `½σ²T`
+    /// or `σ√T` overflows.
+    void require_valid(double vol) const;
+
+    /// The closed form at one volatility, which `require_valid` checks first.
     [[nodiscard]] ClosedForm at(double vol) const;
 
     [[nodiscard]] OptionType type() const noexcept { return type_; }
+
+    /// `e^{-rT}`.
+    [[nodiscard]] double discount_factor() const noexcept { return strike_discount_; }
 
     /// `S e^{-qT}`.
     [[nodiscard]] double discounted_spot() const noexcept { return discounted_spot_; }
@@ -145,12 +157,13 @@ private:
     friend class ClosedForm;
 
     OptionType type_{};
-    double sign_{};
+    double sign_{};             ///< w: +1 for a call, -1 for a put.
     double spot_{};
     double rate_{};
     double dividend_yield_{};
     double expiry_{};
     double sqrt_expiry_{};
+    double strike_discount_{};  ///< e^{-rT}.
     double spot_discount_{};    ///< e^{-qT}.
     double discounted_spot_{};
     double discounted_strike_{};
@@ -176,29 +189,27 @@ public:
     /// All seven.
     [[nodiscard]] PriceAndGreeks price_and_greeks() const noexcept;
 
+    /// The volatility-free half it was built on.
+    [[nodiscard]] const ClosedFormQuote& quote() const noexcept { return quote_; }
+
 private:
     friend class ClosedFormQuote;
 
     ClosedForm(const ClosedFormQuote& quote, double vol);
 
-    // Everything the seven outputs are built from. Two of them are unbounded
-    // somewhere on the closed domain, and both singularities live here rather
-    // than in the formulas that read them: `gamma_` divides by S and by the
-    // total volatility, and `decay_` — theta's diffusion term — divides by
-    // sqrt(T). Keeping the limits in the constructor means the seven accessors
-    // are the formulas of `golden/SCHEMA.md` verbatim, with no branch in sight.
-    double sign_{};               ///< w: +1 for a call, -1 for a put.
-    double expiry_{};             ///< T.
-    double rate_{};               ///< r.
-    double dividend_yield_{};     ///< q.
-    double spot_discount_{};      ///< e^{-qT}.
-    double discounted_spot_{};    ///< S e^{-qT}.
-    double discounted_strike_{};  ///< K e^{-rT}.
-    double n1_{};                 ///< N(w d1).
-    double n2_{};                 ///< N(w d2).
-    double gamma_{};              ///< d2V/dS2. Type-independent.
-    double vega_{};               ///< dV/dsigma. Type-independent.
-    double decay_{};              ///< -S e^{-qT} phi(d1) sigma / (2 sqrt(T)). Type-independent.
+    ClosedFormQuote quote_;
+
+    // The volatility's half. Two of the seven outputs are unbounded somewhere on
+    // the closed domain, and both singularities live here rather than in the
+    // formulas that read them: `gamma_` divides by S and by the total
+    // volatility, and `decay_` — theta's diffusion term — divides by sqrt(T).
+    // Keeping the limits in the constructor means the seven accessors are the
+    // formulas of `golden/SCHEMA.md` verbatim, with no branch in sight.
+    double n1_{};     ///< N(w d1).
+    double n2_{};     ///< N(w d2).
+    double gamma_{};  ///< d2V/dS2. Type-independent.
+    double vega_{};   ///< dV/dsigma. Type-independent.
+    double decay_{};  ///< -S e^{-qT} phi(d1) sigma / (2 sqrt(T)). Type-independent.
 };
 
 }  // namespace touchstone

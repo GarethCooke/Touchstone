@@ -1,0 +1,102 @@
+T3a · build evidence
+====================
+
+Branch m/T3a. Base 6b8a60a (main: "Record amendment A6; add T3a and the design rulings").
+Every local build below was taken on one machine; CI is the second, and the authoritative one
+for the two compilers the project claims.
+
+1. The machine and the toolchains
+---------------------------------
+
+  Machine     AMD Ryzen 7 3800X 8-Core, Windows 11 Pro 10.0.26200
+  g++         15.2.0 (x86_64-posix-seh-rev0, MinGW-Builds), libstdc++ and the MinGW runtime
+  clang++     22.1.7, target x86_64-pc-windows-msvc, the MSVC STL and the UCRT
+  CMake       3.31.6 (Visual Studio 2022's), Ninja 1.12.1
+  Python      3.12.2 (Windows); 3.8.10 on WSL Ubuntu 20.04, glibc 2.31 (the fixture's bytes)
+  Node        v24.13.1 (the cross-check against the site's paths.ts only)
+
+  Both local compilers are newer than CI's (g++ 13 and clang 18 on ubuntu-24.04), and each
+  raises a warning in the *tests* that CI's does not — see sections 2 and 3. Neither raises
+  one in the library.
+
+  Configure and build, as CI does:
+
+    cmake -S . -B build -G Ninja -DCMAKE_CXX_COMPILER=<g++|clang++> \
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTOUCHSTONE_WARNINGS_AS_ERRORS=ON
+    cmake --build build
+
+2. The baseline, main at 6b8a60a
+--------------------------------
+
+  Built before any change, so that the refactor could be diffed against the suite's own
+  reported numbers rather than only against pass/fail (tests.txt section 2).
+
+  g++ 15.2 with -Werror: one error, in a test, a false positive.
+      tests/test_tridiagonal.cpp:155:26: error: potential null pointer dereference
+      [-Werror=null-dereference]           bands.sub[0] = 0.0;
+    The vector there has at least 31 elements; g++ 15 cannot see it. g++ 13 in CI does not
+    warn. The baseline was therefore built with TOUCHSTONE_WARNINGS_AS_ERRORS=OFF; the
+    library compiled warning-free. On the branch the two writes use .at(), which makes the
+    size visible to the compiler and changes nothing else.
+
+  clang 22 with -Werror: errors in the tests only, two kinds, neither in CI's clang 18.
+      '__COUNTER__' is a C2y extension [-Wc2y-extensions] — doctest's TEST_CASE and CHECK
+        macros, expanded in each test file under -Wpedantic.
+      'getenv' is deprecated [-Wdeprecated-declarations] — the MSVC CRT's, three readers.
+    Baseline built with TOUCHSTONE_WARNINGS_AS_ERRORS=OFF; library warning-free.
+
+  Both baselines: 93 test cases, 4,135,768 assertions, all passed — the counts T3's pack
+  reports.
+
+3. The branch
+-------------
+
+  g++ 15.2, a clean build directory, TOUCHSTONE_WARNINGS_AS_ERRORS=ON:
+      46 of 46 targets built, 0 warnings.
+      (the library, the 15 header self-containment units, the test executable)
+
+  clang 22, TOUCHSTONE_WARNINGS_AS_ERRORS=OFF, every warning counted:
+      614  -Wc2y-extensions          all in tests/, all doctest's __COUNTER__
+        1  -Wdeprecated-declarations tests/json_file.cpp:14, std::getenv (MSVC CRT)
+        0  anywhere in src/, include/ or the header self-containment units
+    The getenv count fell from three to one because the three fixture readers now share
+    one fixture_path(); the C2y count rose with the number of new TEST_CASEs and CHECKs.
+
+  Header self-containment now covers every header under include/, detail/ included: 15
+  generated translation units, each including one header alone, all building on both
+  compilers. The five new headers are contract.hpp, paths.hpp, detail/checks.hpp,
+  detail/grid_solver.hpp and detail/path_generator.hpp; detail/scales.hpp moved.
+
+4. Sanitizers, locally
+----------------------
+
+  clang 22, -fsanitize=address,undefined -fno-sanitize-recover=undefined
+  -fno-omit-frame-pointer, TOUCHSTONE_SWEEP_SCALE=16 as CI's sanitizer job runs it.
+
+  First attempt, CMAKE_BUILD_TYPE=Debug: aborted at start-up, before any test ran —
+      ERROR: AddressSanitizer: attempting free on address which was not malloc()-ed
+      ... in ucrtbased.dll ... MSVCP140D.dll
+    which is AddressSanitizer's documented incompatibility with the MSVC *debug* runtime,
+    not a fault in the library. Rebuilt as RelWithDebInfo at -O1 against the release
+    runtime (clang_rt.asan_dynamic-x86_64.dll from LLVM 22 on PATH):
+
+      116 test cases, 4,125,502 assertions, all passed, 34 s
+      0 AddressSanitizer or UndefinedBehaviorSanitizer diagnostics
+
+  CI's sanitizer job (GCC, ASan and UBSan, Linux) is the one the project claims; this is
+  a second compiler's sanitizers on a second platform.
+
+5. The Python side
+------------------
+
+  golden/generate_paths.py is plain Python 3 with no dependency beyond the standard
+  library; it runs under uv with the project's lock, or under any python3.
+
+  It reproduced golden/rng-known-answers.json before writing: every uniform exactly, every
+  normal exactly (worst difference 0.0 against the 1e-12 docs/rng.md section 6 allows).
+
+  The committed bytes were written on Linux (WSL Ubuntu 20.04, glibc 2.31) and CI
+  regenerated them byte-for-byte on ubuntu-24.04 (tests.txt section 8). On Windows the
+  same script writes different bytes: one exp() in the 252-step exact path differs in the
+  last bit and the difference propagates along the path — 36 of 672 values, worst scaled
+  difference 1.7e-16, four orders inside the fixture's 1e-12.

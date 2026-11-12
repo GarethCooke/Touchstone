@@ -13,13 +13,9 @@ constexpr const char* expected_schema = "touchstone/golden/american_vanilla@1";
 
 AmericanCase parse_case(const nlohmann::json& row)
 {
-    const RowInputs<Exercise::American> inputs =
-        read_inputs<Exercise::American>(row, "american file");
-
     AmericanCase parsed{};
-    parsed.option = inputs.option;
-    parsed.market = inputs.market;
-    parsed.expiry_days = inputs.expiry_days;
+    static_cast<RowInputs<Exercise::American>&>(parsed) =
+        read_inputs<Exercise::American>(row, "american file");
 
     parsed.price = row.at("price").get<double>();
     parsed.delta = row.at("delta").get<double>();

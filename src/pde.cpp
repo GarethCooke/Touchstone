@@ -1,6 +1,7 @@
 #include <touchstone/pde.hpp>
 
 #include <touchstone/detail/checks.hpp>
+#include <touchstone/detail/differences.hpp>
 #include <touchstone/detail/grid_solver.hpp>
 #include <touchstone/detail/scales.hpp>
 #include <touchstone/tridiagonal.hpp>
@@ -40,8 +41,10 @@ template <Exercise E>
     const double years = option.expiry_years;
     const double log_spot = std::log(market.spot);
     const double log_strike = std::log(option.strike);
-    const double forward = log_spot + detail::carry_time(market.rate, market.dividend_yield, years)
-                           - detail::half_variance_time(market.vol, years);
+    const double forward =
+        log_spot
+        + detail::log_drift_time(detail::carry_rate(market.rate, market.dividend_yield), market.vol,
+                                 years);
 
     const double margin = settings.half_width_sigmas * detail::total_volatility(market.vol, years);
     const double lower = std::min({log_spot, log_strike, forward}) - margin;
@@ -59,6 +62,21 @@ template <Exercise E>
     grid.spot_index = static_cast<std::size_t>(below);
     grid.intervals = static_cast<std::size_t>(below + above);
     return grid;
+}
+
+/// `(sigma^2 / 2) / dx^2`: the weight the second difference carries in the
+/// spatial operator. The domain check guards twice it, which is the product the
+/// operator's diagonal forms.
+[[nodiscard]] double diffusion_coefficient(double vol, double dx) noexcept
+{
+    return 0.5 * detail::variance(vol) / (dx * dx);
+}
+
+/// A put is exercised, and is deep in the money, at the low end of the grid; a
+/// call at the high end.
+[[nodiscard]] bool in_the_money_below(OptionType type) noexcept
+{
+    return type == OptionType::Put;
 }
 
 /// `require_valid`, for either exercise style, returning the grid it checked so
@@ -120,7 +138,7 @@ detail::LogSpotGrid validated_grid(const Vanilla<E>& option,
     if (!detail::is_finite_positive(grid.step)) {
         throw std::invalid_argument("pde: the log-spot step underflows or overflows a double");
     }
-    if (!std::isfinite(variance / (grid.step * grid.step))) {
+    if (!std::isfinite(2.0 * diffusion_coefficient(market.vol, grid.step))) {
         throw std::invalid_argument(
             "pde: vol^2 divided by the squared log-spot step overflows a double; the grid is too "
             "fine for this volatility");
@@ -171,19 +189,17 @@ template <Exercise E>
     const double hi = centre + half;
     const double log_strike = std::log(option.strike);
 
-    if (option.type == OptionType::Call) {
-        if (hi <= log_strike) {
-            return 0.0;
-        }
-        const double from = std::max(lo, log_strike);
-        return (std::exp(from) * std::expm1(hi - from) - option.strike * (hi - from)) / dx;
-    }
-
-    if (lo >= log_strike) {
+    // The part of the cell in the money: above the strike for a call, below it
+    // for a put. Over it the payoff is `w (e^y - K)`, whose average is the one
+    // expression below whichever side it is.
+    const bool call = (option.type == OptionType::Call);
+    const double from = call ? std::max(lo, log_strike) : lo;
+    const double to = call ? hi : std::min(hi, log_strike);
+    if (to <= from) {
         return 0.0;
     }
-    const double to = std::min(hi, log_strike);
-    return (option.strike * (to - lo) - std::exp(lo) * std::expm1(to - lo)) / dx;
+    return option_sign(option.type)
+           * (std::exp(from) * std::expm1(to - from) - option.strike * (to - from)) / dx;
 }
 
 /// The node's spot, from its log-spot, and what exercising there pays.
@@ -245,7 +261,6 @@ GridSolver<E>::GridSolver(const Vanilla<E>& option,
       grid_(validated_grid(option, market, settings)),
       dtau_(option.expiry_years / static_cast<double>(settings.time_steps))
 {
-    const double variance = detail::variance(market.vol);
     const double dx = grid_.step;
 
     // The spatial operator, constant in x and in tau:
@@ -253,8 +268,10 @@ GridSolver<E>::GridSolver(const Vanilla<E>& option,
     //     L u = (sigma^2/2) u_xx + nu u_x - r u,     nu = r - q - sigma^2/2
     //
     // discretised with central differences into `a u_{i-1} + b u_i + c u_{i+1}`.
-    nu_ = detail::carry_rate(market.rate, market.dividend_yield) - 0.5 * variance;
-    const double diffusion = 0.5 * variance / (dx * dx);
+    // nu is the log-price's drift per unit of time.
+    nu_ = detail::log_drift_time(detail::carry_rate(market.rate, market.dividend_yield), market.vol,
+                                 1.0);
+    const double diffusion = diffusion_coefficient(market.vol, dx);
     const double convection = nu_ / (2.0 * dx);
     a_ = diffusion - convection;
     b_ = -2.0 * diffusion - market.rate;
@@ -309,9 +326,11 @@ typename GridSolver<E>::Stepping GridSolver<E>::build(double theta, double dt) c
     Stepping stepping{};
     stepping.theta = theta;
     stepping.dt = dt;
-    stepping.sub.assign(interior, -theta * dt * a_);
+    stepping.lower_weight = theta * dt * a_;
+    stepping.upper_weight = theta * dt * c_;
+    stepping.sub.assign(interior, -stepping.lower_weight);
     stepping.diag.assign(interior, 1.0 - theta * dt * b_);
-    stepping.sup.assign(interior, -theta * dt * c_);
+    stepping.sup.assign(interior, -stepping.upper_weight);
     return stepping;
 }
 
@@ -351,10 +370,9 @@ void GridSolver<E>::step(const Stepping& stepping, double tau_new)
     const double dt = stepping.dt;
     const std::size_t interior = grid_.intervals - 1;
 
-    const double lower_new =
-        boundary_value(grid_.lower(), option_.type == OptionType::Put, tau_new);
-    const double upper_new =
-        boundary_value(grid_.upper(), option_.type == OptionType::Call, tau_new);
+    const bool below = in_the_money_below(option_.type);
+    const double lower_new = boundary_value(grid_.lower(), below, tau_new);
+    const double upper_new = boundary_value(grid_.upper(), !below, tau_new);
 
     const double explicit_weight = (1.0 - theta) * dt;
     for (std::size_t j = 0; j < interior; ++j) {
@@ -362,12 +380,11 @@ void GridSolver<E>::step(const Stepping& stepping, double tau_new)
         rhs_[j] = value_[i]
                   + explicit_weight * (a_ * value_[i - 1] + b_ * value_[i] + c_ * value_[i + 1]);
     }
-    rhs_[0] += theta * dt * a_ * lower_new;
-    rhs_[interior - 1] += theta * dt * c_ * upper_new;
+    rhs_[0] += stepping.lower_weight * lower_new;
+    rhs_[interior - 1] += stepping.upper_weight * upper_new;
 
     if constexpr (E == Exercise::American) {
-        const ExerciseRegion region = (option_.type == OptionType::Put) ? ExerciseRegion::Lower
-                                                                        : ExerciseRegion::Upper;
+        const ExerciseRegion region = below ? ExerciseRegion::Lower : ExerciseRegion::Upper;
         solve_tridiagonal_projected(stepping.matrix(), rhs_, constraint_, region, solution_,
                                     scratch_);
     } else {
@@ -422,8 +439,8 @@ PdeResult GridSolver<E>::result() const
 {
     const double dx = grid_.step;
     const std::size_t i0 = grid_.spot_index;
-    const double u_x = (value_[i0 + 1] - value_[i0 - 1]) / (2.0 * dx);
-    const double u_xx = (value_[i0 + 1] - 2.0 * value_[i0] + value_[i0 - 1]) / (dx * dx);
+    const double u_x = detail::central_first(value_[i0 + 1], value_[i0 - 1], dx);
+    const double u_xx = detail::central_second(value_[i0 + 1], value_[i0], value_[i0 - 1], dx);
 
     PdeResult out{};
     out.price = value_[i0];

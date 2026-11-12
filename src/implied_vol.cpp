@@ -25,9 +25,6 @@ namespace {
 constexpr std::size_t brent_budget = 200;
 
 // --- What both solvers share ------------------------------------------------
-//
-// The price range any volatility can produce, and the scale a price is
-// accurate to, read from the closed form's volatility-free half.
 
 /// The price at zero volatility: the discounted intrinsic value of the forward.
 /// Taken from the closed form itself rather than rewritten here: that limit is
@@ -53,6 +50,52 @@ constexpr std::size_t brent_budget = 200;
     return std::max(quote.discounted_spot(), quote.discounted_strike());
 }
 
+/// A budget and a tolerance a search can run on.
+void require_valid_budget(std::size_t max_iterations, double price_tolerance)
+{
+    if (max_iterations == 0) {
+        throw std::invalid_argument("implied vol: max_iterations must be at least 1");
+    }
+    if (!detail::is_finite_positive(price_tolerance)) {
+        throw std::invalid_argument("implied vol: price_tolerance must be finite and positive");
+    }
+}
+
+void require_valid_target(double target_price)
+{
+    if (!std::isfinite(target_price)) {
+        throw std::invalid_argument("implied vol: the target price must be finite");
+    }
+}
+
+/// The volatility-free half of the closed form, and the closed form at both
+/// ends of a search. Both ends are priced, so both must be inside the closed
+/// form's domain, and then every volatility between them is too.
+struct Bracket {
+    ClosedFormQuote quote;
+    ClosedForm low;
+    ClosedForm high;
+};
+
+[[nodiscard]] Bracket bracket_of(const EuropeanVanilla& option,
+                                 const QuotedMarket& market,
+                                 double low_vol,
+                                 double high_vol)
+{
+    const ClosedFormQuote quote(option, market);
+    return Bracket{quote, quote.at(low_vol), quote.at(high_vol)};
+}
+
+/// The answer at a volatility: the volatility, the price there less the
+/// target, and the vega there. Both solvers' results carry these three.
+template <class Result>
+void answer(Result& result, double vol, const ClosedForm& there, double target_price) noexcept
+{
+    result.vol = vol;
+    result.price_residual = there.price() - target_price;
+    result.vega = there.vega();
+}
+
 // --- Newton-Brent -----------------------------------------------------------
 
 /// The settings, the option and the target, validated once, with everything
@@ -74,30 +117,21 @@ struct NewtonBrentSearch {
     if (!detail::is_finite_positive(settings.max_vol)) {
         throw std::invalid_argument("implied vol: max_vol must be finite and positive");
     }
-    if (settings.max_iterations == 0) {
-        throw std::invalid_argument("implied vol: max_iterations must be at least 1");
-    }
-    if (!detail::is_finite_positive(settings.price_tolerance)) {
-        throw std::invalid_argument("implied vol: price_tolerance must be finite and positive");
-    }
+    require_valid_budget(settings.max_iterations, settings.price_tolerance);
 
-    // Both ends of the search must be inside the closed form's domain, because
-    // both ends will be priced.
-    const ClosedFormQuote quote(option, market);
-    const double floor_price = floor_of(quote);
-    const double at_max = quote.at(settings.max_vol).price();
+    const Bracket bracket = bracket_of(option, market, 0.0, settings.max_vol);
+    const double floor_price = bracket.low.price();
+    const double at_max = bracket.high.price();
 
-    if (!std::isfinite(target_price)) {
-        throw std::invalid_argument("implied vol: the target price must be finite");
-    }
+    require_valid_target(target_price);
 
-    const double ceiling_price = ceiling_of(quote);
+    const double ceiling_price = ceiling_of(bracket.quote);
 
     // The floor of one ulp of 1.0 keeps a tolerance for an option whose scale
     // has underflowed to zero from being zero itself, which no iteration could
     // ever reach.
-    const double allowance =
-        std::max(settings.price_tolerance * scale_of(quote), std::numeric_limits<double>::epsilon());
+    const double allowance = std::max(settings.price_tolerance * scale_of(bracket.quote),
+                                      std::numeric_limits<double>::epsilon());
     if (target_price < floor_price - allowance) {
         throw std::invalid_argument(
             "implied vol: the target price " + std::to_string(target_price)
@@ -117,7 +151,7 @@ struct NewtonBrentSearch {
             + std::to_string(at_max)
             + "; the solution is above the search range rather than outside the model");
     }
-    return NewtonBrentSearch{quote, floor_price, allowance};
+    return NewtonBrentSearch{bracket.quote, floor_price, allowance};
 }
 
 }  // namespace
@@ -164,10 +198,7 @@ ImpliedVolResult implied_vol(const EuropeanVanilla& option,
     // the same double. The zero is then the honest answer and `vega` is what
     // says so.
     if (target_price <= search.floor_price) {
-        const ClosedForm at_zero = quote.at(0.0);
-        result.vol = 0.0;
-        result.price_residual = at_zero.price() - target_price;
-        result.vega = at_zero.vega();
+        answer(result, 0.0, quote.at(0.0), target_price);
         result.method = ImpliedVolMethod::Exact;
         result.converged = true;
         return result;
@@ -194,7 +225,7 @@ ImpliedVolResult implied_vol(const EuropeanVanilla& option,
                                    : 0.0;
 
     double vol = std::max(manaster_koehler, brenner_subrahmanyam);
-    if (!(vol > 0.0) || !std::isfinite(vol) || vol > settings.max_vol) {
+    if (!detail::is_finite_positive(vol) || vol > settings.max_vol) {
         // Nothing usable came out of either seed — a degenerate expiry, or a
         // target so close to the asymptote that the linear inversion overshoots
         // the whole search range. Start in the middle and let the iteration work.
@@ -216,23 +247,21 @@ ImpliedVolResult implied_vol(const EuropeanVanilla& option,
         const double residual = here.price() - target_price;
 
         if (std::abs(residual) <= tolerance) {
-            result.vol = vol;
-            result.price_residual = residual;
-            result.vega = here.vega();
+            answer(result, vol, here, target_price);
             result.method = ImpliedVolMethod::Newton;
             result.converged = true;
             return result;
         }
 
+        // No slope to step along. Common far out of the money, where vega
+        // underflows long before the price does.
         const double vega = here.vega();
-        if (!(vega > 0.0) || !std::isfinite(vega)) {
-            // No slope to step along. Common far out of the money, where vega
-            // underflows long before the price does.
+        if (!detail::is_finite_positive(vega)) {
             break;
         }
 
         const double next = vol - residual / vega;
-        if (!std::isfinite(next) || next <= 0.0 || next > settings.max_vol) {
+        if (!detail::is_finite_positive(next) || next > settings.max_vol) {
             break;
         }
 
@@ -255,18 +284,15 @@ ImpliedVolResult implied_vol(const EuropeanVanilla& option,
     // The search has already established that the target is at or above the
     // price at zero and at or below the price at max_vol, so the bracket holds a
     // sign change and Brent cannot fail to find it.
-    RootSearch bracket{};
-    bracket.x_tolerance = 0.0;  // let the relative term and f_tolerance decide
-    bracket.f_tolerance = tolerance;
-    bracket.max_iterations = brent_budget;
+    RootSearch brent_search{};
+    brent_search.x_tolerance = 0.0;  // let the relative term and f_tolerance decide
+    brent_search.f_tolerance = tolerance;
+    brent_search.max_iterations = brent_budget;
 
     const auto residual_at = [&](double sigma) { return quote.at(sigma).price() - target_price; };
-    const RootResult root = brent(residual_at, 0.0, settings.max_vol, bracket);
+    const RootResult root = brent(residual_at, 0.0, settings.max_vol, brent_search);
 
-    const ClosedForm finished = quote.at(root.root);
-    result.vol = root.root;
-    result.price_residual = finished.price() - target_price;
-    result.vega = finished.vega();
+    answer(result, root.root, quote.at(root.root), target_price);
     result.iterations += root.iterations;
     result.method = ImpliedVolMethod::Brent;
     result.converged = std::abs(result.price_residual) <= tolerance;
@@ -278,11 +304,11 @@ ImpliedVolResult implied_vol(const EuropeanVanilla& option,
 namespace {
 
 /// The settings, the option and the target, validated, with the closed form's
-/// volatility-free half built once for the whole solve.
-[[nodiscard]] ClosedFormQuote validated_quote(const EuropeanVanilla& option,
-                                              const QuotedMarket& market,
-                                              double target_price,
-                                              const SafeguardedSettings& settings)
+/// volatility-free half and both ends of the bracket computed once.
+[[nodiscard]] Bracket validated_bracket(const EuropeanVanilla& option,
+                                        const QuotedMarket& market,
+                                        double target_price,
+                                        const SafeguardedSettings& settings)
 {
     if (!detail::is_finite_non_negative(settings.min_vol)
         || !detail::is_finite_positive(settings.max_vol) || !(settings.min_vol < settings.max_vol)) {
@@ -292,26 +318,14 @@ namespace {
     if (!std::isfinite(settings.initial_vol)) {
         throw std::invalid_argument("implied vol: initial_vol must be finite");
     }
-    if (!detail::is_finite_positive(settings.price_tolerance)) {
-        throw std::invalid_argument("implied vol: price_tolerance must be finite and positive");
-    }
     if (!detail::is_finite_non_negative(settings.vol_tolerance)) {
         throw std::invalid_argument("implied vol: vol_tolerance must be finite and non-negative");
     }
-    if (settings.max_iterations == 0) {
-        throw std::invalid_argument("implied vol: max_iterations must be at least 1");
-    }
+    require_valid_budget(settings.max_iterations, settings.price_tolerance);
 
-    // Both ends of the bracket must be inside the closed form's domain, because
-    // both ends will be priced; every volatility between them then is too.
-    const ClosedFormQuote quote(option, market);
-    static_cast<void>(quote.at(settings.min_vol));
-    static_cast<void>(quote.at(settings.max_vol));
-
-    if (!std::isfinite(target_price)) {
-        throw std::invalid_argument("implied vol: the target price must be finite");
-    }
-    return quote;
+    Bracket bracket = bracket_of(option, market, settings.min_vol, settings.max_vol);
+    require_valid_target(target_price);
+    return bracket;
 }
 
 }  // namespace
@@ -340,7 +354,7 @@ void require_valid(const EuropeanVanilla& option,
                    double target_price,
                    const SafeguardedSettings& settings)
 {
-    static_cast<void>(validated_quote(option, market, target_price, settings));
+    static_cast<void>(validated_bracket(option, market, target_price, settings));
 }
 
 SafeguardedResult implied_vol_safeguarded(const EuropeanVanilla& option,
@@ -348,49 +362,48 @@ SafeguardedResult implied_vol_safeguarded(const EuropeanVanilla& option,
                                           double target_price,
                                           const SafeguardedSettings& settings)
 {
-    const ClosedFormQuote quote = validated_quote(option, market, target_price, settings);
+    const Bracket bracket = validated_bracket(option, market, target_price, settings);
+    const ClosedFormQuote& quote = bracket.quote;
 
     SafeguardedResult result{};
+    const auto finish = [&](SafeguardedStatus status, double vol, const ClosedForm& there) {
+        result.status = status;
+        result.converged = (status == SafeguardedStatus::Converged);
+        answer(result, vol, there, target_price);
+    };
+
     // Stop at a price error within this: relative to the price above one and
     // absolute below it, which is the golden file's comparison rule.
     const double tolerance = settings.price_tolerance * std::max(1.0, std::abs(target_price));
-
-    const auto finish = [&](SafeguardedStatus status, double vol, double residual, double vega) {
-        result.status = status;
-        result.converged = (status == SafeguardedStatus::Converged);
-        result.vol = vol;
-        result.price_residual = residual;
-        result.vega = vega;
-        return result;
-    };
 
     // A price outside the bounds has no implied volatility, and is answered
     // with a status rather than a number pretending to be one. The volatility
     // reported is the nearest the model comes — zero, where the price is the
     // lower bound, or the infinite volatility the upper bound is the limit at —
     // and the residual is the distance to that bound.
-    const double lower = floor_of(quote);
     const double upper = ceiling_of(quote);
-    if (target_price < lower - tolerance) {
-        return finish(SafeguardedStatus::BelowLowerBound, 0.0, lower - target_price,
-                      quote.at(0.0).vega());
+    if (target_price < floor_of(quote) - tolerance) {
+        finish(SafeguardedStatus::BelowLowerBound, 0.0, quote.at(0.0));
+        return result;
     }
     if (target_price > upper + tolerance) {
-        return finish(SafeguardedStatus::AboveUpperBound, std::numeric_limits<double>::infinity(),
-                      upper - target_price, 0.0);
+        result.status = SafeguardedStatus::AboveUpperBound;
+        result.converged = false;
+        result.vol = std::numeric_limits<double>::infinity();
+        result.price_residual = upper - target_price;
+        result.vega = 0.0;
+        return result;
     }
 
     // Inside the bounds but outside the prices at the ends of the bracket: the
     // answer exists and is outside the search interval.
-    const ClosedForm at_lo = quote.at(settings.min_vol);
-    const ClosedForm at_hi = quote.at(settings.max_vol);
-    if (target_price < at_lo.price() - tolerance) {
-        return finish(SafeguardedStatus::BelowSigmaLo, settings.min_vol,
-                      at_lo.price() - target_price, at_lo.vega());
+    if (target_price < bracket.low.price() - tolerance) {
+        finish(SafeguardedStatus::BelowSigmaLo, settings.min_vol, bracket.low);
+        return result;
     }
-    if (target_price > at_hi.price() + tolerance) {
-        return finish(SafeguardedStatus::AboveSigmaHi, settings.max_vol,
-                      at_hi.price() - target_price, at_hi.vega());
+    if (target_price > bracket.high.price() + tolerance) {
+        finish(SafeguardedStatus::AboveSigmaHi, settings.max_vol, bracket.high);
+        return result;
     }
 
     // The bracket: price(a) <= target <= price(b), the price increasing in the
@@ -407,7 +420,8 @@ SafeguardedResult implied_vol_safeguarded(const EuropeanVanilla& option,
         }
         result.iterations = iteration;
         if (std::abs(error) <= tolerance) {
-            return finish(SafeguardedStatus::Converged, vol, error, here.vega());
+            finish(SafeguardedStatus::Converged, vol, here);
+            return result;
         }
 
         // The sign of the error says which side of the answer this volatility
@@ -436,14 +450,13 @@ SafeguardedResult implied_vol_safeguarded(const EuropeanVanilla& option,
         vol = next;
 
         if (b - a < settings.vol_tolerance) {
-            const ClosedForm closed = quote.at(vol);
-            return finish(SafeguardedStatus::Converged, vol, closed.price() - target_price,
-                          closed.vega());
+            finish(SafeguardedStatus::Converged, vol, quote.at(vol));
+            return result;
         }
     }
 
-    const ClosedForm last = quote.at(vol);
-    return finish(SafeguardedStatus::MaxIter, vol, last.price() - target_price, last.vega());
+    finish(SafeguardedStatus::MaxIter, vol, quote.at(vol));
+    return result;
 }
 
 }  // namespace touchstone

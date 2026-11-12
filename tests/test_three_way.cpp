@@ -23,6 +23,7 @@
 //   - **Analytic delta vs grid delta vs pathwise delta:** three routes to one
 //     derivative, none of which is a difference of the other two.
 
+#include "grid_bumps.hpp"
 #include "golden_file.hpp"
 #include "statistics.hpp"
 #include "sweep.hpp"
@@ -69,9 +70,35 @@ using touchstone::testing::full_sweep;
 /// zero and a standard error of zero, and their ratio is not a z-score. T2
 /// established that rule and this reuses it — the row must have a material price
 /// and a healthy fraction of its paths in the money.
+/// The grid both cases run at, stated rather than defaulted: a finite-difference
+/// tolerance means nothing without its grid beside it.
+[[nodiscard]] PdeSettings grid_settings()
+{
+    PdeSettings grid{};
+    grid.space_intervals = 1024;
+    grid.time_steps = 512;
+    return grid;
+}
+
+/// The Monte Carlo both cases run, before each row's own seed.
+[[nodiscard]] MonteCarloSettings path_settings()
+{
+    MonteCarloSettings paths{};
+    paths.paths = 1u << 17;
+    paths.antithetic = true;
+    return paths;
+}
+
+/// A Monte Carlo estimate whose standard error means something: enough paths in
+/// the money, and a standard error that is not zero.
+[[nodiscard]] bool has_signal(const MonteCarloResult& mc, double standard_error)
+{
+    return mc.in_the_money > 200 && standard_error > 0.0;
+}
+
 [[nodiscard]] bool comparable(const GoldenCase& row, const MonteCarloResult& mc)
 {
-    return row.reference.price > 1e-3 && mc.in_the_money > 200 && mc.price_standard_error > 0.0;
+    return row.reference.price > 1e-3 && has_signal(mc, mc.price_standard_error);
 }
 
 }  // namespace
@@ -82,18 +109,13 @@ TEST_SUITE("three-way")
     {
         const auto& file = touchstone::testing::golden_file();
 
-        PdeSettings grid{};
-        grid.space_intervals = 1024;
-        grid.time_steps = 512;
+        const PdeSettings grid = grid_settings();
 
-        MonteCarloSettings paths{};
-        paths.paths = 1u << 17;
-        paths.antithetic = true;
+        const MonteCarloSettings paths = path_settings();
 
         std::vector<double> z;
         std::vector<std::string> z_labels;
-        double worst_grid = 0.0;
-        std::string worst_grid_at;
+        touchstone::testing::Largest<GoldenCase> worst_grid;
         std::size_t rows = 0;
         std::size_t skipped = 0;
         double smallest_error_bar = std::numeric_limits<double>::infinity();
@@ -112,12 +134,9 @@ TEST_SUITE("three-way")
             const PdeResult pde = touchstone::crank_nicolson(row.option, row.market, grid);
 
             const double reference = row.reference.price;
-            const double error = std::abs(pde.price - reference)
-                                 / std::max(std::abs(reference), row.market.spot);
-            if (error > worst_grid) {
-                worst_grid = error;
-                worst_grid_at = touchstone::testing::describe(row);
-            }
+            const double error =
+                touchstone::testing::scaled_error(pde.price, reference, row.market.spot);
+            worst_grid.observe(error, row);
 
             if (!comparable(row, mc)) {
                 ++skipped;
@@ -140,8 +159,8 @@ TEST_SUITE("three-way")
         report << "I20 on " << (rows + skipped) << " rows of the golden grid (" << skipped
                << " with too little Monte Carlo signal to score)"
                << "\n  finite differences vs closed form, scaled by max(|V|, S):"
-               << "\n    worst " << std::scientific << std::setprecision(3) << worst_grid
-               << "\n    at    " << worst_grid_at
+               << "\n    worst " << std::scientific << std::setprecision(3) << worst_grid.value()
+               << "\n    at    " << worst_grid.at()
                << "\n  Monte Carlo vs closed form, in standard errors:"
                << "\n    " << standardised.report("scored rows")
                << "\n    standard error as a fraction of the price: " << std::scientific
@@ -154,13 +173,13 @@ TEST_SUITE("three-way")
         // 2.2e-5 on this sample at 1024 x 512, which is the same figure
         // `test_pde.cpp` measures over the whole grid at a coarser resolution,
         // divided by four.
-        CHECK_MESSAGE(worst_grid <= 5e-5, worst_grid_at);
+        CHECK_MESSAGE(worst_grid.value() <= 5e-5, worst_grid.at());
 
         // The Monte Carlo leg. Not a per-row three-standard-error rule — on a
         // sample this size roughly one row in three hundred exceeds three by
         // chance — but the sample's own shape: mean zero, unit spread, and no row
         // beyond the bound a sample of this size should reach.
-        CHECK(std::abs(standardised.mean) < 4.0 / std::sqrt(static_cast<double>(rows)));
+        CHECK(std::abs(standardised.mean) < standardised.mean_bound(4.0));
         if (full_sweep) {
             // A spread estimated from eight rows is not a spread, so these two
             // are the whole sample's or nothing.
@@ -182,30 +201,17 @@ TEST_SUITE("three-way")
         // because it is a sampling estimate and nothing else here is.
         const auto& file = touchstone::testing::golden_file();
 
-        PdeSettings grid{};
-        grid.space_intervals = 1024;
-        grid.time_steps = 512;
+        const PdeSettings grid = grid_settings();
 
-        touchstone::BumpSizes wide{};
-        wide.spot_relative = 1e-3;
-        wide.spot_relative_for_gamma = 1e-2;
-        wide.vol_absolute = 1e-3;
-        wide.rate_absolute = 1e-3;
-        wide.dividend_yield_absolute = 1e-3;
-        wide.expiry_absolute = 1e-3;
+        const MonteCarloSettings paths = path_settings();
 
-        MonteCarloSettings paths{};
-        paths.paths = 1u << 17;
-        paths.antithetic = true;
-
-        double worst_bumped = 0.0;
+        touchstone::testing::Largest<GoldenCase> worst_bumped;
         double worst_grid_delta = 0.0;
         double worst_grid_gamma = 0.0;
         double worst_bumped_grid = 0.0;
         std::vector<double> delta_z;
         std::vector<std::string> delta_labels;
         std::size_t rows = 0;
-        std::string worst_at;
 
         for (std::size_t i = 0; i < file.cases.size(); i += stride) {
             const GoldenCase& row = file.cases[i];
@@ -218,25 +224,20 @@ TEST_SUITE("three-way")
             const PriceAndGreeks bumped = touchstone::bump_greeks(row.option, row.market);
             const PdeResult pde = touchstone::crank_nicolson(row.option, row.market, grid);
 
-            const auto on_the_grid = [&](const touchstone::EuropeanVanilla& option,
-                                         const touchstone::BlackScholesMarket& market) {
-                return touchstone::crank_nicolson(option, market, grid).price;
-            };
+            const auto on_the_grid = touchstone::testing::grid_pricer(grid);
             const PriceAndGreeks bumped_grid =
-                touchstone::bump_greeks(row.option, row.market, wide, on_the_grid);
+                touchstone::bump_greeks(row.option, row.market, touchstone::testing::grid_bumps(),
+                                        on_the_grid);
 
             const auto compare = [](double a, double b) {
-                return std::abs(a - b) / std::max(std::abs(b), 1.0);
+                return touchstone::testing::scaled_error(a, b);
             };
             const double this_row = std::max({compare(bumped.delta, analytic.delta),
                                               compare(bumped.gamma, analytic.gamma),
                                               compare(bumped.vega, analytic.vega),
                                               compare(bumped.theta, analytic.theta),
                                               compare(bumped.rho, analytic.rho)});
-            if (this_row > worst_bumped) {
-                worst_bumped = this_row;
-                worst_at = touchstone::testing::describe(row);
-            }
+            worst_bumped.observe(this_row, row);
             worst_grid_delta = std::max(worst_grid_delta, compare(pde.delta, analytic.delta));
             worst_grid_gamma = std::max(worst_grid_gamma, compare(pde.gamma, analytic.gamma));
             worst_bumped_grid =
@@ -246,7 +247,7 @@ TEST_SUITE("three-way")
             MonteCarloSettings settings = paths;
             settings.seed = static_cast<std::uint32_t>(910000u + i);
             const MonteCarloResult mc = touchstone::monte_carlo(row.option, row.market, settings);
-            if (mc.delta_standard_error > 0.0 && mc.in_the_money > 200) {
+            if (has_signal(mc, mc.delta_standard_error)) {
                 delta_z.push_back((mc.delta - analytic.delta) / mc.delta_standard_error);
                 delta_labels.push_back(touchstone::testing::describe(row));
             }
@@ -262,7 +263,7 @@ TEST_SUITE("three-way")
         std::ostringstream report;
         report << "Greeks three ways over " << rows << " rows"
                << "\n    bumped closed form vs analytic, worst scaled   " << std::scientific
-               << std::setprecision(3) << worst_bumped << "\n        at " << worst_at
+               << std::setprecision(3) << worst_bumped.value() << "\n        at " << worst_bumped.at()
                << "\n    grid delta vs analytic, worst scaled           " << worst_grid_delta
                << "\n    grid gamma vs analytic, worst scaled           " << worst_grid_gamma
                << "\n    bumped grid vega and rho vs analytic, worst    " << worst_bumped_grid
@@ -275,14 +276,14 @@ TEST_SUITE("three-way")
         // bumping one, and every one of them is a different kind of error. The
         // scale here is `max(|analytic|, 1)`, so for delta — which never exceeds
         // one — these are absolute figures.
-        CHECK_MESSAGE(worst_bumped <= 1e-7, worst_at);
+        CHECK_MESSAGE(worst_bumped.value() <= 1e-7, worst_bumped.at());
         CHECK(worst_grid_delta <= 2e-4);
         CHECK(worst_grid_gamma <= 1e-5);
         // The loosest of the four, and necessarily: a bumped grid divides the
         // grid's own discretisation error by the bump, and vega and rho are
         // large enough numbers that the quotient is still small beside them.
         CHECK(worst_bumped_grid <= 1e-2);
-        CHECK(std::abs(delta_fit.mean) < 4.0 / std::sqrt(static_cast<double>(delta_z.size())));
+        CHECK(std::abs(delta_fit.mean) < delta_fit.mean_bound(4.0));
         CHECK_MESSAGE(delta_fit.worst <= delta_fit.worst_bound, delta_fit.worst_at);
     }
 }

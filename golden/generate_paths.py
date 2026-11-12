@@ -47,6 +47,14 @@ RNG_FIXTURE = HERE / "rng-known-answers.json"
 
 MASK = 0xFFFFFFFF
 
+# docs/rng.md section 3: the spacing of the uniforms, and so the smallest one above
+# zero; section 4 clamps to it.
+UNIFORM_RESOLUTION = 2.0**-53
+
+# docs/rng.md section 6: cross-language agreement on the normals, and the fixture's
+# tolerance, which is that agreement carried along a path.
+NORMAL_TOLERANCE = 1e-12
+
 # --- docs/rng.md section 2: fmix32 ---------------------------------------------------------
 
 
@@ -91,7 +99,7 @@ class Xoshiro128StarStar:
     def next_uniform(self) -> float:
         hi = self.next_u32()
         lo = self.next_u32()
-        return ((hi >> 5) * 2.0**26 + (lo >> 6)) * 2.0**-53
+        return ((hi >> 5) * 2.0**26 + (lo >> 6)) * UNIFORM_RESOLUTION
 
     # --- docs/rng.md section 4: normals ------------------------------------------------------
 
@@ -129,7 +137,7 @@ def horner(c: list[float], x: float) -> float:
 
 def norm_inv(p: float) -> float:
     if p <= 0.0:
-        p = 2.0**-53
+        p = UNIFORM_RESOLUTION
     q = p - 0.5
     if abs(q) <= 0.425:
         r = 0.180625 - q * q
@@ -193,9 +201,9 @@ def check_rng_fixture() -> dict:
                              "rng-known-answers.json exactly; refusing to write a fixture")
         for got, want in zip(normals(vector["seed"], len(vector["normals"])), vector["normals"]):
             worst_normal = max(worst_normal, abs(got - want))
-    if worst_normal > 1e-12:
+    if worst_normal > NORMAL_TOLERANCE:
         raise SystemExit(f"generate_paths: normals differ from rng-known-answers.json by "
-                         f"{worst_normal:.3e}, above docs/rng.md's 1e-12; refusing to write a fixture")
+                         f"{worst_normal:.3e}, above docs/rng.md's {NORMAL_TOLERANCE}; refusing to write a fixture")
     return {"vectors": len(fixture["vectors"]), "uniforms": "exact",
             "worst_normal_difference": worst_normal}
 
@@ -263,7 +271,7 @@ def build() -> dict:
             "euler": "S_(k+1) = S_k (1 + drift dt + vol sqrt(dt) Z_k)",
         },
         "tolerance": {
-            "value": 1e-12,
+            "value": NORMAL_TOLERANCE,
             "rule": "|value - reference| <= 1e-12 * max(1, |reference|) at every point of every "
                     "path: docs/rng.md's 1e-12 on the normals, carried through the steps, with "
                     "room for the C++ associating the exact step's exponent differently",

@@ -92,7 +92,9 @@ set(TOUCHSTONE_HEADERS
     rng.hpp
     root_finding.hpp
     tridiagonal.hpp
+    detail/callable.hpp
     detail/checks.hpp
+    detail/differences.hpp
     detail/grid_solver.hpp
     detail/path_generator.hpp
     detail/scales.hpp)

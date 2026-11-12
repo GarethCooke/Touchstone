@@ -97,6 +97,15 @@ namespace touchstone::detail {
     return total_vol * total_vol;
 }
 
+/// `(μ − σ²/2) T` — the drift of the log-price over a time, formed as
+/// `μ T − (σ√T)² / 2`. The exact GBM step and the grid's forward both read the
+/// log-price's drift from here, so they cannot form it two ways; per unit of time
+/// (`years = 1`) it is the grid's convection coefficient.
+[[nodiscard]] inline double log_drift_time(double drift, double vol, double years) noexcept
+{
+    return drift_time(drift, years) - 0.5 * total_variance(vol, years);
+}
+
 /// `½ σ² T` — the convexity correction in `d₁`. Associated as `((0.5 σ) σ) T`,
 /// which is what `black_scholes.cpp` writes and therefore what its domain check
 /// must guard.

@@ -64,7 +64,7 @@ using touchstone::PdeResult;
 using touchstone::PdeSettings;
 using touchstone::testing::AmericanCase;
 
-constexpr std::size_t grid_stride = touchstone::testing::sweep_scale;
+using touchstone::testing::sweep_scale;
 
 [[nodiscard]] PdeSettings grid_settings()
 {
@@ -118,8 +118,7 @@ TEST_SUITE("american")
         const auto& file = touchstone::testing::american_file();
         const PdeSettings settings = grid_settings();
 
-        double worst = 0.0;
-        std::string worst_at;
+        touchstone::testing::Largest<AmericanCase> worst;
         std::size_t rows = 0;
         double worst_against_european_grid = 0.0;
 
@@ -134,11 +133,9 @@ TEST_SUITE("american")
                 touchstone::crank_nicolson(row.european(), row.market, settings);
 
             const double scale = std::max(std::abs(exact), row.market.spot);
-            const double error = std::abs(american.price - exact) / scale;
-            if (error > worst) {
-                worst = error;
-                worst_at = touchstone::testing::describe(row);
-            }
+            const double error =
+                touchstone::testing::scaled_error(american.price, exact, row.market.spot);
+            worst.observe(error, row);
             // And the two runs are the same run: the projection never fired.
             worst_against_european_grid =
                 std::max(worst_against_european_grid,
@@ -148,13 +145,13 @@ TEST_SUITE("american")
         std::ostringstream report;
         report << "identity rows (" << rows << "): American exercise worth exactly European"
                << "\n    worst |american grid - closed form| scaled by max(|V|, S)  "
-               << std::scientific << std::setprecision(3) << worst
+               << std::scientific << std::setprecision(3) << worst.value()
                << "\n    worst |american grid - european grid|                     "
-               << worst_against_european_grid << "\n    worst at " << worst_at;
+               << worst_against_european_grid << "\n    worst at " << worst.at();
         MESSAGE(report.str());
 
         CHECK(rows > 300u);
-        CHECK_MESSAGE(worst <= 3e-5, worst_at);
+        CHECK_MESSAGE(worst.value() <= 3e-5, worst.at());
         // The projection is a no-op on these rows — but not to the last bit, and
         // the reason is worth knowing. Brennan and Schwartz's sweep for a *put*
         // eliminates from the high end down where Thomas eliminates from the low
@@ -212,23 +209,18 @@ TEST_SUITE("american")
         const auto& file = touchstone::testing::american_file();
         const PdeSettings settings = grid_settings();
 
-        double worst_against_spread = 0.0;
-        double worst_scaled = 0.0;
-        std::string worst_at;
-        std::string spread_worst_at;
+        touchstone::testing::Largest<AmericanCase> worst_against_spread;
+        touchstone::testing::Largest<AmericanCase> worst_scaled;
         std::size_t rows = 0;
 
-        for (std::size_t i = 0; i < file.cases.size(); i += grid_stride) {
+        for (std::size_t i = 0; i < file.cases.size(); i += sweep_scale) {
             const AmericanCase& row = file.cases[i];
             ++rows;
             const PdeResult on_grid = touchstone::crank_nicolson(row.option, row.market, settings);
             const double scale = option_scale(row);
             const double error = std::abs(on_grid.price - row.price);
 
-            if (error / scale > worst_scaled) {
-                worst_scaled = error / scale;
-                worst_at = touchstone::testing::describe(row);
-            }
+            worst_scaled.observe(error / scale, row);
 
             // Against the oracle's own uncertainty about this row, with a floor:
             // where all three lattices returned the intrinsic value exactly the
@@ -237,24 +229,21 @@ TEST_SUITE("american")
             // what they were really worth.
             const double allowance = row.spread + 1e-6 * scale;
             const double against = error / allowance;
-            if (against > worst_against_spread) {
-                worst_against_spread = against;
-                spread_worst_at = touchstone::testing::describe(row);
-            }
+            worst_against_spread.observe(against, row);
         }
 
         std::ostringstream report;
         report << "american golden file by Crank-Nicolson with a projected sweep: " << rows
                << " rows at " << settings.space_intervals << " x " << settings.time_steps
                << "\n    worst |grid - lattice| scaled by max(|V|, K)   " << std::scientific
-               << std::setprecision(3) << worst_scaled << "\n        at " << worst_at
+               << std::setprecision(3) << worst_scaled.value() << "\n        at " << worst_scaled.at()
                << "\n    worst as a multiple of the row's lattice spread " << std::fixed
-               << std::setprecision(2) << worst_against_spread << "\n        at "
-               << spread_worst_at;
+               << std::setprecision(2) << worst_against_spread.value() << "\n        at "
+               << worst_against_spread.at();
         MESSAGE(report.str());
 
-        CHECK_MESSAGE(worst_scaled <= 5e-4, worst_at);
-        CHECK_MESSAGE(worst_against_spread <= 12.0, spread_worst_at);
+        CHECK_MESSAGE(worst_scaled.value() <= 5e-4, worst_scaled.at());
+        CHECK_MESSAGE(worst_against_spread.value() <= 12.0, worst_against_spread.at());
     }
 
     TEST_CASE("every American value is at least European and at least intrinsic")
@@ -266,13 +255,12 @@ TEST_SUITE("american")
         const auto& file = touchstone::testing::american_file();
         const PdeSettings settings = grid_settings();
 
-        double worst_below_european = 0.0;
+        touchstone::testing::Largest<AmericanCase> worst_below_european;
         double worst_below_intrinsic = 0.0;
-        std::string worst_at;
         std::size_t with_premium = 0;
         std::size_t rows = 0;
 
-        for (std::size_t i = 0; i < file.cases.size(); i += grid_stride) {
+        for (std::size_t i = 0; i < file.cases.size(); i += sweep_scale) {
             const AmericanCase& row = file.cases[i];
             ++rows;
             const double european = touchstone::price(row.european(), row.market);
@@ -281,10 +269,7 @@ TEST_SUITE("american")
             const double scale = std::max(std::abs(european), row.market.spot);
 
             const double below_european = (european - american.price) / scale;
-            if (below_european > worst_below_european) {
-                worst_below_european = below_european;
-                worst_at = touchstone::testing::describe(row);
-            }
+            worst_below_european.observe(below_european, row);
             worst_below_intrinsic =
                 std::max(worst_below_intrinsic, (intrinsic - american.price) / scale);
             if (american.price > european * (1.0 + 1e-6) + 1e-9) {
@@ -294,16 +279,16 @@ TEST_SUITE("american")
 
         MESSAGE("bounds over " << rows << " rows"
                                << "\n    worst shortfall against European   " << std::scientific
-                               << std::setprecision(3) << worst_below_european << "\n    worst "
+                               << std::setprecision(3) << worst_below_european.value() << "\n    worst "
                                << "shortfall against intrinsic  " << worst_below_intrinsic
                                << "\n    " << with_premium
                                << " rows carry a material early-exercise premium"
-                               << "\n    worst at " << worst_at);
+                               << "\n    worst at " << worst_below_european.at());
 
         // The shortfall allowance is the European grid's own error, not slack:
         // both numbers here are grid values, and the grid is accurate to about
         // 3e-5 of the underlying's scale.
-        CHECK_MESSAGE(worst_below_european <= 3e-5, worst_at);
+        CHECK_MESSAGE(worst_below_european.value() <= 3e-5, worst_below_european.at());
         CHECK(worst_below_intrinsic <= 3e-5);
         // And the premium is real on a large part of the grid, or these
         // inequalities are being satisfied by an American solver that is quietly
@@ -334,7 +319,7 @@ TEST_SUITE("american")
         };
 
         std::map<Key, std::pair<double, double>> priced;  // call, put
-        for (std::size_t i = 0; i < file.cases.size(); i += grid_stride) {
+        for (std::size_t i = 0; i < file.cases.size(); i += sweep_scale) {
             const AmericanCase& row = file.cases[i];
             if (row.market.rate < 0.0 || row.market.dividend_yield < 0.0) {
                 continue;
@@ -369,7 +354,7 @@ TEST_SUITE("american")
                                                  << worst_low
                                                  << "\n    worst breach of the upper bound "
                                                  << worst_high);
-        CHECK(pairs > 50u / grid_stride);
+        CHECK(pairs > 50u / sweep_scale);
         CHECK(pairs > 4u);
         CHECK(worst_low <= 3e-5);
         CHECK(worst_high <= 3e-5);

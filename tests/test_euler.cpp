@@ -46,6 +46,8 @@ using touchstone::testing::stream_seed;
 struct Fit {
     double slope{};
     double intercept{};
+    double mean_x{};      ///< The mean of log(dt).
+    double variance_x{};  ///< The sum of squared deviations of log(dt) from it.
     double worst_residual{};
     double slope_error{};   ///< Set only when the points carry standard errors.
     double worst_scatter{}; ///< Largest relative standard error among the points.
@@ -70,6 +72,8 @@ Fit fit_log_log(const std::vector<double>& dt, const std::vector<double>& error)
     }
 
     Fit fit{};
+    fit.mean_x = mean_x;
+    fit.variance_x = variance;
     fit.slope = covariance / variance;
     fit.intercept = mean_y - fit.slope * mean_x;
     for (std::size_t i = 0; i < dt.size(); ++i) {
@@ -90,17 +94,8 @@ Fit fit_log_log_with_errors(const std::vector<double>& dt,
                             const std::vector<double>& value_error)
 {
     Fit fit = fit_log_log(dt, value);
-
-    const double n = static_cast<double>(dt.size());
-    double mean_x = 0.0;
-    for (const double step : dt) {
-        mean_x += std::log(step) / n;
-    }
-    double variance_x = 0.0;
-    for (const double step : dt) {
-        const double dx = std::log(step) - mean_x;
-        variance_x += dx * dx;
-    }
+    const double mean_x = fit.mean_x;
+    const double variance_x = fit.variance_x;
 
     double variance_slope = 0.0;
     for (std::size_t i = 0; i < dt.size(); ++i) {
@@ -115,6 +110,25 @@ Fit fit_log_log_with_errors(const std::vector<double>& dt,
 
 const BlackScholesMarket market{100.0, 0.3, 0.05, 0.02};
 constexpr double expiry = 1.0;
+
+/// A convergence rate is a statement about small dt, so both measurements fit
+/// their rate over the steps below this and report the coarser ones unfitted.
+/// They are not noise — at half a year a step, Euler is simply not
+/// approximating anything yet.
+constexpr double asymptotic_below = 0.13;
+
+/// The fitted slope, as both measurements report it.
+[[nodiscard]] std::string slope_line(const Fit& fit, double expected, bool with_residual)
+{
+    std::ostringstream out;
+    out << "\n    slope over dt < " << std::fixed << std::setprecision(2) << asymptotic_below
+        << ": " << std::setprecision(4) << fit.slope << " +/- " << fit.slope_error << " ("
+        << std::setprecision(1) << expected << " expected)";
+    if (with_residual) {
+        out << ", worst residual " << std::setprecision(4) << fit.worst_residual;
+    }
+    return out.str();
+}
 
 using touchstone::testing::full_sweep;
 using touchstone::testing::sweep_scale;
@@ -157,9 +171,9 @@ void on_shared_paths(std::uint32_t seed, std::size_t steps, std::size_t paths, O
     Xoshiro128SS rng(seed);
     std::vector<double> normals(steps, 0.0);
     for (std::size_t path = 0; path < paths; ++path) {
+        touchstone::testing::fill_normals(rng, normals);
         double sum = 0.0;
-        for (double& z : normals) {
-            z = rng.next_normal();
+        for (const double z : normals) {
             sum += z;
         }
         const double shared = sum / std::sqrt(static_cast<double>(steps));
@@ -182,7 +196,6 @@ TEST_SUITE("euler")
         // fitted. They are not noise — at half a year a step, Euler is simply
         // not approximating anything yet, and the successive ratios below show
         // where it starts to: they climb toward sqrt(2) and settle.
-        constexpr double asymptotic_below = 0.13;
 
         std::vector<double> dt;
         std::vector<double> error;
@@ -228,9 +241,7 @@ TEST_SUITE("euler")
         }
 
         const Fit fit = fit_log_log_with_errors(dt, error, error_of_error);
-        table << "\n    slope over dt < " << std::fixed << std::setprecision(2)
-              << asymptotic_below << ": " << std::setprecision(4) << fit.slope << " +/- "
-              << fit.slope_error << " (0.5 expected), worst residual " << fit.worst_residual;
+        table << slope_line(fit, 0.5, true);
         MESSAGE(table.str());
 
         // Euler-Maruyama is strong order one half on multiplicative noise. Half,
@@ -271,7 +282,6 @@ TEST_SUITE("euler")
         // would be the fit's rather than the scheme's.
         constexpr std::size_t paths = 1000000 / sweep_scale;
         const std::vector<std::size_t> levels{2, 4, 8, 16, 32, 64};
-        constexpr double asymptotic_below = 0.13;
         const EuropeanVanilla option{100.0, expiry, OptionType::Call};
         const double discount = std::exp(-market.rate * expiry);
         const double reference = touchstone::price(option, market);
@@ -333,9 +343,7 @@ TEST_SUITE("euler")
         REQUIRE(fine_dt.size() >= 3u);
 
         const Fit fit = fit_log_log_with_errors(fine_dt, fine_bias, fine_error);
-        table << "\n    slope over dt < " << std::fixed << std::setprecision(2)
-              << asymptotic_below << ": " << std::setprecision(4) << fit.slope << " +/- "
-              << fit.slope_error << " (1.0 expected)";
+        table << slope_line(fit, 1.0, false);
         if (!full_sweep) {
             table << "\n    reduced sweep (scale " << sweep_scale
                   << "): the bias is not resolved and is not asserted to be";

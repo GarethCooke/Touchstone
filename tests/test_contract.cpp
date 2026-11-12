@@ -128,11 +128,8 @@ TEST_SUITE("contract")
         // Everything in this file that matters was decided when it compiled. This
         // case exists so that the suite has a name in the test report, and says
         // what was checked.
-        MESSAGE("American contracts refused at compile time by: require_valid (closed form), "
-                "price and the six Greeks, price_and_greeks, ClosedForm, ClosedFormQuote, "
-                "monte_carlo, pathwise_payoff_delta, implied_vol, implied_vol_safeguarded, "
-                "price_scale, lowest_price, highest_price, bump_greeks (both); accepted by "
-                "crank_nicolson, the grid's require_valid, and payoff");
+        MESSAGE("American contracts: refused at compile time by every entry point the concepts "
+                "in this file name, accepted by the grid and by payoff");
         CHECK(priced_by_grid<AmericanVanilla>);
         CHECK_FALSE(priced_by_closed_form<AmericanVanilla>);
     }

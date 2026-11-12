@@ -2,6 +2,7 @@
 // implementation must satisfy, and the tail that the obvious implementation
 // throws away.
 
+#include "errors.hpp"
 #include <touchstone/normal.hpp>
 
 #include <doctest/doctest.h>
@@ -25,10 +26,7 @@ constexpr double n_at_minus_30 = 4.906713927148187e-198;
 constexpr double phi_at_0 = 0.3989422804014326779399461;
 constexpr double phi_at_1 = 0.2419707245191433497978302;
 
-double relative(double actual, double reference)
-{
-    return std::abs(actual - reference) / std::abs(reference);
-}
+constexpr auto relative = touchstone::testing::relative_error;
 
 /// How accurately N(x) can be evaluated at all, in relative terms.
 ///

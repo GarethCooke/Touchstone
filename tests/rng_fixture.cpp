@@ -15,14 +15,16 @@ namespace {
 struct Expected {
     const char* key;
     const char* value;
+    std::string RngFixture::* field;
 };
 
-constexpr Expected expected_description[] = {
-    {"generator", "xoshiro128**"},
-    {"seedExpansion", "fmix32(seed + i), i = 0..3"},
-    {"uniform", "((hi >>> 5) * 2^26 + (lo >>> 6)) * 2^-53, hi drawn first"},
-    {"normal", "AS241 (Wichura PPND16) inverse CDF of the i-th uniform of the same stream"},
-    {"spec", "docs/rng.md"},
+const Expected expected_description[] = {
+    {"generator", "xoshiro128**", &RngFixture::generator},
+    {"seedExpansion", "fmix32(seed + i), i = 0..3", &RngFixture::seed_expansion},
+    {"uniform", "((hi >>> 5) * 2^26 + (lo >>> 6)) * 2^-53, hi drawn first", &RngFixture::uniform_rule},
+    {"normal", "AS241 (Wichura PPND16) inverse CDF of the i-th uniform of the same stream",
+     &RngFixture::normal_rule},
+    {"spec", "docs/rng.md", &RngFixture::spec},
 };
 
 RngFixture load()
@@ -41,13 +43,9 @@ RngFixture load()
                                      + "\" — the fixture describes a different generator than "
                                        "docs/rng.md specifies");
         }
+        fixture.*(field.field) = found;
     }
 
-    fixture.generator = document.at("generator").get<std::string>();
-    fixture.seed_expansion = document.at("seedExpansion").get<std::string>();
-    fixture.uniform_rule = document.at("uniform").get<std::string>();
-    fixture.normal_rule = document.at("normal").get<std::string>();
-    fixture.spec = document.at("spec").get<std::string>();
     fixture.count = document.at("count").get<std::size_t>();
 
     for (const auto& entry : document.at("vectors")) {

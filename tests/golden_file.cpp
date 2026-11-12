@@ -1,5 +1,6 @@
 #include "golden_file.hpp"
 
+#include "greek_fields.hpp"
 #include "json_file.hpp"
 
 #include <algorithm>
@@ -21,20 +22,13 @@ constexpr const char* expected_schema = "touchstone/golden/bs_vanilla@1";
 
 GoldenCase parse_case(const nlohmann::json& row)
 {
-    const RowInputs<Exercise::European> inputs = read_inputs<Exercise::European>(row, "golden file");
-
     GoldenCase parsed{};
-    parsed.option = inputs.option;
-    parsed.market = inputs.market;
-    parsed.expiry_days = inputs.expiry_days;
+    static_cast<RowInputs<Exercise::European>&>(parsed) =
+        read_inputs<Exercise::European>(row, "golden file");
 
-    parsed.reference.price = row.at("price").get<double>();
-    parsed.reference.delta = row.at("delta").get<double>();
-    parsed.reference.gamma = row.at("gamma").get<double>();
-    parsed.reference.vega = row.at("vega").get<double>();
-    parsed.reference.theta = row.at("theta").get<double>();
-    parsed.reference.rho = row.at("rho").get<double>();
-    parsed.reference.dividend_rho = row.at("dividend_rho").get<double>();
+    for (const GreekField& field : greek_fields) {
+        parsed.reference.*(field.value) = row.at(field.name).get<double>();
+    }
 
     if (row.contains("label")) {
         parsed.label = row.at("label").get<std::string>();
@@ -73,27 +67,11 @@ const GoldenFile& golden_file()
     return file;
 }
 
-double scaled_error(double actual, double reference) noexcept
-{
-    if (actual == reference) {
-        return 0.0;  // Also the only way two infinities of the same sign agree.
-    }
-    if (std::isnan(actual) || std::isnan(reference) || std::isinf(actual) || std::isinf(reference)) {
-        return std::numeric_limits<double>::infinity();
-    }
-    const double scale = std::max(std::abs(reference), 1.0);
-    return std::abs(actual - reference) / scale;
-}
-
 void Worst::observe(double actual, double reference, const GoldenCase& source)
 {
-    const double error = scaled_error(actual, reference);
-    if (!seen_ || error > error_) {
-        seen_ = true;
-        error_ = error;
+    if (largest_.observe(scaled_error(actual, reference), source)) {
         actual_ = actual;
         reference_ = reference;
-        source_ = source;
     }
 }
 
@@ -101,10 +79,11 @@ std::string Worst::describe(const char* field) const
 {
     std::ostringstream out;
     out << std::setprecision(17);
-    out << "worst " << field << " error " << error_;
-    if (seen_) {
-        out << "\n    computed  " << actual_ << "\n    reference " << reference_ << "\n    at        "
-            << touchstone::testing::describe(source_);
+    out << "worst " << field << " error " << largest_.value();
+    const std::string at = largest_.at();
+    if (!at.empty()) {
+        out << "\n    computed  " << actual_ << "\n    reference " << reference_
+            << "\n    at        " << at;
     }
     return out.str();
 }

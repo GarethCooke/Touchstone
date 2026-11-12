@@ -34,9 +34,32 @@ struct Standardised {
     double worst_bound{};
 
     [[nodiscard]] std::string report(const char* what) const;
+
+    /// `k` standard errors of a mean of `count` standard normals: `k / sqrt(n)`.
+    [[nodiscard]] double mean_bound(double k) const noexcept;
+
+    /// `k` standard errors of the sample standard deviation of `count`
+    /// standard normals: `k / sqrt(2n)`.
+    [[nodiscard]] double standard_deviation_bound(double k) const noexcept;
 };
 
 /// Summarise a sample of z-scores. `labels` names the rows, for the report.
+/// A sample's mean and its variance on `n - 1` degrees of freedom, two-pass.
+struct Moments {
+    double mean{};
+    double variance{};
+};
+
+[[nodiscard]] Moments moments(const std::vector<double>& values);
+
+/// The two-sided normal quantile that leaves probability `family` of any of
+/// `count` independent standard normals exceeding it: Bonferroni's bound.
+[[nodiscard]] double bonferroni_bound(double family, double count);
+
+/// A count within `k` of its Poisson standard deviations of what was expected,
+/// plus one for the discreteness of a small count.
+[[nodiscard]] bool within_poisson(double observed, double expected, double k);
+
 [[nodiscard]] Standardised standardise(const std::vector<double>& z,
                                        const std::vector<std::string>& labels);
 

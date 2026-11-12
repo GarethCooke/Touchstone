@@ -6,6 +6,7 @@
 // failure here is a failure of internal consistency rather than of agreement.
 
 #include "golden_file.hpp"
+#include "forward_contract.hpp"
 #include "greek_fields.hpp"
 
 #include <touchstone/black_scholes.hpp>
@@ -41,28 +42,13 @@ using touchstone::testing::Worst;
 ///     dividend_rho_c - dividend_rho_p = -T F
 constexpr const auto& identities = touchstone::testing::greek_fields;
 
-std::array<double, 7> expected_differences(const EuropeanVanilla& option,
-                                           const BlackScholesMarket& market)
-{
-    const double t = option.expiry_years;
-    const double discounted_spot = market.spot * std::exp(-market.dividend_yield * t);
-    const double discounted_strike = option.strike * std::exp(-market.rate * t);
-    return {
-        discounted_spot - discounted_strike,
-        std::exp(-market.dividend_yield * t),
-        0.0,
-        0.0,
-        market.dividend_yield * discounted_spot - market.rate * discounted_strike,
-        t * discounted_strike,
-        -t * discounted_spot,
-    };
-}
+
 
 void sweep(const std::vector<GoldenCase>& rows, double tolerance, const char* what)
 {
     REQUIRE_FALSE(rows.empty());
 
-    std::array<Worst, identities.size()> worst{};
+    touchstone::testing::WorstPerField worst;
     std::size_t pairs = 0;
 
     for (const GoldenCase& row : rows) {
@@ -76,27 +62,20 @@ void sweep(const std::vector<GoldenCase>& rows, double tolerance, const char* wh
 
         const PriceAndGreeks call_side = touchstone::price_and_greeks(row.option, row.market);
         const PriceAndGreeks put_side = touchstone::price_and_greeks(put, row.market);
-        const std::array<double, 7> expected = expected_differences(row.option, row.market);
+        const PriceAndGreeks expected = touchstone::testing::forward_contract(row.option, row.market);
 
         for (std::size_t f = 0; f < identities.size(); ++f) {
             const double difference =
                 call_side.*(identities[f].value) - put_side.*(identities[f].value);
-            worst[f].observe(difference, expected[f], row);
+            worst.observe(f, difference, expected.*(identities[f].value), row);
         }
     }
 
-    std::ostringstream report;
-    report << what << ": " << pairs << " call/put pairs at tolerance " << tolerance
+    std::ostringstream header;
+    header << what << ": " << pairs << " call/put pairs at tolerance " << tolerance
            << "; worst scaled departure from the identity";
-    for (std::size_t f = 0; f < identities.size(); ++f) {
-        report << "\n    " << std::left << std::setw(14) << identities[f].name << std::right
-               << std::scientific << std::setprecision(3) << worst[f].error();
-    }
-    MESSAGE(report.str());
-
-    for (std::size_t f = 0; f < identities.size(); ++f) {
-        CHECK_MESSAGE(worst[f].error() <= tolerance, worst[f].describe(identities[f].name));
-    }
+    MESSAGE(worst.report(header.str()));
+    worst.check(tolerance);
 }
 
 }  // namespace
@@ -146,7 +125,8 @@ TEST_SUITE("parity")
                     CAPTURE(expiry);
                     CAPTURE(strike);
                     CHECK(touchstone::testing::scaled_error(
-                              difference, expected_differences(call, market)[0]) <= tolerance);
+                              difference, touchstone::testing::forward_contract(call, market).price)
+                          <= tolerance);
                 }
             }
         }

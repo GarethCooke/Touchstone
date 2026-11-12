@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "row_inputs.hpp"
+
 #include <touchstone/black_scholes.hpp>
 #include <touchstone/contract.hpp>
 
@@ -37,15 +39,6 @@ std::string require_schema(const nlohmann::json& document, const char* expected,
 
 /// `"call"` or `"put"`; anything else throws.
 [[nodiscard]] OptionType read_option_type(const nlohmann::json& row, const char* what);
-
-/// A row's contract, its market and its expiry in days, as both golden files
-/// write them.
-template <Exercise E>
-struct RowInputs {
-    Vanilla<E> option{};
-    BlackScholesMarket market{};
-    int expiry_days{};
-};
 
 template <Exercise E>
 [[nodiscard]] RowInputs<E> read_inputs(const nlohmann::json& row, const char* what)

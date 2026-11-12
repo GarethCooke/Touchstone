@@ -17,6 +17,7 @@
 #include <touchstone/paths.hpp>
 #include <touchstone/rng.hpp>
 
+#include <cstddef>
 #include <cstdint>
 #include <span>
 
@@ -35,8 +36,12 @@ public:
     /// `1 + mu dt + sigma sqrt(dt) z` under Euler-Maruyama.
     [[nodiscard]] double factor(double z) const noexcept;
 
+    /// The step's length.
+    [[nodiscard]] double dt() const noexcept { return dt_; }
+
 private:
     Scheme scheme_;
+    double dt_;
     double drift_term_;  ///< `mu dt - (sigma sqrt(dt))^2 / 2` exactly; `mu dt` under Euler.
     double diffusion_;   ///< `sigma sqrt(dt)`.
 };
@@ -50,18 +55,39 @@ private:
     return (current == 0.0 || factor == 0.0) ? 0.0 : current * factor;
 }
 
-/// `from`, advanced by one step per normal, each normal multiplied by `sign` —
-/// the antithetic partner of a path is the same path with `sign = -1`, which is
-/// why this exists rather than a second buffer holding the negated draws.
-[[nodiscard]] double grow(const GbmStep& step,
-                          double from,
-                          std::span<const double> normals,
-                          double sign) noexcept;
+/// `from`, advanced by one step per normal, each normal multiplied by `sign`,
+/// with `visit(k, value)` called on the value after the k-th step. The one walk
+/// behind both a path written out and a path read only at its end. The
+/// antithetic partner of a path is the same path with `sign = -1`, which is why
+/// the sign is here rather than in a second buffer holding the negated draws.
+template <class Visit>
+double walk(const GbmStep& step,
+            double from,
+            std::span<const double> normals,
+            double sign,
+            Visit visit) noexcept
+{
+    double value = from;
+    for (std::size_t k = 0; k < normals.size(); ++k) {
+        value = advance(value, step.factor(sign * normals[k]));
+        visit(k, value);
+    }
+    return value;
+}
+
+/// The value at the end of the walk, and nothing along the way.
+[[nodiscard]] inline double grow(const GbmStep& step,
+                                 double from,
+                                 std::span<const double> normals,
+                                 double sign) noexcept
+{
+    return walk(step, from, normals, sign, [](std::size_t, double) {});
+}
 
 /// The shared generator, and the scheme its normals are stepped by.
 class PathGenerator {
 public:
-    PathGenerator(std::uint32_t seed, Scheme scheme, double drift, double vol, double dt) noexcept;
+    PathGenerator(std::uint32_t seed, const GbmStep& step) noexcept;
 
     /// The next `normals.size()` normals of the stream, in order.
     void draw(std::span<double> normals) noexcept;

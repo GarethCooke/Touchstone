@@ -8,6 +8,13 @@
 namespace touchstone {
 namespace {
 
+/// Three bands of one non-zero length.
+[[nodiscard]] bool bands_conform(const Tridiagonal& matrix) noexcept
+{
+    const std::size_t n = matrix.diag.size();
+    return n > 0 && matrix.sub.size() == n && matrix.sup.size() == n;
+}
+
 /// Every span the same non-zero length, and no aliasing between the two the
 /// algorithm reads and writes in the same sweep.
 void require_conformable(const Tridiagonal& matrix,
@@ -20,8 +27,8 @@ void require_conformable(const Tridiagonal& matrix,
         throw std::invalid_argument("tridiagonal: the system is empty");
     }
     const auto same = [n](std::size_t other) { return other == n; };
-    if (!same(matrix.sub.size()) || !same(matrix.sup.size()) || !same(rhs.size())
-        || !same(solution.size()) || !same(scratch.size())) {
+    if (!bands_conform(matrix) || !same(rhs.size()) || !same(solution.size())
+        || !same(scratch.size())) {
         throw std::invalid_argument(
             "tridiagonal: sub, diag, sup, rhs, solution and scratch must all have length "
             + std::to_string(n));
@@ -32,10 +39,10 @@ void require_conformable(const Tridiagonal& matrix,
 
 double dominance_margin(const Tridiagonal& matrix) noexcept
 {
-    const std::size_t n = matrix.diag.size();
-    if (n == 0 || matrix.sub.size() != n || matrix.sup.size() != n) {
+    if (!bands_conform(matrix)) {
         return std::numeric_limits<double>::quiet_NaN();
     }
+    const std::size_t n = matrix.diag.size();
 
     double margin = std::numeric_limits<double>::infinity();
     for (std::size_t i = 0; i < n; ++i) {

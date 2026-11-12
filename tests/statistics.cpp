@@ -22,18 +22,9 @@ Standardised standardise(const std::vector<double>& z, const std::vector<std::st
     result.count = z.size();
 
     const double n = static_cast<double>(z.size());
-    double sum = 0.0;
-    for (const double value : z) {
-        sum += value;
-    }
-    result.mean = sum / n;
-
-    double sum_squares = 0.0;
-    for (const double value : z) {
-        const double centred = value - result.mean;
-        sum_squares += centred * centred;
-    }
-    result.standard_deviation = std::sqrt(sum_squares / (n - 1.0));
+    const Moments sample = moments(z);
+    result.mean = sample.mean;
+    result.standard_deviation = std::sqrt(sample.variance);
 
     for (std::size_t i = 0; i < z.size(); ++i) {
         const double magnitude = std::abs(z[i]);
@@ -51,20 +42,58 @@ Standardised standardise(const std::vector<double>& z, const std::vector<std::st
 
     // Bonferroni: a one-in-ten-thousand chance that any of the n rows exceeds
     // this, if every row really is a standard normal draw.
-    result.worst_bound = -norm_inv(1e-4 / (2.0 * n));
+    result.worst_bound = bonferroni_bound(1e-4, n);
 
     return result;
 }
 
+Moments moments(const std::vector<double>& values)
+{
+    const double n = static_cast<double>(values.size());
+    double sum = 0.0;
+    for (const double value : values) {
+        sum += value;
+    }
+    Moments out{};
+    out.mean = sum / n;
+
+    double sum_squares = 0.0;
+    for (const double value : values) {
+        const double centred = value - out.mean;
+        sum_squares += centred * centred;
+    }
+    out.variance = sum_squares / (n - 1.0);
+    return out;
+}
+
+double bonferroni_bound(double family, double count)
+{
+    return -norm_inv(family / (2.0 * count));
+}
+
+bool within_poisson(double observed, double expected, double k)
+{
+    return std::abs(observed - expected) <= k * std::sqrt(expected) + 1.0;
+}
+
+double Standardised::mean_bound(double k) const noexcept
+{
+    return k / std::sqrt(static_cast<double>(count));
+}
+
+double Standardised::standard_deviation_bound(double k) const noexcept
+{
+    return k / std::sqrt(2.0 * static_cast<double>(count));
+}
+
 std::string Standardised::report(const char* what) const
 {
-    const double n = static_cast<double>(count);
     std::ostringstream out;
     out << std::fixed << std::setprecision(3);
     out << what << ": " << count << " rows in standard-error units"
-        << "\n    mean          " << mean << "   (0 +/- " << 1.0 / std::sqrt(n) << " expected)"
+        << "\n    mean          " << mean << "   (0 +/- " << mean_bound(1.0) << " expected)"
         << "\n    sd            " << standard_deviation << "   (1 +/- "
-        << 1.0 / std::sqrt(2.0 * n) << " expected)"
+        << standard_deviation_bound(1.0) << " expected)"
         << "\n    beyond 3 SE   " << beyond_three << "   (" << expected_beyond_three << " +/- "
         << std::sqrt(expected_beyond_three) << " expected)"
         << "\n    worst |z|     " << worst << "   (bound " << worst_bound << ")"

@@ -61,11 +61,11 @@
 #pragma once
 
 #include <touchstone/black_scholes.hpp>
+#include <touchstone/detail/callable.hpp>
+#include <touchstone/detail/differences.hpp>
 
 #include <array>
-#include <concepts>
 #include <cstddef>
-#include <type_traits>
 
 namespace touchstone {
 
@@ -73,10 +73,7 @@ namespace touchstone {
 /// `double(const EuropeanVanilla&, const BlackScholesMarket&)`, or as anything
 /// whose result converts to `double`.
 template <class P>
-concept VanillaPricer =
-    std::invocable<P&, const EuropeanVanilla&, const BlackScholesMarket&>
-    && std::convertible_to<std::invoke_result_t<P&, const EuropeanVanilla&, const BlackScholesMarket&>,
-                           double>;
+concept VanillaPricer = detail::returns_double<P, const EuropeanVanilla&, const BlackScholesMarket&>;
 
 /// How far to move each input. Relative for the spot, which ranges over orders
 /// of magnitude; absolute for the rest, which are rates and times of order one
@@ -182,7 +179,7 @@ template <VanillaPricer Pricer>
     }
 
     const auto central = [&](detail::Bumped up, detail::Bumped down, double width) {
-        return (value[up] - value[down]) / (2.0 * width);
+        return detail::central_first(value[up], value[down], width);
     };
 
     PriceAndGreeks out{};
@@ -190,8 +187,8 @@ template <VanillaPricer Pricer>
     // Delta and gamma, from two bumps of different sizes. Sharing a bump would
     // cost an order of magnitude on one of them.
     out.delta = central(detail::DeltaUp, detail::DeltaDown, bumped.delta_spot);
-    out.gamma = (value[detail::GammaUp] - 2.0 * base + value[detail::GammaDown])
-                / (bumped.gamma_spot * bumped.gamma_spot);
+    out.gamma = detail::central_second(value[detail::GammaUp], base, value[detail::GammaDown],
+                                       bumped.gamma_spot);
     out.vega = central(detail::VolUp, detail::VolDown, sizes.vol_absolute);
     out.rho = central(detail::RateUp, detail::RateDown, sizes.rate_absolute);
     out.dividend_rho = central(detail::YieldUp, detail::YieldDown, sizes.dividend_yield_absolute);

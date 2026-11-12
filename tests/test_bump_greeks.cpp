@@ -13,6 +13,7 @@
 // sweep here measures that shape rather than taking it on faith, which is what
 // makes the defaults evidence rather than folklore.
 
+#include "grid_bumps.hpp"
 #include "golden_file.hpp"
 #include "greek_fields.hpp"
 #include "sweep.hpp"
@@ -43,7 +44,7 @@ using touchstone::PriceAndGreeks;
 using touchstone::testing::GoldenCase;
 using touchstone::testing::Worst;
 
-constexpr std::size_t grid_stride = touchstone::testing::sweep_scale;
+using touchstone::testing::sweep_scale;
 
 constexpr const auto& fields = touchstone::testing::greek_fields;
 
@@ -52,7 +53,7 @@ constexpr const auto& fields = touchstone::testing::greek_fields;
 /// between them is the point: a first difference reaches `eps^(2/3)` and a
 /// second only `eps^(1/2)`, so gamma is two orders looser than delta and no
 /// tolerance can hide that.
-constexpr std::array<double, fields.size()> tolerance{0.0, 1e-9, 1e-7, 1e-7, 1e-8, 1e-8, 1e-8};
+constexpr touchstone::testing::GreekTolerances tolerance{0.0, 1e-9, 1e-7, 1e-7, 1e-8, 1e-8, 1e-8};
 
 }  // namespace
 
@@ -62,11 +63,11 @@ TEST_SUITE("bump-greeks")
     {
         const auto& file = touchstone::testing::golden_file();
 
-        std::array<Worst, fields.size()> worst{};
+        touchstone::testing::WorstPerField worst;
         std::size_t rows = 0;
         std::size_t refused = 0;
 
-        for (std::size_t i = 0; i < file.cases.size(); i += grid_stride) {
+        for (std::size_t i = 0; i < file.cases.size(); i += sweep_scale) {
             const GoldenCase& row = file.cases[i];
             PriceAndGreeks bumped{};
             try {
@@ -76,31 +77,20 @@ TEST_SUITE("bump-greeks")
                 continue;
             }
             ++rows;
-            const PriceAndGreeks analytic = touchstone::price_and_greeks(row.option, row.market);
-            for (std::size_t f = 0; f < fields.size(); ++f) {
-                worst[f].observe(bumped.*(fields[f].value), analytic.*(fields[f].value), row);
-            }
+            worst.observe(bumped, touchstone::price_and_greeks(row.option, row.market), row);
         }
 
-        std::ostringstream report;
-        report << "bumped vs analytic over " << rows << " rows (" << refused
+        std::ostringstream header;
+        header << "bumped vs analytic over " << rows << " rows (" << refused
                << " refused: a bump would have left the domain)";
-        for (std::size_t f = 0; f < fields.size(); ++f) {
-            report << "\n    " << std::left << std::setw(14) << fields[f].name << std::right
-                   << std::scientific << std::setprecision(3) << worst[f].error() << "   tolerance "
-                   << tolerance[f];
-        }
-        MESSAGE(report.str());
+        MESSAGE(worst.report(header.str(), &tolerance));
 
-        CHECK(rows > 7000u / grid_stride);
-        for (std::size_t f = 0; f < fields.size(); ++f) {
-            CAPTURE(fields[f].name);
-            CHECK_MESSAGE(worst[f].error() <= tolerance[f], worst[f].describe(fields[f].name));
-        }
+        CHECK(rows > 7000u / sweep_scale);
+        worst.check(tolerance);
         // The price is not a difference quotient at all: it is the pricer's own
         // answer, passed through. Anything but zero means the wrong call was
         // returned.
-        CHECK(worst[0].error() == 0.0);
+        CHECK(worst.error(0) == 0.0);
     }
 
     TEST_CASE("the bump size has an optimum, and it is where the analysis says")
@@ -157,8 +147,7 @@ TEST_SUITE("bump-greeks")
                         const PriceAndGreeks analytic = touchstone::price_and_greeks(option, market);
                         const double reference = analytic.*(fields[axis.field].value);
                         const double got = bumped.*(fields[axis.field].value);
-                        worst = std::max(worst, std::abs(got - reference)
-                                                    / std::max(std::abs(reference), 1.0));
+                        worst = std::max(worst, touchstone::testing::scaled_error(got, reference));
                     }
                 }
                 measured.push_back(worst);
@@ -208,18 +197,9 @@ TEST_SUITE("bump-greeks")
         const EuropeanVanilla call{100.0, 1.0, OptionType::Call};
 
         touchstone::PdeSettings grid{};
-        const auto on_the_grid = [&](const EuropeanVanilla& option,
-                                     const BlackScholesMarket& state) {
-            return touchstone::crank_nicolson(option, state, grid).price;
-        };
+        const auto on_the_grid = touchstone::testing::grid_pricer(grid);
 
-        BumpSizes wide{};
-        wide.spot_relative = 1e-3;
-        wide.spot_relative_for_gamma = 1e-2;
-        wide.vol_absolute = 1e-3;
-        wide.rate_absolute = 1e-3;
-        wide.dividend_yield_absolute = 1e-3;
-        wide.expiry_absolute = 1e-3;
+        const BumpSizes wide = touchstone::testing::grid_bumps();
 
         const PriceAndGreeks analytic = touchstone::price_and_greeks(call, market);
         const PriceAndGreeks bumped = touchstone::bump_greeks(call, market, wide, on_the_grid);
@@ -230,7 +210,7 @@ TEST_SUITE("bump-greeks")
         for (std::size_t f = 1; f < fields.size(); ++f) {
             const double reference = analytic.*(fields[f].value);
             const double got = bumped.*(fields[f].value);
-            const double error = std::abs(got - reference) / std::max(std::abs(reference), 1.0);
+            const double error = touchstone::testing::scaled_error(got, reference);
             worst = std::max(worst, error);
             report << "\n    " << std::left << std::setw(14) << fields[f].name << std::right
                    << std::fixed << std::setprecision(8) << std::setw(16) << got << " vs "
@@ -252,9 +232,7 @@ TEST_SUITE("bump-greeks")
         // to be, and at a bump of 1e-9 that is a relative error of twenty-six
         // thousand.
         const PriceAndGreeks too_fine = touchstone::bump_greeks(call, market, {}, on_the_grid);
-        const auto relative = [](double got, double reference) {
-            return std::abs(got - reference) / std::abs(reference);
-        };
+        const auto relative = touchstone::testing::relative_error;
         const double fine_gamma = relative(too_fine.gamma, analytic.gamma);
         const double wide_gamma = relative(bumped.gamma, analytic.gamma);
         const double fine_delta = relative(too_fine.delta, analytic.delta);

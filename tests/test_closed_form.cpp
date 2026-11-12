@@ -33,26 +33,16 @@ void sweep(const std::vector<GoldenCase>& rows, double tolerance, const char* wh
 {
     REQUIRE_FALSE(rows.empty());
 
-    std::array<Worst, fields.size()> worst{};
+    touchstone::testing::WorstPerField worst;
     for (const GoldenCase& row : rows) {
-        const PriceAndGreeks computed = touchstone::price_and_greeks(row.option, row.market);
-        for (std::size_t f = 0; f < fields.size(); ++f) {
-            worst[f].observe(computed.*(fields[f].value), row.reference.*(fields[f].value), row);
-        }
+        worst.observe(touchstone::price_and_greeks(row.option, row.market), row.reference, row);
     }
 
-    std::ostringstream report;
-    report << what << ": " << rows.size() << " rows at tolerance " << tolerance
+    std::ostringstream header;
+    header << what << ": " << rows.size() << " rows at tolerance " << tolerance
            << "; worst scaled error per field";
-    for (std::size_t f = 0; f < fields.size(); ++f) {
-        report << "\n    " << std::left << std::setw(14) << fields[f].name << std::right
-               << std::scientific << std::setprecision(3) << worst[f].error();
-    }
-    MESSAGE(report.str());
-
-    for (std::size_t f = 0; f < fields.size(); ++f) {
-        CHECK_MESSAGE(worst[f].error() <= tolerance, worst[f].describe(fields[f].name));
-    }
+    MESSAGE(worst.report(header.str()));
+    worst.check(tolerance);
 }
 
 }  // namespace
@@ -133,8 +123,7 @@ TEST_SUITE("closed-form")
         std::size_t differing = 0;
         for (const auto* block : {&file.cases, &file.edge_cases}) {
             for (const GoldenCase& row : *block) {
-                const touchstone::QuotedMarket quoted{row.market.spot, row.market.rate,
-                                                      row.market.dividend_yield};
+                const auto quoted = touchstone::QuotedMarket::of(row.market);
                 const touchstone::ClosedFormQuote quote(row.option, quoted);
                 const PriceAndGreeks reused = quote.at(row.market.vol).price_and_greeks();
                 const PriceAndGreeks direct = touchstone::price_and_greeks(row.option, row.market);
@@ -187,8 +176,7 @@ TEST_SUITE("closed-form")
             CHECK_THROWS_AS(touchstone::require_valid(input.option, input.market),
                             std::invalid_argument);
             CHECK_THROWS_AS(ClosedForm(input.option, input.market), std::invalid_argument);
-            const QuotedMarket quoted{input.market.spot, input.market.rate,
-                                      input.market.dividend_yield};
+            const auto quoted = QuotedMarket::of(input.market);
             if (input.volatility_is_the_fault) {
                 const ClosedFormQuote quote(input.option, quoted);
                 CHECK_THROWS_AS(static_cast<void>(quote.at(input.market.vol)),

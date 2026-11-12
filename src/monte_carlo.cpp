@@ -12,7 +12,40 @@
 namespace touchstone {
 namespace {
 
-/// Welford's running mean and second moment.
+/// A contribution that is not finite, held aside rather than added.
+///
+/// Adding an infinity is where two of them of opposite signs could meet and
+/// make a NaN — the antithetic halves of one sample, or two samples in a run —
+/// and a NaN compares false against every tolerance a caller might test it
+/// with, which is the failure the closed form rules out too. The first
+/// non-finite contribution is kept and reported in place of the total: saturated,
+/// and comparing correctly. Its sign is not a number to read anything into —
+/// under Euler a step's factor goes negative whenever its normal is far enough
+/// below zero, so a path's growth factor can be negative and a put's pathwise
+/// delta positive — and the caller's signal is the infinite standard error
+/// beside it.
+class HeldAside {
+public:
+    /// True, and `x` held if nothing was already, when `x` is not finite.
+    bool holds(double x) noexcept
+    {
+        if (std::isfinite(x)) {
+            return false;
+        }
+        if (value_ == 0.0) {
+            value_ = x;
+        }
+        return true;
+    }
+
+    [[nodiscard]] bool any() const noexcept { return value_ != 0.0; }
+    [[nodiscard]] double value() const noexcept { return value_; }
+
+private:
+    double value_{0.0};
+};
+
+/// Welford's running mean and second moment, over the samples.
 ///
 /// The textbook alternative — accumulate the sum and the sum of squares, then
 /// subtract — loses the variance to cancellation exactly where it is wanted:
@@ -24,23 +57,9 @@ public:
     void add(double x) noexcept
     {
         ++count_;
-        if (!std::isfinite(x)) {
-            // A payoff that overflowed a double. Left to Welford, the next two
-            // lines would turn it into a NaN — `inf * (inf - inf)` — and a NaN
-            // compares false against every tolerance a caller might test it
-            // with, which is the failure mode the closed form rules out too.
-            // The infinity is kept instead and reported as both the mean and an
-            // infinite standard error: saturated, and comparing correctly.
-            //
-            // Whichever arrived last. Two infinities of opposite signs can
-            // reach the same accumulator — under Euler a step's factor goes
-            // negative whenever its normal is far enough below zero, so a
-            // path's growth factor can be negative and a put's pathwise delta
-            // positive — and adding them would give back the NaN this exists to
-            // prevent. The caller's signal is the infinite standard error
-            // beside it; the sign of a saturated estimate is not a number to
-            // read anything into.
-            overflowed_ = x;
+        // Left to Welford, a payoff that overflowed would become a NaN in the
+        // next two lines — `inf * (inf - inf)`.
+        if (overflowed_.holds(x)) {
             return;
         }
         const double delta = x - mean_;
@@ -52,7 +71,7 @@ public:
 
     [[nodiscard]] double mean() const noexcept
     {
-        return (overflowed_ == 0.0) ? mean_ : overflowed_;
+        return overflowed_.any() ? overflowed_.value() : mean_;
     }
 
     /// The standard error of the mean: `s / sqrt(n)` with `s` the sample
@@ -61,7 +80,7 @@ public:
     /// the reason `MonteCarloResult::in_the_money` is reported beside it.
     [[nodiscard]] double standard_error() const noexcept
     {
-        if (overflowed_ != 0.0) {
+        if (overflowed_.any()) {
             return std::numeric_limits<double>::infinity();
         }
         if (count_ < 2) {
@@ -75,23 +94,17 @@ private:
     std::size_t count_{0};
     double mean_{0.0};
     double m2_{0.0};
-    double overflowed_{0.0};  ///< The first non-finite sample seen, if any.
+    HeldAside overflowed_;
 };
 
-/// One sample's total over its paths — one path, or an antithetic pair.
-///
-/// A path whose contribution is not finite is held aside rather than added.
-/// Adding is where the two halves of an antithetic pair could be an infinity
-/// each, of opposite signs, and their sum a NaN — the one case the
-/// accumulator's own guard is too late to see.
+/// One sample's total over its paths — one path, or an antithetic pair — with
+/// a contribution that is not finite held aside rather than added.
 class SampleTotal {
 public:
     void add(double x) noexcept
     {
-        if (std::isfinite(x)) {
+        if (!overflowed_.holds(x)) {
             sum_ += x;
-        } else if (overflow_ == 0.0) {
-            overflow_ = x;
         }
     }
 
@@ -99,20 +112,33 @@ public:
     /// was held aside.
     [[nodiscard]] double value(double paths) const noexcept
     {
-        return overflow_ != 0.0 ? overflow_ : sum_ / paths;
+        return overflowed_.any() ? overflowed_.value() : sum_ / paths;
     }
 
 private:
     double sum_{0.0};
-    double overflow_{0.0};
+    HeldAside overflowed_;
 };
 
-/// The exact step over a whole expiry, with drift `drift`.
-[[nodiscard]] detail::GbmStep exact_over(const BlackScholesMarket& market,
-                                         double expiry_years,
-                                         double drift) noexcept
+/// The risk-neutral step under `scheme`: drift `r - q`, the market's
+/// volatility, the expiry in `steps` equal pieces.
+[[nodiscard]] detail::GbmStep risk_neutral_step(const BlackScholesMarket& market,
+                                                Scheme scheme,
+                                                double expiry_years,
+                                                std::size_t steps) noexcept
 {
-    return detail::GbmStep(Scheme::ExactTerminal, drift, market.vol, expiry_years);
+    return detail::GbmStep(scheme, detail::carry_rate(market.rate, market.dividend_yield),
+                           market.vol, expiry_years / static_cast<double>(steps));
+}
+
+/// The exact step of the *discounted* spot over the whole expiry: `e^{-rT}`
+/// times the growth factor, with the r cancelling inside the exponent, so that
+/// the discounted spot grows at -q.
+[[nodiscard]] detail::GbmStep discounted_exact_step(const BlackScholesMarket& market,
+                                                    double expiry_years) noexcept
+{
+    return detail::GbmStep(Scheme::ExactTerminal, -market.dividend_yield, market.vol,
+                           expiry_years);
 }
 
 }  // namespace
@@ -136,17 +162,14 @@ double terminal_growth_exact(const BlackScholesMarket& market,
                              double expiry_years,
                              double z) noexcept
 {
-    return exact_over(market, expiry_years, detail::carry_rate(market.rate, market.dividend_yield))
-        .factor(z);
+    return risk_neutral_step(market, Scheme::ExactTerminal, expiry_years, 1).factor(z);
 }
 
 double discounted_growth_exact(const BlackScholesMarket& market,
                                double expiry_years,
                                double z) noexcept
 {
-    // e^{-rT} times the growth factor, with the r cancelling inside the
-    // exponent: the discounted spot grows at -q.
-    return exact_over(market, expiry_years, -market.dividend_yield).factor(z);
+    return discounted_exact_step(market, expiry_years).factor(z);
 }
 
 double terminal_growth_euler(const BlackScholesMarket& market,
@@ -156,10 +179,9 @@ double terminal_growth_euler(const BlackScholesMarket& market,
     if (normals.empty()) {
         return 1.0;
     }
-    const detail::GbmStep step(Scheme::EulerMaruyama,
-                               detail::carry_rate(market.rate, market.dividend_yield), market.vol,
-                               expiry_years / static_cast<double>(normals.size()));
-    return detail::grow(step, 1.0, normals, 1.0);
+    return detail::grow(
+        risk_neutral_step(market, Scheme::EulerMaruyama, expiry_years, normals.size()), 1.0,
+        normals, 1.0);
 }
 
 double terminal_spot(const BlackScholesMarket& market, double growth) noexcept
@@ -194,14 +216,17 @@ MonteCarloResult monte_carlo(const EuropeanVanilla& option,
                              const BlackScholesMarket& market,
                              const MonteCarloSettings& settings)
 {
-    require_valid(option, market);
+    // The closed form's domain, through its volatility-free half, which also
+    // carries the discount factor and the discounted strike this needs.
+    const ClosedFormQuote quote(option, QuotedMarket::of(market));
+    quote.require_valid(market.vol);
     require_valid(settings);
 
     const double expiry = option.expiry_years;
 
     // One condition beyond the closed form's, and it is the closed form's own
     // arithmetic that makes it necessary rather than any sloppiness here: the
-    // total variance must be representable. `require_valid` guards
+    // total variance must be representable. The closed form guards
     // `0.5 * sigma * sigma`, which C++ groups as `(0.5 sigma) sigma` and which
     // therefore survives a volatility that `sigma sqrt(T)` squared does not, by
     // a factor of the square root of two. Between those two bounds every path
@@ -214,7 +239,7 @@ MonteCarloResult monte_carlo(const EuropeanVanilla& option,
             "drawn; the closed form prices this input and this does not");
     }
 
-    const double discount = detail::discount_factor(market.rate, expiry);
+    const double discount = quote.discount_factor();
     const bool exact = (settings.scheme == Scheme::ExactTerminal);
 
     // A path is one step of the whole expiry under the exact scheme, and
@@ -222,10 +247,9 @@ MonteCarloResult monte_carlo(const EuropeanVanilla& option,
     // value at the end is the factor the spot grows by, which the pathwise
     // delta needs.
     const std::size_t steps = exact ? 1u : settings.steps;
-    detail::PathGenerator generator(settings.seed, settings.scheme,
-                                    detail::carry_rate(market.rate, market.dividend_yield),
-                                    market.vol, expiry / static_cast<double>(steps));
-    const detail::GbmStep discounted_exact = exact_over(market, expiry, -market.dividend_yield);
+    detail::PathGenerator generator(settings.seed,
+                                    risk_neutral_step(market, settings.scheme, expiry, steps));
+    const detail::GbmStep discounted_exact = discounted_exact_step(market, expiry);
 
     const std::size_t paths_per_sample = settings.antithetic ? 2u : 1u;
     const std::size_t samples = settings.paths / paths_per_sample;
@@ -282,11 +306,11 @@ MonteCarloResult monte_carlo(const EuropeanVanilla& option,
                 // had a perfectly good finite value, and where the discount
                 // underflowed to zero it is a NaN. Both are recovered the same
                 // way, by taking the discount inside:
-                // w (S e^{-rT} S_T/S - K e^{-rT}), whose second term
-                // `require_valid` has already guaranteed is representable.
+                // w (S e^{-rT} S_T/S - K e^{-rT}), whose second term the
+                // closed form's domain has already guaranteed is representable.
                 discounted_payoff =
                     option_sign(option.type)
-                    * (terminal_spot(market, discounted_growth) - option.strike * discount);
+                    * (terminal_spot(market, discounted_growth) - quote.discounted_strike());
             }
 
             // The discounted growth factor goes in where the raw one would, so

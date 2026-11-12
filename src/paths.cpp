@@ -12,9 +12,9 @@ namespace detail {
 
 GbmStep::GbmStep(Scheme scheme, double drift, double vol, double dt) noexcept
     : scheme_(scheme),
-      drift_term_(scheme == Scheme::ExactTerminal
-                      ? drift_time(drift, dt) - 0.5 * total_variance(vol, dt)
-                      : drift_time(drift, dt)),
+      dt_(dt),
+      drift_term_(scheme == Scheme::ExactTerminal ? log_drift_time(drift, vol, dt)
+                                                  : drift_time(drift, dt)),
       diffusion_(total_volatility(vol, dt))
 {
 }
@@ -27,19 +27,10 @@ double GbmStep::factor(double z) const noexcept
     return 1.0 + drift_term_ + diffusion_ * z;
 }
 
-double grow(const GbmStep& step, double from, std::span<const double> normals, double sign) noexcept
-{
-    double value = from;
-    for (const double z : normals) {
-        value = advance(value, step.factor(sign * z));
-    }
-    return value;
-}
-
-PathGenerator::PathGenerator(std::uint32_t seed, Scheme scheme, double drift, double vol, double dt) noexcept
+PathGenerator::PathGenerator(std::uint32_t seed, const GbmStep& step) noexcept
     : rng_(seed),
-      step_(scheme, drift, vol, dt),
-      sqrt_dt_(std::sqrt(dt))
+      step_(step),
+      sqrt_dt_(std::sqrt(step.dt()))
 {
 }
 
@@ -64,11 +55,12 @@ void PathGenerator::write_brownian(std::span<double> path) noexcept
 
 void PathGenerator::write_gbm(double spot, std::span<double> path) noexcept
 {
+    // As for a Brownian path, the normals are drawn into the path itself and
+    // each is read, as the factor's argument, before its slot is written.
     path[0] = spot;
-    draw(path.subspan(1));
-    for (std::size_t k = 1; k < path.size(); ++k) {
-        path[k] = advance(path[k - 1], step_.factor(path[k]));
-    }
+    const std::span<double> steps = path.subspan(1);
+    draw(steps);
+    walk(step_, spot, steps, 1.0, [steps](std::size_t k, double value) { steps[k] = value; });
 }
 
 }  // namespace detail
@@ -122,8 +114,8 @@ void brownian_path(const PathGrid& grid, std::span<double> path)
     require_valid(grid, path.size());
     // The process plays no part in a Brownian path; a generator needs one, and
     // this one is never asked for a factor.
-    detail::PathGenerator generator(grid.seed, Scheme::ExactTerminal, 0.0, 0.0,
-                                    step_of(grid, path.size()));
+    detail::PathGenerator generator(
+        grid.seed, detail::GbmStep(Scheme::ExactTerminal, 0.0, 0.0, step_of(grid, path.size())));
     generator.write_brownian(path);
 }
 
@@ -133,8 +125,9 @@ void gbm_path(const PathGrid& grid,
               std::span<double> path)
 {
     require_valid(grid, dynamics, path.size());
-    detail::PathGenerator generator(grid.seed, scheme, dynamics.drift, dynamics.vol,
-                                    step_of(grid, path.size()));
+    detail::PathGenerator generator(
+        grid.seed,
+        detail::GbmStep(scheme, dynamics.drift, dynamics.vol, step_of(grid, path.size())));
     generator.write_gbm(dynamics.spot, path);
 }
 
