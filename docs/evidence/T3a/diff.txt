@@ -8,8 +8,8 @@ to the branch head, docs/evidence/T3a/ included
  docs/evidence/T3a/diff.txt                   |  73 +++++
  docs/evidence/T3a/history.md                 |  19 ++
  docs/evidence/T3a/review.md                  |  93 ++++++
- docs/evidence/T3a/summary.md                 | 370 +++++++++++++++++++++
- docs/evidence/T3a/tests.txt                  | 240 ++++++++++++++
+ docs/evidence/T3a/summary.md                 | 373 +++++++++++++++++++++
+ docs/evidence/T3a/tests.txt                  | 249 ++++++++++++++
  docs/evidence/T3a/timing.txt                 | 381 ++++++++++++++++++++++
  golden/README.md                             |   7 +-
  golden/generate_paths.py                     | 301 +++++++++++++++++
@@ -70,4 +70,4 @@ to the branch head, docs/evidence/T3a/ included
  tests/test_rng.cpp                           |  26 +-
  tests/test_three_way.cpp                     | 108 +++---
  tests/test_tridiagonal.cpp                   |  20 +-
- 69 files changed, 6625 insertions(+), 1746 deletions(-)
+ 69 files changed, 6637 insertions(+), 1746 deletions(-)

@@ -300,7 +300,10 @@ number the suite reports.
 
    Under Euler that is 59% of the loss recovered, and 2.9 ms (10%) still behind `main`. At
    the defaults it is 6 µs from `main`, inside the spread of `main`'s own runs.
-6. **CI**: pending; recorded below when the run completes.
+6. **CI is green on `94217ec`**, whose code is `12243b7`'s (run 43322679034): gcc 13.3
+   and clang 18.1.3 18/18 ctest entries with no warning, GCC ASan+UBSan 18/18, and the golden
+   job, which regenerated the path fixture byte for byte (`tests.txt` §8). The commit after
+   it changes only this pack.
 
 **Decisions** (each *Decision — owner may overrule*)
 
