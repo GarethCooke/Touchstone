@@ -19,6 +19,7 @@
 #include "golden_file.hpp"
 #include "rng_fixture.hpp"
 #include "statistics.hpp"
+#include "sweep.hpp"
 
 #include <touchstone/black_scholes.hpp>
 #include <touchstone/monte_carlo.hpp>
@@ -37,15 +38,6 @@
 #include <string>
 #include <vector>
 
-// How much of the grid the sweeps walk: one row in every `TOUCHSTONE_SWEEP_SCALE`.
-// One by default, so the whole grid; CI's sanitizer job sets it higher, for the
-// reason `CMakeLists.txt` gives where the option is declared. Every bound in
-// this file is computed from the number of rows actually swept, so a scaled run
-// is a smaller valid test rather than a weaker version of this one.
-#ifndef TOUCHSTONE_SWEEP_SCALE
-#define TOUCHSTONE_SWEEP_SCALE 1
-#endif
-
 namespace {
 
 using touchstone::BlackScholesMarket;
@@ -63,7 +55,7 @@ using touchstone::testing::Standardised;
 using touchstone::testing::standardise;
 using touchstone::testing::stream_seed;
 
-constexpr std::size_t grid_stride = TOUCHSTONE_SWEEP_SCALE;
+constexpr std::size_t grid_stride = touchstone::testing::sweep_scale;
 
 /// Paths per row on the grid sweep. Enough that the estimator is close to
 /// normal on the rows the sweep tests, and cheap enough to run on every row.

@@ -109,7 +109,8 @@ public:
         const std::uint32_t lo = next_u32();
 
         constexpr double two_pow_26 = 67108864.0;
-        return (static_cast<double>(hi >> 5) * two_pow_26 + static_cast<double>(lo >> 6)) * 0x1p-53;
+        return (static_cast<double>(hi >> 5) * two_pow_26 + static_cast<double>(lo >> 6))
+               * detail::uniform_resolution;
     }
 
     /// One standard normal: the inverse CDF of one uniform.

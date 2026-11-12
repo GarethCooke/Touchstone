@@ -33,6 +33,11 @@ namespace touchstone {
 
 namespace detail {
 
+/// `2^-53`: the spacing of `Xoshiro128SS::next_uniform`'s output, and so the
+/// smallest uniform above zero it can return. The generator scales by it and
+/// `norm_inv` clamps to it, and both mean the same number.
+inline constexpr double uniform_resolution = 0x1p-53;
+
 /// Horner from the highest coefficient down, over the eight-coefficient
 /// polynomials `docs/rng.md` writes lowest-order first. The evaluation order is
 /// part of what makes the C++ and the TypeScript agree: a different association
@@ -108,11 +113,8 @@ namespace detail {
         1.48753612908506148525e-2, 7.86869131145613259100e-4, 1.84631831751005468180e-5,
         1.42151175831644588870e-7, 2.04426310338993978564e-15};
 
-    /// The smallest uniform `Xoshiro128SS::next_uniform` can return above zero.
-    constexpr double min_uniform = 0x1p-53;
-
     if (p <= 0.0) {
-        p = min_uniform;
+        p = detail::uniform_resolution;
     }
 
     const double q = p - 0.5;

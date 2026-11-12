@@ -152,8 +152,8 @@ TEST_SUITE("tridiagonal")
             Bands bands{std::vector<double>(n, -1.0 / (h * h)),
                         std::vector<double>(n, 2.0 / (h * h)),
                         std::vector<double>(n, -1.0 / (h * h))};
-            bands.sub[0] = 0.0;
-            bands.sup[n - 1] = 0.0;
+            bands.sub.at(0) = 0.0;
+            bands.sup.at(n - 1) = 0.0;
 
             std::vector<double> rhs(n, 0.0);
             std::vector<double> exact(n, 0.0);

@@ -15,29 +15,13 @@
 #pragma once
 
 #include <touchstone/black_scholes.hpp>
+#include <touchstone/paths.hpp>
 
 #include <cstddef>
 #include <cstdint>
 #include <span>
 
 namespace touchstone {
-
-/// How the terminal spot is produced from the normals.
-enum class Scheme {
-    /// The terminal law itself, sampled exactly: one normal per path, and
-    /// `S_T = S exp((r - q - sigma^2/2) T + sigma sqrt(T) Z)`. There is no
-    /// discretisation error at all — the only error is sampling error, which
-    /// the standard error measures.
-    ExactTerminal,
-
-    /// The SDE stepped in `steps` equal pieces:
-    /// `S_(k+1) = S_k (1 + (r - q) dt + sigma sqrt(dt) Z_k)`. Wrong on purpose,
-    /// by an amount that shrinks with dt at a rate the tests pin down. This is
-    /// the scheme the tutorial's D4 shows next to the exact one, and the reason
-    /// it is in the library rather than only in the demo is that the rate it
-    /// converges at is a claim, and claims need tests (I1).
-    EulerMaruyama,
-};
 
 /// What to run. Defaults price a European vanilla to about a cent of standard
 /// error at typical parameters.
@@ -49,6 +33,11 @@ struct MonteCarloSettings {
     /// `antithetic` is set, because a partner without its path is not a sample.
     std::size_t paths{1u << 15};
 
+    /// `ExactTerminal` draws one normal per path and samples the terminal law
+    /// over the whole expiry; `EulerMaruyama` steps the equation, and is the
+    /// scheme the tutorial's D4 shows beside the exact one — in the library
+    /// rather than only in the demo because the rate it converges at is a
+    /// claim, and claims need tests.
     Scheme scheme{Scheme::ExactTerminal};
 
     /// Steps per path. Read only by `EulerMaruyama`.
@@ -117,13 +106,15 @@ void require_valid(const MonteCarloSettings& settings);
 /// outside this one, rather than returning the NaN that would result.
 [[nodiscard]] MonteCarloResult monte_carlo(const EuropeanVanilla& option,
                                            const BlackScholesMarket& market,
-                                           const MonteCarloSettings& settings);
+                                           const MonteCarloSettings& settings = {});
 
 // --- The pieces, one path at a time -----------------------------------------
 //
 // Public because the tests drive both schemes from the *same* normals to
 // measure the discretisation error alone, which is impossible from the outside
-// if the only entry point runs a whole sweep and owns its generator.
+// if the only entry point runs a whole sweep and owns its generator. Each is one
+// step of `touchstone/paths.hpp`'s generator, read at the end of the path, and
+// the payoff is `touchstone/contract.hpp`'s.
 
 /// `exp((r - q - sigma^2/2) T + sigma sqrt(T) z)` — the factor the spot grows by
 /// along one path, for one standard normal `z`. It does not depend on the spot,
@@ -162,9 +153,6 @@ void require_valid(const MonteCarloSettings& settings);
 [[nodiscard]] double terminal_spot_euler(const BlackScholesMarket& market,
                                          double expiry_years,
                                          std::span<const double> normals) noexcept;
-
-/// `max(w (S_T - K), 0)`, undiscounted.
-[[nodiscard]] double payoff(const EuropeanVanilla& option, double terminal_spot) noexcept;
 
 /// The pathwise derivative of the payoff with respect to the *initial* spot,
 /// undiscounted: `w 1{w (S_T - K) > 0} dS_T/dS`, where `dS_T/dS` is the growth

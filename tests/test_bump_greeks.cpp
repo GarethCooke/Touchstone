@@ -14,6 +14,8 @@
 // makes the defaults evidence rather than folklore.
 
 #include "golden_file.hpp"
+#include "greek_fields.hpp"
+#include "sweep.hpp"
 
 #include <touchstone/black_scholes.hpp>
 #include <touchstone/bump_greeks.hpp>
@@ -31,10 +33,6 @@
 #include <string>
 #include <vector>
 
-#ifndef TOUCHSTONE_SWEEP_SCALE
-#define TOUCHSTONE_SWEEP_SCALE 1
-#endif
-
 namespace {
 
 using touchstone::BlackScholesMarket;
@@ -45,27 +43,16 @@ using touchstone::PriceAndGreeks;
 using touchstone::testing::GoldenCase;
 using touchstone::testing::Worst;
 
-constexpr std::size_t grid_stride = TOUCHSTONE_SWEEP_SCALE;
+constexpr std::size_t grid_stride = touchstone::testing::sweep_scale;
 
-struct Field {
-    const char* name;
-    double PriceAndGreeks::* value;
-    double tolerance;  ///< measured worst over the grid, rounded up
-};
+constexpr const auto& fields = touchstone::testing::greek_fields;
 
-// Measured over the whole main grid at the default bump sizes, then rounded up
-// by roughly a factor of three. The spread between them is the point: a first
-// difference reaches `eps^(2/3)` and a second only `eps^(1/2)`, so gamma is two
-// orders looser than delta and no tolerance can hide that.
-constexpr std::array<Field, 7> fields{{
-    {"price", &PriceAndGreeks::price, 0.0},
-    {"delta", &PriceAndGreeks::delta, 1e-9},
-    {"gamma", &PriceAndGreeks::gamma, 1e-7},
-    {"vega", &PriceAndGreeks::vega, 1e-7},
-    {"theta", &PriceAndGreeks::theta, 1e-8},
-    {"rho", &PriceAndGreeks::rho, 1e-8},
-    {"dividend_rho", &PriceAndGreeks::dividend_rho, 1e-8},
-}};
+/// One tolerance per field of `fields`: measured over the whole main grid at the
+/// default bump sizes, then rounded up by roughly a factor of three. The spread
+/// between them is the point: a first difference reaches `eps^(2/3)` and a
+/// second only `eps^(1/2)`, so gamma is two orders looser than delta and no
+/// tolerance can hide that.
+constexpr std::array<double, fields.size()> tolerance{0.0, 1e-9, 1e-7, 1e-7, 1e-8, 1e-8, 1e-8};
 
 }  // namespace
 
@@ -101,14 +88,14 @@ TEST_SUITE("bump-greeks")
         for (std::size_t f = 0; f < fields.size(); ++f) {
             report << "\n    " << std::left << std::setw(14) << fields[f].name << std::right
                    << std::scientific << std::setprecision(3) << worst[f].error() << "   tolerance "
-                   << fields[f].tolerance;
+                   << tolerance[f];
         }
         MESSAGE(report.str());
 
         CHECK(rows > 7000u / grid_stride);
         for (std::size_t f = 0; f < fields.size(); ++f) {
             CAPTURE(fields[f].name);
-            CHECK_MESSAGE(worst[f].error() <= fields[f].tolerance, worst[f].describe(fields[f].name));
+            CHECK_MESSAGE(worst[f].error() <= tolerance[f], worst[f].describe(fields[f].name));
         }
         // The price is not a difference quotient at all: it is the pricer's own
         // answer, passed through. Anything but zero means the wrong call was

@@ -1,7 +1,8 @@
 #include <touchstone/black_scholes.hpp>
 
+#include <touchstone/detail/checks.hpp>
+#include <touchstone/detail/scales.hpp>
 #include <touchstone/normal.hpp>
-#include <touchstone/scales.hpp>
 
 #include <cmath>
 #include <limits>
@@ -10,138 +11,63 @@
 namespace touchstone {
 namespace {
 
-/// Everything the price and all six Greeks are built from, evaluated once.
-///
-/// Two of the seven outputs are unbounded somewhere on the closed domain, and
-/// both singularities live in this struct rather than in the formulas that use
-/// it: `gamma` divides by S and by the total volatility, and `decay` — theta's
-/// diffusion term — divides by sqrt(T). Keeping the limits here means the seven
-/// expressions in `price_and_greeks` below are the formulas of
-/// `golden/SCHEMA.md` verbatim, with no branch in sight.
-struct Kernel {
-    double w{};       ///< +1 for a call, -1 for a put.
-    double sqrt_t{};  ///< sqrt(T).
-    double df_r{};    ///< exp(-rT).
-    double df_q{};    ///< exp(-qT).
-    double sq{};      ///< S exp(-qT).
-    double kr{};      ///< K exp(-rT).
-    double n1{};      ///< N(w d1).
-    double n2{};      ///< N(w d2).
-    double gamma{};   ///< d2V/dS2. Type-independent.
-    double vega{};    ///< dV/dsigma. Type-independent.
-    double decay{};   ///< -S exp(-qT) phi(d1) sigma / (2 sqrt(T)). Type-independent.
-};
-
-Kernel make_kernel(const EuropeanVanilla& option, const BlackScholesMarket& market)
+/// The volatility's half of `require_valid`'s domain: the volatility itself, and
+/// the two products the formulas form from it.
+void require_valid_volatility(double vol, double years)
 {
-    require_valid(option, market);
-
-    const double s = market.spot;
-    const double k = option.strike;
-    const double t = option.expiry_years;
-    const double sigma = market.vol;
-
-    Kernel kern{};
-    kern.w = option_sign(option.type);
-
-    // Nothing against nothing: ln(S/K) is 0/0 and would poison all seven outputs
-    // with a NaN. Every one of them is zero by inspection. This is decided before
-    // any arithmetic, because K exp(-rT) is itself 0 * inf when the strike is zero
-    // and the discount factor has overflowed.
-    if (s == 0.0 && k == 0.0) {
-        return kern;
+    if (!detail::is_finite_non_negative(vol)) {
+        throw std::invalid_argument("touchstone: vol must be finite and non-negative");
     }
-
-    kern.sqrt_t = std::sqrt(t);
-    kern.df_r = detail::discount_factor(market.rate, t);
-    kern.df_q = detail::discount_factor(market.dividend_yield, t);
-    kern.sq = s * kern.df_q;
-    kern.kr = k * kern.df_r;
-
-    // v is the total volatility to expiry, sigma sqrt(T) — the only scale the
-    // distribution of the terminal log-price has. Everything below turns on
-    // whether it is positive.
-    const double v = detail::total_volatility(sigma, t);
-
-    // Log-moneyness measured against the forward: ln(S/K) + (r - q)T. Positive
-    // means the forward is above the strike. It is the numerator of d1 without
-    // the variance term, and both branches below decide on it, so the degenerate
-    // branch and the general one cannot disagree about which side of the strike
-    // the forward is on.
-    const double log_moneyness =
-        detail::forward_log_moneyness(s, k, market.rate, market.dividend_yield, t);
-
-    if (v > 0.0) {
-        const double d1 = (log_moneyness + detail::half_variance_time(sigma, t)) / v;
-        const double d2 = d1 - v;
-        const double phi1 = norm_pdf(d1);
-
-        // N(w d) is evaluated directly rather than as 1 - N(-w d): see normal.hpp.
-        kern.n1 = norm_cdf(kern.w * d1);
-        kern.n2 = norm_cdf(kern.w * d2);
-        kern.vega = kern.sq * phi1 * kern.sqrt_t;
-        // Divided rather than multiplied out: S v underflows to zero for a small
-        // enough spot, and 1.5e-196 / 1e-330 is not infinity, it is 1.5e134.
-        // At S = 0 the density is already zero and the quotient is 0/0; the limit
-        // as S falls to zero is zero, because a worthless underlying has no
-        // convexity.
-        kern.gamma = (s > 0.0) ? kern.df_q * phi1 / s / v : 0.0;
-        kern.decay = -kern.sq * phi1 * sigma / (2.0 * kern.sqrt_t);
-        return kern;
+    // The drift of the log-price is two products, and the kernel forms and adds
+    // them separately: `(r - q) T` inside the log-moneyness, and `0.5 sigma^2 T`
+    // beside it in d1. They are therefore checked separately, through the same
+    // functions the kernel calls, so that the domain this guards and the
+    // expressions it is guarding cannot drift apart.
+    //
+    // Checking their sum instead — `(r - q + 0.5 sigma^2) T` — is a different
+    // domain, by more than an ulp. Put q = 0.5 sigma^2 with r = 0 and the sum is
+    // exactly zero, so every expiry passes; the two terms themselves are -inf
+    // and +inf, and d1's numerator is `-inf + inf`, which is a NaN.
+    // sigma = sqrt(2e300), q = 1e300, T = 1e10 is such an input, and
+    // `tests/test_associations.cpp` pins it along with the boundary of every
+    // other check here. The carry half is in `ClosedFormQuote`'s constructor.
+    if (!std::isfinite(detail::half_variance_time(vol, years))) {
+        throw std::invalid_argument(
+            "touchstone: half the variance, 0.5 vol^2 times expiry_years, overflows a double");
     }
-
-    // v == 0, so either sigma or T is zero: the terminal distribution collapses
-    // to a point at the forward. N(w d1) and N(w d2) both tend to the indicator
-    // of finishing in the money, and to 1/2 at the forward itself, where
-    // d1 -> v/2 -> 0. Both are exact limits, not approximations.
-    const bool at_the_forward = (log_moneyness == 0.0);
-    const double indicator =
-        (kern.w * log_moneyness > 0.0) ? 1.0 : (at_the_forward ? 0.5 : 0.0);
-    kern.n1 = indicator;
-    kern.n2 = indicator;
-
-    // Away from the forward the density vanishes and gamma, vega and the decay
-    // term go with it. At the forward the mass concentrates and gamma diverges:
-    // at_the_forward implies a finite ln(S/K), so the spot is positive there and
-    // the divergence is real rather than an artefact of dividing by zero.
-    const double phi1 = at_the_forward ? norm_pdf(0.0) : 0.0;
-    kern.vega = kern.sq * phi1 * kern.sqrt_t;
-    kern.gamma = at_the_forward ? std::numeric_limits<double>::infinity() : 0.0;
-
-    if (sigma == 0.0) {
-        // No diffusion, so no decay from diffusion — at any T, including T = 0.
-        // The double limit is order-dependent and this is the order chosen: with
-        // no volatility there is no time value to lose, whatever the expiry.
-        kern.decay = 0.0;
-    } else if (t == 0.0) {
-        // An option expiring at this instant. At the strike, the remaining time
-        // value goes to zero over no remaining time.
-        kern.decay = at_the_forward ? -std::numeric_limits<double>::infinity() : 0.0;
-    } else {
-        // sigma > 0 and T > 0, but their product underflowed. The limits above
-        // are wrong here and the formula is right: it returns a very small
-        // number rather than an infinity.
-        kern.decay = -kern.sq * phi1 * sigma / (2.0 * kern.sqrt_t);
+    // Implied by the line above — `sigma sqrt(T)` is the square root of twice it,
+    // to within a rounding — and checked anyway, because a guarantee that holds
+    // by derivation is one refactor away from not holding at all, and this is the
+    // quantity `d1` divides by and every other method in the library measures its
+    // width in.
+    if (!std::isfinite(detail::total_volatility(vol, years))) {
+        throw std::invalid_argument(
+            "touchstone: the total volatility vol times sqrt(expiry_years) overflows a double");
     }
-    return kern;
+}
+
+[[nodiscard]] QuotedMarket without_volatility(const BlackScholesMarket& market) noexcept
+{
+    return QuotedMarket{market.spot, market.rate, market.dividend_yield};
 }
 
 }  // namespace
 
-void require_valid(const EuropeanVanilla& option, const BlackScholesMarket& market)
+ClosedFormQuote::ClosedFormQuote(const EuropeanVanilla& option, const QuotedMarket& market)
+    : type_(option.type),
+      sign_(option_sign(option.type)),
+      spot_(market.spot),
+      rate_(market.rate),
+      dividend_yield_(market.dividend_yield),
+      expiry_(option.expiry_years)
 {
-    const auto priceable = [](double x) { return std::isfinite(x) && x >= 0.0; };
-
-    if (!priceable(market.spot)) {
+    if (!detail::is_finite_non_negative(market.spot)) {
         throw std::invalid_argument("touchstone: spot must be finite and non-negative");
     }
-    if (!priceable(option.strike)) {
+    if (!detail::is_finite_non_negative(option.strike)) {
         throw std::invalid_argument("touchstone: strike must be finite and non-negative");
     }
-    if (!priceable(market.vol)) {
-        throw std::invalid_argument("touchstone: vol must be finite and non-negative");
-    }
-    if (!priceable(option.expiry_years)) {
+    if (!detail::is_finite_non_negative(option.expiry_years)) {
         throw std::invalid_argument("touchstone: expiry_years must be finite and non-negative");
     }
     // r and q are unconstrained in sign. A negative rate is a market state, not
@@ -165,59 +91,34 @@ void require_valid(const EuropeanVanilla& option, const BlackScholesMarket& mark
     // Nothing plausible is excluded. The bound on the first is |r| T > 709, and
     // on the second that S or K is within a few orders of the largest double.
     const double t = option.expiry_years;
-    const double df_r = detail::discount_factor(market.rate, t);
-    const double df_q = detail::discount_factor(market.dividend_yield, t);
-    if (!std::isfinite(df_r) || !std::isfinite(df_q)) {
+    const double strike_discount = detail::discount_factor(market.rate, t);
+    spot_discount_ = detail::discount_factor(market.dividend_yield, t);
+    if (!std::isfinite(strike_discount) || !std::isfinite(spot_discount_)) {
         throw std::invalid_argument(
             "touchstone: the discount factor overflows — |rate| or |dividend_yield| times "
             "expiry_years exceeds 709");
     }
-    const double discounted_spot = market.spot * df_q;
-    const double discounted_strike = option.strike * df_r;
-    if (!std::isfinite(discounted_spot) || !std::isfinite(discounted_strike)) {
+    discounted_spot_ = market.spot * spot_discount_;
+    discounted_strike_ = option.strike * strike_discount;
+    if (!std::isfinite(discounted_spot_) || !std::isfinite(discounted_strike_)) {
         throw std::invalid_argument(
             "touchstone: the discounted spot or strike overflows a double");
     }
-    // The drift of the log-price is two products, and `make_kernel` forms and
-    // adds them separately: `(r - q) T` inside the log-moneyness, and `0.5 sigma^2 T`
-    // beside it in d1. They are therefore checked separately here, through the
-    // same functions the kernel calls, so that the domain this function guards
-    // and the expressions it is guarding cannot drift apart.
-    //
-    // T1 checked their sum instead — `(r - q + 0.5 sigma^2) T` — and that is a
-    // different domain, by more than an ulp. Put q = 0.5 sigma^2 with r = 0 and
-    // the sum is exactly zero, so every expiry passes; the two terms themselves
-    // are -inf and +inf, and d1's numerator is `-inf + inf`, which is a NaN.
-    // sigma = sqrt(2e300), q = 1e300, T = 1e10 is such an input: T1 accepted it
-    // and returned a NaN price for it, which is the one outcome this function
-    // exists to rule out. `tests/test_associations.cpp` pins that case, and the
-    // boundary of every other check here.
+    // The carry half of the log-price's drift; `require_valid_volatility` has the
+    // other half, and says why they are checked apart.
     if (!std::isfinite(detail::carry_time(market.rate, market.dividend_yield, t))) {
         throw std::invalid_argument(
             "touchstone: the carry (rate - dividend_yield) times expiry_years overflows a double");
     }
-    if (!std::isfinite(detail::half_variance_time(market.vol, t))) {
-        throw std::invalid_argument(
-            "touchstone: half the variance, 0.5 vol^2 times expiry_years, overflows a double");
-    }
-    // Implied by the line above — `sigma sqrt(T)` is the square root of twice it,
-    // to within a rounding — and checked anyway, because a guarantee that holds
-    // by derivation is one refactor away from not holding at all, and this is the
-    // quantity `d1` divides by and every other method in the library measures its
-    // width in.
-    if (!std::isfinite(detail::total_volatility(market.vol, t))) {
-        throw std::invalid_argument(
-            "touchstone: the total volatility vol times sqrt(expiry_years) overflows a double");
-    }
     // rho and dividend_rho carry a factor of T; theta's carry terms carry r and q.
     // These are the remaining products the seven formulas form, and an overflow in
     // any of them turns into inf - inf, which is a NaN, in theta.
-    if (!std::isfinite(t * discounted_strike) || !std::isfinite(t * discounted_spot)) {
+    if (!std::isfinite(t * discounted_strike_) || !std::isfinite(t * discounted_spot_)) {
         throw std::invalid_argument(
             "touchstone: expiry_years times the discounted strike or spot overflows a double");
     }
-    if (!std::isfinite(market.rate * discounted_strike)
-        || !std::isfinite(market.dividend_yield * discounted_spot)) {
+    if (!std::isfinite(market.rate * discounted_strike_)
+        || !std::isfinite(market.dividend_yield * discounted_spot_)) {
         throw std::invalid_argument(
             "touchstone: rate times the discounted strike, or dividend_yield times the discounted "
             "spot, overflows a double");
@@ -229,64 +130,200 @@ void require_valid(const EuropeanVanilla& option, const BlackScholesMarket& mark
                 "touchstone: spot over strike overflows a double, so ln(S/K) cannot be formed");
         }
     }
+
+    // Nothing against nothing: ln(S/K) is 0/0 and would poison all seven outputs
+    // with a NaN. Every one of them is zero by inspection, and `ClosedForm`
+    // returns exactly that.
+    nothing_against_nothing_ = (market.spot == 0.0 && option.strike == 0.0);
+    if (nothing_against_nothing_) {
+        return;
+    }
+    sqrt_expiry_ = std::sqrt(t);
+    // Log-moneyness measured against the forward. It is the numerator of d1
+    // without the variance term, and both of `ClosedForm`'s branches decide on
+    // it, so the degenerate branch and the general one cannot disagree about
+    // which side of the strike the forward is on.
+    log_moneyness_ = detail::forward_log_moneyness(
+        market.spot, option.strike, market.rate, market.dividend_yield, t);
+}
+
+ClosedForm ClosedFormQuote::at(double vol) const
+{
+    return ClosedForm(*this, vol);
+}
+
+ClosedForm::ClosedForm(const EuropeanVanilla& option, const BlackScholesMarket& market)
+    : ClosedForm(ClosedFormQuote(option, without_volatility(market)), market.vol)
+{
+}
+
+ClosedForm::ClosedForm(const ClosedFormQuote& quote, double vol)
+    : sign_(quote.sign_),
+      expiry_(quote.expiry_),
+      rate_(quote.rate_),
+      dividend_yield_(quote.dividend_yield_)
+{
+    const double t = quote.expiry_;
+    require_valid_volatility(vol, t);
+
+    // Every output zero, including the discount factor delta reads: the seven
+    // formulas then return signed zeros and nothing else.
+    if (quote.nothing_against_nothing_) {
+        return;
+    }
+
+    spot_discount_ = quote.spot_discount_;
+    discounted_spot_ = quote.discounted_spot_;
+    discounted_strike_ = quote.discounted_strike_;
+
+    const double s = quote.spot_;
+    const double sqrt_t = quote.sqrt_expiry_;
+    const double log_moneyness = quote.log_moneyness_;
+
+    // v is the total volatility to expiry, sigma sqrt(T) — the only scale the
+    // distribution of the terminal log-price has. Everything below turns on
+    // whether it is positive.
+    const double v = detail::total_volatility(vol, t);
+
+    if (v > 0.0) {
+        const double d1 = (log_moneyness + detail::half_variance_time(vol, t)) / v;
+        const double d2 = d1 - v;
+        const double phi1 = norm_pdf(d1);
+
+        // N(w d) is evaluated directly rather than as 1 - N(-w d): see normal.hpp.
+        n1_ = norm_cdf(sign_ * d1);
+        n2_ = norm_cdf(sign_ * d2);
+        vega_ = discounted_spot_ * phi1 * sqrt_t;
+        // Divided rather than multiplied out: S v underflows to zero for a small
+        // enough spot, and 1.5e-196 / 1e-330 is not infinity, it is 1.5e134.
+        // At S = 0 the density is already zero and the quotient is 0/0; the limit
+        // as S falls to zero is zero, because a worthless underlying has no
+        // convexity.
+        gamma_ = (s > 0.0) ? spot_discount_ * phi1 / s / v : 0.0;
+        decay_ = -discounted_spot_ * phi1 * vol / (2.0 * sqrt_t);
+        return;
+    }
+
+    // v == 0, so either sigma or T is zero: the terminal distribution collapses
+    // to a point at the forward. N(w d1) and N(w d2) both tend to the indicator
+    // of finishing in the money, and to 1/2 at the forward itself, where
+    // d1 -> v/2 -> 0. Both are exact limits, not approximations.
+    const bool at_the_forward = (log_moneyness == 0.0);
+    const double indicator =
+        (sign_ * log_moneyness > 0.0) ? 1.0 : (at_the_forward ? 0.5 : 0.0);
+    n1_ = indicator;
+    n2_ = indicator;
+
+    // Away from the forward the density vanishes and gamma, vega and the decay
+    // term go with it. At the forward the mass concentrates and gamma diverges:
+    // at_the_forward implies a finite ln(S/K), so the spot is positive there and
+    // the divergence is real rather than an artefact of dividing by zero.
+    const double phi1 = at_the_forward ? norm_pdf(0.0) : 0.0;
+    vega_ = discounted_spot_ * phi1 * sqrt_t;
+    gamma_ = at_the_forward ? std::numeric_limits<double>::infinity() : 0.0;
+
+    if (vol == 0.0) {
+        // No diffusion, so no decay from diffusion — at any T, including T = 0.
+        // The double limit is order-dependent and this is the order chosen: with
+        // no volatility there is no time value to lose, whatever the expiry.
+        decay_ = 0.0;
+    } else if (t == 0.0) {
+        // An option expiring at this instant. At the strike, the remaining time
+        // value goes to zero over no remaining time.
+        decay_ = at_the_forward ? -std::numeric_limits<double>::infinity() : 0.0;
+    } else {
+        // sigma > 0 and T > 0, but their product underflowed. The limits above
+        // are wrong here and the formula is right: it returns a very small
+        // number rather than an infinity.
+        decay_ = -discounted_spot_ * phi1 * vol / (2.0 * sqrt_t);
+    }
+}
+
+double ClosedForm::price() const noexcept
+{
+    return sign_ * (discounted_spot_ * n1_ - discounted_strike_ * n2_);
+}
+
+double ClosedForm::delta() const noexcept
+{
+    return sign_ * spot_discount_ * n1_;
+}
+
+double ClosedForm::gamma() const noexcept
+{
+    return gamma_;
+}
+
+double ClosedForm::vega() const noexcept
+{
+    return vega_;
+}
+
+double ClosedForm::theta() const noexcept
+{
+    return decay_ - sign_ * rate_ * discounted_strike_ * n2_
+           + sign_ * dividend_yield_ * discounted_spot_ * n1_;
+}
+
+double ClosedForm::rho() const noexcept
+{
+    return sign_ * expiry_ * discounted_strike_ * n2_;
+}
+
+double ClosedForm::dividend_rho() const noexcept
+{
+    return -sign_ * expiry_ * discounted_spot_ * n1_;
+}
+
+PriceAndGreeks ClosedForm::price_and_greeks() const noexcept
+{
+    return PriceAndGreeks{price(), delta(), gamma(), vega(), theta(), rho(), dividend_rho()};
+}
+
+void require_valid(const EuropeanVanilla& option, const BlackScholesMarket& market)
+{
+    static_cast<void>(ClosedFormQuote(option, without_volatility(market)));
+    require_valid_volatility(market.vol, option.expiry_years);
 }
 
 PriceAndGreeks price_and_greeks(const EuropeanVanilla& option, const BlackScholesMarket& market)
 {
-    const Kernel kern = make_kernel(option, market);
-    const double t = option.expiry_years;
-
-    PriceAndGreeks out{};
-    out.price = kern.w * (kern.sq * kern.n1 - kern.kr * kern.n2);
-    out.delta = kern.w * kern.df_q * kern.n1;
-    out.gamma = kern.gamma;
-    out.vega = kern.vega;
-    out.theta = kern.decay - kern.w * market.rate * kern.kr * kern.n2
-                + kern.w * market.dividend_yield * kern.sq * kern.n1;
-    out.rho = kern.w * t * kern.kr * kern.n2;
-    out.dividend_rho = -kern.w * t * kern.sq * kern.n1;
-    return out;
+    return ClosedForm(option, market).price_and_greeks();
 }
 
 double price(const EuropeanVanilla& option, const BlackScholesMarket& market)
 {
-    const Kernel kern = make_kernel(option, market);
-    return kern.w * (kern.sq * kern.n1 - kern.kr * kern.n2);
+    return ClosedForm(option, market).price();
 }
 
 double delta(const EuropeanVanilla& option, const BlackScholesMarket& market)
 {
-    const Kernel kern = make_kernel(option, market);
-    return kern.w * kern.df_q * kern.n1;
+    return ClosedForm(option, market).delta();
 }
 
 double gamma(const EuropeanVanilla& option, const BlackScholesMarket& market)
 {
-    return make_kernel(option, market).gamma;
+    return ClosedForm(option, market).gamma();
 }
 
 double vega(const EuropeanVanilla& option, const BlackScholesMarket& market)
 {
-    return make_kernel(option, market).vega;
+    return ClosedForm(option, market).vega();
 }
 
 double theta(const EuropeanVanilla& option, const BlackScholesMarket& market)
 {
-    const Kernel kern = make_kernel(option, market);
-    return kern.decay - kern.w * market.rate * kern.kr * kern.n2
-           + kern.w * market.dividend_yield * kern.sq * kern.n1;
+    return ClosedForm(option, market).theta();
 }
 
 double rho(const EuropeanVanilla& option, const BlackScholesMarket& market)
 {
-    const Kernel kern = make_kernel(option, market);
-    return kern.w * option.expiry_years * kern.kr * kern.n2;
+    return ClosedForm(option, market).rho();
 }
 
 double dividend_rho(const EuropeanVanilla& option, const BlackScholesMarket& market)
 {
-    const Kernel kern = make_kernel(option, market);
-    return -kern.w * option.expiry_years * kern.sq * kern.n1;
+    return ClosedForm(option, market).dividend_rho();
 }
 
 }  // namespace touchstone

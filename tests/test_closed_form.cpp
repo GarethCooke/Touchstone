@@ -2,15 +2,19 @@
 // file, at the tolerances the file itself carries.
 
 #include "golden_file.hpp"
+#include "greek_fields.hpp"
 
 #include <touchstone/black_scholes.hpp>
 
 #include <doctest/doctest.h>
 
 #include <array>
+#include <cmath>
 #include <cstddef>
 #include <iomanip>
+#include <limits>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -20,20 +24,7 @@ using touchstone::PriceAndGreeks;
 using touchstone::testing::GoldenCase;
 using touchstone::testing::Worst;
 
-struct Field {
-    const char* name;
-    double PriceAndGreeks::* value;
-};
-
-constexpr std::array<Field, 7> fields{{
-    {"price", &PriceAndGreeks::price},
-    {"delta", &PriceAndGreeks::delta},
-    {"gamma", &PriceAndGreeks::gamma},
-    {"vega", &PriceAndGreeks::vega},
-    {"theta", &PriceAndGreeks::theta},
-    {"rho", &PriceAndGreeks::rho},
-    {"dividend_rho", &PriceAndGreeks::dividend_rho},
-}};
+constexpr const auto& fields = touchstone::testing::greek_fields;
 
 /// Price every row, track the worst scaled error per field, then assert once
 /// per field. Seven assertions rather than fifty thousand: a run that passes
@@ -126,5 +117,85 @@ TEST_SUITE("closed-form")
                << worst_of_all.error();
         MESSAGE(report.str());
         CHECK_MESSAGE(worst_of_all.error() <= tolerance, worst_of_all.describe("accessor"));
+    }
+}
+
+// The evaluation behind the free functions: its volatility-free half is what an
+// implied-volatility search builds once and reuses at every step, so it has to
+// be the same arithmetic as the one-shot evaluation, and between them the two
+// halves have to guard exactly the domain `require_valid` does.
+TEST_SUITE("closed-form")
+{
+    TEST_CASE("the volatility-free half, built once, is the closed form at any volatility")
+    {
+        const auto& file = touchstone::testing::golden_file();
+        std::size_t rows = 0;
+        std::size_t differing = 0;
+        for (const auto* block : {&file.cases, &file.edge_cases}) {
+            for (const GoldenCase& row : *block) {
+                const touchstone::QuotedMarket quoted{row.market.spot, row.market.rate,
+                                                      row.market.dividend_yield};
+                const touchstone::ClosedFormQuote quote(row.option, quoted);
+                const PriceAndGreeks reused = quote.at(row.market.vol).price_and_greeks();
+                const PriceAndGreeks direct = touchstone::price_and_greeks(row.option, row.market);
+                ++rows;
+                for (const auto& field : fields) {
+                    differing += (reused.*(field.value) == direct.*(field.value)) ? 0u : 1u;
+                }
+            }
+        }
+        MESSAGE("quote reused at the row's volatility against the one-shot evaluation: "
+                << rows << " rows, " << differing << " values not identical to the bit");
+        CHECK(differing == 0u);
+    }
+
+    TEST_CASE("the two halves refuse exactly what require_valid refuses")
+    {
+        using touchstone::BlackScholesMarket;
+        using touchstone::ClosedForm;
+        using touchstone::ClosedFormQuote;
+        using touchstone::EuropeanVanilla;
+        using touchstone::OptionType;
+        using touchstone::QuotedMarket;
+        const double inf = std::numeric_limits<double>::infinity();
+        const double nan = std::numeric_limits<double>::quiet_NaN();
+
+        struct Input {
+            const char* what;
+            EuropeanVanilla option;
+            BlackScholesMarket market;
+            bool volatility_is_the_fault;
+        };
+        const EuropeanVanilla call{100.0, 1.0, OptionType::Call};
+        const Input inputs[] = {
+            {"negative spot", call, {-1.0, 0.2, 0.05, 0.0}, false},
+            {"NaN strike", {nan, 1.0, OptionType::Call}, {100.0, 0.2, 0.05, 0.0}, false},
+            {"negative expiry", {100.0, -1.0, OptionType::Put}, {100.0, 0.2, 0.05, 0.0}, false},
+            {"infinite rate", call, {100.0, 0.2, inf, 0.0}, false},
+            {"NaN dividend yield", call, {100.0, 0.2, 0.05, nan}, false},
+            {"discount factor overflows", call, {100.0, 0.2, -800.0, 0.0}, false},
+            {"carry overflows", {100.0, 1e10, OptionType::Call}, {100.0, 0.0, 0.0, 1e300}, false},
+            {"negative volatility", call, {100.0, -0.2, 0.05, 0.0}, true},
+            {"NaN volatility", call, {100.0, nan, 0.05, 0.0}, true},
+            {"half the variance overflows", call, {100.0, 1e200, 0.05, 0.0}, true},
+            {"the escaped NaN, refused by its carry", {100.0, 1e10, OptionType::Call},
+             {100.0, std::sqrt(2e300), 0.0, 1e300}, false},
+        };
+
+        for (const Input& input : inputs) {
+            CAPTURE(input.what);
+            CHECK_THROWS_AS(touchstone::require_valid(input.option, input.market),
+                            std::invalid_argument);
+            CHECK_THROWS_AS(ClosedForm(input.option, input.market), std::invalid_argument);
+            const QuotedMarket quoted{input.market.spot, input.market.rate,
+                                      input.market.dividend_yield};
+            if (input.volatility_is_the_fault) {
+                const ClosedFormQuote quote(input.option, quoted);
+                CHECK_THROWS_AS(static_cast<void>(quote.at(input.market.vol)),
+                                std::invalid_argument);
+            } else {
+                CHECK_THROWS_AS(ClosedFormQuote(input.option, quoted), std::invalid_argument);
+            }
+        }
     }
 }

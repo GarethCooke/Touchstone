@@ -9,11 +9,19 @@
 
 #include <algorithm>
 #include <cmath>
+#include <concepts>
 #include <cstddef>
 #include <limits>
+#include <type_traits>
 #include <utility>
 
 namespace touchstone {
+
+/// A real function of one real variable: callable with a `double`, returning
+/// something that converts to one.
+template <class F>
+concept RealFunction =
+    std::invocable<F&, double> && std::convertible_to<std::invoke_result_t<F&, double>, double>;
 
 /// When to stop.
 struct RootSearch {
@@ -51,7 +59,7 @@ struct RootResult {
 /// whichever end is closer to zero, rather than throwing: the caller that
 /// bracketed it knows what a failure to bracket means, and this function does
 /// not.
-template <class Function>
+template <RealFunction Function>
 [[nodiscard]] RootResult brent(Function&& f, double lower, double upper, const RootSearch& search)
 {
     RootResult result{};

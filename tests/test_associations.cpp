@@ -15,7 +15,7 @@
 
 #include <touchstone/black_scholes.hpp>
 #include <touchstone/monte_carlo.hpp>
-#include <touchstone/scales.hpp>
+#include <touchstone/detail/scales.hpp>
 
 #include <doctest/doctest.h>
 

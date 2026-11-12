@@ -2,10 +2,20 @@
 
 A C++20 pricing and risk library for European vanilla options.
 
-**In progress.** What works today is one thing, done properly: the Black-Scholes-Merton
-closed form for European calls and puts with a dividend yield, and its six analytic Greeks,
-agreeing with QuantLib on 7234 committed reference rows to better than 3e-13. There is no
-Monte Carlo, no PDE solver, no implied vol and no WASM build yet — see [Status](#status).
+**In progress.** The pricing library is complete for its v1 scope and is not yet built for
+the browser — see [Status](#status). It prices European calls and puts with a dividend yield
+three independent ways, and the three agree across a 7200-row reference grid:
+
+- the Black-Scholes-Merton closed form and its six analytic Greeks, agreeing with QuantLib on
+  7234 committed reference rows to better than 3e-13;
+- Monte Carlo on the shared random-number generator, exact and Euler-Maruyama, with
+  antithetics, a pathwise delta and its standard error;
+- Crank-Nicolson on a log-spot grid, which also prices the American contract.
+
+Around them: implied volatility by two solvers (Newton with a Brent fallback, and the
+step-recording Newton with a bisection guard that the tutorial teaches); Greeks by bumping
+any pricer; and sample paths of Brownian motion and geometric Brownian motion, drawn from the
+same seeded stream the tutorial's demos use.
 
 Touchstone is one half of a pair. The other half is
 [learn.garethcooke.com](https://learn.garethcooke.com), a tutorial for developers who work
@@ -42,18 +52,19 @@ Milestones are ticked in `ROADMAP.md` when their tollgate passes.
 | Milestone | State |
 |---|---|
 | T0 — repo, experiments, golden values | passed — [evidence](docs/evidence/T0/) |
-| T1 — closed form and analytic Greeks | this branch |
-| T2 — Monte Carlo and the shared RNG | not started |
-| T3 — finite differences, implied vol, bump Greeks | not started |
+| T1 — closed form and analytic Greeks | passed — [evidence](docs/evidence/T1/) |
+| T2 — Monte Carlo and the shared RNG | passed — [evidence](docs/evidence/T2/) |
+| T3 — finite differences, implied vol, bump Greeks | passed — [evidence](docs/evidence/T3/) |
+| T3a — settle the library before it is bound | this branch — [evidence](docs/evidence/T3a/) |
 | T4 — WASM artifact | not started |
 | T5 — architecture write-up, `v1.0.0` | not started |
 
 ## Layout
 
 ```
-include/touchstone/  the public headers — the whole API surface
+include/touchstone/  the public headers — the whole API surface; detail/ is internal
 src/                 the implementation
-tests/               doctest suites: the golden sweep, parity, the limits, N(x)
+tests/               doctest suites, one per claim; see the table below
 third_party/         doctest and nlohmann/json, single headers, test target only
 golden/              the oracle: QuantLib-generated reference values the C++ tests read
 experiments/         numpy scripts behind the tutorial's Part 2 pages, each with its JSON result
@@ -71,14 +82,29 @@ cmake --build build -j
 ctest --test-dir build --output-on-failure
 ```
 
-Five ctest entries, about a fifth of a second in total. What they check:
+One ctest entry per suite, and one that runs them all. The whole suite takes a few minutes,
+almost all of it in the statistical and finite-difference sweeps over the golden grid. What a
+failure in each would mean:
 
 | Entry | What a failure would mean |
 |---|---|
-| `ts_normal` | `N(x)` or `phi(x)` is wrong — including the left tail, which an implementation computing `1 - N(-x)` loses entirely. |
+| `ts_normal` | `N(x)`, `phi(x)` or the inverse CDF is wrong — including the left tail, which an implementation computing `1 - N(-x)` loses entirely. |
+| `ts_rng` | The generator no longer draws what `docs/rng.md` specifies, so the library and the browser would disagree from the same seed. |
 | `ts_closed-form` | The price or a Greek disagrees with QuantLib somewhere on the 7200-row grid or the 34-row edge block, at the tolerances `golden/bs_vanilla.json` itself carries. |
 | `ts_parity` | Put-call parity, or one of the six identities the Greeks inherit from it, does not hold. This one reads the golden file for its parameters and for nothing else, so it would fail even if the oracle were wrong. |
-| `ts_limits` | The closed form does not reduce to a forward contract as volatility goes to zero, or to its payoff as expiry does — or diverges where it should not, or returns a number where the limit is infinite. |
+| `ts_limits` | The closed form does not reduce to a forward contract as volatility goes to zero, or to its payoff as expiry does — or diverges where it should not, or returns a NaN anywhere on its domain. |
+| `ts_associations` | A domain check and the formula it guards form the same quantity two different ways, and an accepted input can produce a NaN. |
+| `ts_monte-carlo` | The Monte Carlo price or pathwise delta is not where the closed form is, in units of its own standard error, across the grid. |
+| `ts_euler` | Euler-Maruyama's error does not shrink at its known rates: as `sqrt(dt)` path by path, as `dt` in a price. |
+| `ts_paths` | A Brownian or GBM path differs from `golden/paths-known-answers.json`, the fixture the tutorial's demos are held to. |
+| `ts_tridiagonal` | The Thomas sweep or its projected form solves the wrong system, or the projected one disagrees with projected SOR. |
+| `ts_pde` | The grid's price, delta or gamma is not where the closed form is, or does not converge at second order in space and time. |
+| `ts_american` | The grid's American price disagrees with three QuantLib lattices by more than they disagree with each other, or breaks a bound no American price can break. |
+| `ts_implied-vol` | A golden price does not round-trip through Newton-Brent to 1e-8. |
+| `ts_implied-vol-safeguarded` | The second solver does not reproduce page 2.11's committed trace iterate by iterate, or a golden price does not round-trip through it. |
+| `ts_bump-greeks` | A bumped Greek disagrees with its analytic counterpart beyond what the bump size allows. |
+| `ts_three-way` | Closed form, Monte Carlo and the grid do not agree within their stated tolerances. |
+| `ts_contract` | An American contract compiles where only a European one can be priced. This suite fails by not compiling. |
 | `ts_all` | Everything above in one run, so a mistyped filter cannot leave a suite unrun. |
 
 ## The Python side
@@ -91,11 +117,12 @@ the library.
 uv sync                                  # Python 3.12, QuantLib, numpy — pinned by uv.lock
 uv run golden/generate_bs_vanilla.py     # regenerate the golden file
 uv run golden/verify_bs_vanilla.py       # check it against an independent implementation
+uv run golden/generate_paths.py          # regenerate the path fixture
 ```
 
-`generate_bs_vanilla.py` is deterministic: same QuantLib version, same bytes. If the file it
-writes differs from the committed one, either QuantLib changed or the grid did, and the diff
-says which.
+The generators are deterministic: same QuantLib version, same bytes, and CI regenerates each
+file and requires the working tree to be clean. If a regenerated file differs from the
+committed one, either QuantLib changed or the inputs did, and the diff says which.
 
 See [`golden/SCHEMA.md`](golden/SCHEMA.md) for the golden file's structure, units and
 tolerances, and [`experiments/README.md`](experiments/README.md) for the script-plus-JSON

@@ -1,8 +1,11 @@
 add_executable(touchstone_tests
     doctest_main.cpp
+    json_file.cpp
     golden_file.cpp
     rng_fixture.cpp
     statistics.cpp
+    test_contract.cpp
+    test_paths.cpp
     test_normal.cpp
     test_rng.cpp
     test_monte_carlo.cpp
@@ -40,13 +43,16 @@ target_compile_definitions(touchstone_tests
 target_compile_definitions(touchstone_tests
     PRIVATE TOUCHSTONE_GOLDEN_PATH="${PROJECT_SOURCE_DIR}/golden/bs_vanilla.json"
             TOUCHSTONE_RNG_FIXTURE_PATH="${PROJECT_SOURCE_DIR}/golden/rng-known-answers.json"
-            TOUCHSTONE_AMERICAN_PATH="${PROJECT_SOURCE_DIR}/golden/american_vanilla.json")
+            TOUCHSTONE_AMERICAN_PATH="${PROJECT_SOURCE_DIR}/golden/american_vanilla.json"
+            TOUCHSTONE_PATHS_FIXTURE_PATH="${PROJECT_SOURCE_DIR}/golden/paths-known-answers.json"
+            TOUCHSTONE_EXPERIMENT_2_11_PATH="${PROJECT_SOURCE_DIR}/experiments/2_11_where_it_breaks.json")
 
 # One ctest entry per suite, so a red run names the misunderstanding rather than
 # just the binary; plus one entry that runs the whole binary, so a mistyped
 # filter above can leave a suite unregistered but never unrun.
 foreach(suite IN ITEMS normal rng closed-form parity limits monte-carlo euler
-                       associations tridiagonal pde implied-vol bump-greeks american three-way)
+                       associations tridiagonal pde implied-vol implied-vol-safeguarded
+                       bump-greeks american three-way contract paths)
     add_test(NAME ts_${suite}
              COMMAND touchstone_tests --test-suite=${suite} --success=false)
 endforeach()

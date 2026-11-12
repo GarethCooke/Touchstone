@@ -25,6 +25,7 @@
 
 #include "golden_file.hpp"
 #include "statistics.hpp"
+#include "sweep.hpp"
 
 #include <touchstone/black_scholes.hpp>
 #include <touchstone/bump_greeks.hpp>
@@ -43,10 +44,6 @@
 #include <string>
 #include <vector>
 
-#ifndef TOUCHSTONE_SWEEP_SCALE
-#define TOUCHSTONE_SWEEP_SCALE 1
-#endif
-
 namespace {
 
 using touchstone::MonteCarloResult;
@@ -56,14 +53,14 @@ using touchstone::PdeSettings;
 using touchstone::PriceAndGreeks;
 using touchstone::testing::GoldenCase;
 
-constexpr std::size_t sweep_scale = TOUCHSTONE_SWEEP_SCALE;
+using touchstone::testing::sweep_scale;
 constexpr std::size_t stride = 53 * sweep_scale;
 
 // Whether the sample is large enough for a statement about its shape. The
 // sanitizer build runs a sixteenth of the rows, which is a valid smaller test of
 // every code path and not a sample a standard deviation can be estimated from;
 // the two assertions that need the whole sample say so and stand aside.
-constexpr bool full_sweep = (sweep_scale == 1);
+using touchstone::testing::full_sweep;
 
 /// A row worth comparing three ways.
 ///

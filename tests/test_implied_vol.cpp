@@ -23,6 +23,8 @@
 // on the dead rows and fail here.
 
 #include "golden_file.hpp"
+#include "json_file.hpp"
+#include "sweep.hpp"
 
 #include <touchstone/black_scholes.hpp>
 #include <touchstone/implied_vol.hpp>
@@ -55,6 +57,61 @@ using touchstone::testing::GoldenCase;
 [[nodiscard]] QuotedMarket quoted(const GoldenCase& row)
 {
     return QuotedMarket{row.market.spot, row.market.rate, row.market.dividend_yield};
+}
+
+#ifndef TOUCHSTONE_EXPERIMENT_2_11_PATH
+#error "TOUCHSTONE_EXPERIMENT_2_11_PATH must name experiments/2_11_where_it_breaks.json; tests/CMakeLists defines it."
+#endif
+
+using touchstone::SafeguardedResult;
+using touchstone::SafeguardedSettings;
+using touchstone::SafeguardedStatus;
+
+/// Page 2.11's committed experiment: the specification of the second solver.
+const nlohmann::json& experiment_2_11()
+{
+    static const nlohmann::json document = touchstone::testing::read_python_json(
+        touchstone::testing::fixture_path("TOUCHSTONE_EXPERIMENT_2_11_PATH",
+                                          TOUCHSTONE_EXPERIMENT_2_11_PATH),
+        "experiment 2.11");
+    return document;
+}
+
+/// The experiment's base case: S = K = 100, r = 0.05, q = 0, T = 1, the call.
+struct BaseCase {
+    EuropeanVanilla option;
+    QuotedMarket market;
+};
+
+[[nodiscard]] BaseCase base_case(const nlohmann::json& params)
+{
+    return BaseCase{
+        EuropeanVanilla{params.at("K").get<double>(), params.at("T").get<double>(),
+                        OptionType::Call},
+        QuotedMarket{params.at("S0").get<double>(), params.at("r").get<double>(),
+                     params.at("q").get<double>()}};
+}
+
+/// The experiment's solver settings, read from its own `params.solver`.
+[[nodiscard]] SafeguardedSettings experiment_settings(const nlohmann::json& solver)
+{
+    SafeguardedSettings settings{};
+    settings.initial_vol = solver.at("sigma0").get<double>();
+    settings.min_vol = solver.at("lo").get<double>();
+    settings.max_vol = solver.at("hi").get<double>();
+    settings.price_tolerance = solver.at("price_tol").get<double>();
+    settings.vol_tolerance = solver.at("sigma_tol").get<double>();
+    settings.max_iterations = solver.at("max_iter").get<std::size_t>();
+    return settings;
+}
+
+/// The experiment's closed form evaluates N(x) by a different polynomial than
+/// `std::erfc`, so a price there and a price here agree to the last few digits
+/// rather than to the bit. One part in 1e12 -- the solver's own stopping rule --
+/// is the measure of "the same iterate".
+[[nodiscard]] double scaled(double a, double b) noexcept
+{
+    return std::abs(a - b) / std::max(1.0, std::abs(b));
 }
 
 }  // namespace
@@ -424,5 +481,227 @@ TEST_SUITE("implied-vol")
             CHECK(found.vol == doctest::Approx(vol).epsilon(1e-10));
             previous = found.vol;
         }
+    }
+}
+
+TEST_SUITE("implied-vol-safeguarded")
+{
+    TEST_CASE("the defaults are the experiment's")
+    {
+        const nlohmann::json& solver = experiment_2_11().at("params").at("solver");
+        const SafeguardedSettings defaults{};
+        const SafeguardedSettings experiment = experiment_settings(solver);
+        CHECK(defaults.initial_vol == experiment.initial_vol);
+        CHECK(defaults.min_vol == experiment.min_vol);
+        CHECK(defaults.max_vol == experiment.max_vol);
+        CHECK(defaults.price_tolerance == experiment.price_tolerance);
+        CHECK(defaults.vol_tolerance == experiment.vol_tolerance);
+        CHECK(defaults.max_iterations == experiment.max_iterations);
+        CHECK_FALSE(defaults.record_steps);
+    }
+
+    TEST_CASE("page 2.11's committed trace, reproduced iterate by iterate")
+    {
+        const nlohmann::json& document = experiment_2_11();
+        const BaseCase base = base_case(document.at("params"));
+        const nlohmann::json& committed = document.at("results").at("solver").at("base_case");
+        const double target =
+            document.at("results").at("d9").at("quotes").at("price_at_100_vol_0.40").get<double>();
+
+        SafeguardedSettings settings{};
+        settings.record_steps = true;
+        const SafeguardedResult result =
+            touchstone::implied_vol_safeguarded(base.option, base.market, target, settings);
+
+        const nlohmann::json& trace = committed.at("trace");
+        REQUIRE(result.steps.size() == trace.size());
+        CHECK(result.iterations == committed.at("iterations").get<std::size_t>());
+        CHECK(result.bisections == committed.at("bisections").get<std::size_t>());
+        CHECK(touchstone::to_string(result.status) == committed.at("status").get<std::string>());
+        CHECK(result.converged);
+
+        std::ostringstream table;
+        table << "2.11's base case, C = " << std::setprecision(17) << target
+              << "\n    it   vol here              vol committed         price error here";
+        double worst = 0.0;
+        for (std::size_t i = 0; i < trace.size(); ++i) {
+            const auto& step = trace[i];
+            const auto& ours = result.steps[i];
+            CAPTURE(i);
+            CHECK(ours.iteration == step.at("iteration").get<std::size_t>());
+            worst = std::max({worst, std::abs(ours.vol - step.at("sigma").get<double>()),
+                              scaled(ours.price, step.at("price").get<double>()),
+                              scaled(ours.price_error, step.at("price_error").get<double>())});
+            table << "\n    " << ours.iteration << "    " << std::setprecision(17)
+                  << std::setw(20) << ours.vol << "  " << std::setw(20)
+                  << step.at("sigma").get<double>() << "  " << std::scientific
+                  << std::setprecision(3) << ours.price_error << std::defaultfloat;
+        }
+        table << "\n    worst difference from the committed trace " << std::scientific
+              << std::setprecision(3) << worst;
+        MESSAGE(table.str());
+        CHECK(worst <= 1e-12);
+        CHECK(std::abs(result.vol - committed.at("sigma").get<double>()) <= 1e-12);
+    }
+
+    TEST_CASE("page 2.11's refusals and its two harder solves")
+    {
+        // The experiment records five more targets at the base case: two outside
+        // the no-arbitrage bounds, one inside them but above the price at the
+        // top of the bracket, and two that converge after more work.
+        const nlohmann::json& document = experiment_2_11();
+        const BaseCase base = base_case(document.at("params"));
+        const nlohmann::json& refusals =
+            document.at("results").at("solver").at("bounds_base_case").at("refusals");
+        const double lower = touchstone::lowest_price(base.option, base.market);
+        const double upper = touchstone::highest_price(base.option, base.market);
+
+        std::size_t seen = 0;
+        for (const auto& [key, committed] : refusals.items()) {
+            const double target = std::stod(key.substr(std::string("price_").size()));
+            CAPTURE(key);
+            ++seen;
+            const SafeguardedResult result =
+                touchstone::implied_vol_safeguarded(base.option, base.market, target);
+            CHECK(touchstone::to_string(result.status) == committed.at("status").get<std::string>());
+            CHECK(result.iterations == committed.at("iterations").get<std::size_t>());
+            CHECK(result.bisections == committed.at("bisections").get<std::size_t>());
+
+            // No NaN, here or anywhere: where the experiment records NaN for a
+            // refused price, the library reports the nearest the model comes and
+            // the distance from it.
+            CHECK_FALSE(std::isnan(result.vol));
+            CHECK_FALSE(std::isnan(result.price_residual));
+            CHECK_FALSE(std::isnan(result.vega));
+            switch (result.status) {
+                case SafeguardedStatus::BelowLowerBound:
+                    CHECK(result.vol == 0.0);
+                    CHECK(result.price_residual == lower - target);
+                    break;
+                case SafeguardedStatus::AboveUpperBound:
+                    CHECK(std::isinf(result.vol));
+                    CHECK(result.price_residual == upper - target);
+                    CHECK(result.vega == 0.0);
+                    break;
+                default:
+                    CHECK(std::abs(result.vol - committed.at("sigma").get<double>()) <= 1e-12);
+                    CHECK(scaled(result.price_residual, committed.at("price_error").get<double>())
+                          <= 1e-12);
+                    break;
+            }
+        }
+        CHECK(seen == 5u);
+    }
+
+    TEST_CASE("the price round trip, on every golden row")
+    {
+        // The criterion the first solver is held to, over the same rows. A golden
+        // price a rounding below the zero-volatility price is inside the
+        // experiment's tolerance and is solved rather than refused, so every row
+        // has an answer here.
+        const auto& file = touchstone::testing::golden_file();
+
+        double worst = 0.0;
+        std::string worst_at;
+        std::size_t rows = 0;
+        std::size_t not_converged = 0;
+        std::size_t bisected = 0;
+        std::size_t worst_iterations = 0;
+
+        const auto walk = [&](const std::vector<GoldenCase>& source) {
+            for (std::size_t i = 0; i < source.size(); i += touchstone::testing::sweep_scale) {
+                const GoldenCase& row = source[i];
+                const QuotedMarket market = quoted(row);
+                const SafeguardedResult found =
+                    touchstone::implied_vol_safeguarded(row.option, market, row.reference.price);
+                ++rows;
+                not_converged += found.converged ? 0u : 1u;
+                bisected += (found.bisections > 0) ? 1u : 0u;
+                worst_iterations = std::max(worst_iterations, found.iterations);
+                const double repriced = touchstone::price(row.option, market.at(found.vol));
+                const double error =
+                    touchstone::testing::scaled_error(repriced, row.reference.price);
+                if (error > worst) {
+                    worst = error;
+                    worst_at = touchstone::testing::describe(row) + ", status "
+                               + touchstone::to_string(found.status);
+                }
+            }
+        };
+        walk(file.cases);
+        walk(file.edge_cases);
+
+        MESSAGE("safeguarded price round trip over "
+                << rows << " rows\n    worst scaled |repriced - golden|  " << std::scientific
+                << std::setprecision(3) << worst << "   (criterion 1e-8)\n    not converged "
+                << not_converged << ", rows that bisected " << bisected
+                << ", worst iteration count " << worst_iterations << "\n    worst at "
+                << worst_at);
+
+        CHECK(not_converged == 0u);
+        CHECK_MESSAGE(worst <= 1e-8, worst_at);
+    }
+
+    TEST_CASE("every status has the experiment's word")
+    {
+        CHECK(std::string(touchstone::to_string(SafeguardedStatus::Converged)) == "converged");
+        CHECK(std::string(touchstone::to_string(SafeguardedStatus::BelowLowerBound))
+              == "below_lower_bound");
+        CHECK(std::string(touchstone::to_string(SafeguardedStatus::AboveUpperBound))
+              == "above_upper_bound");
+        CHECK(std::string(touchstone::to_string(SafeguardedStatus::BelowSigmaLo))
+              == "below_sigma_lo");
+        CHECK(std::string(touchstone::to_string(SafeguardedStatus::AboveSigmaHi))
+              == "above_sigma_hi");
+        CHECK(std::string(touchstone::to_string(SafeguardedStatus::MaxIter)) == "max_iter");
+    }
+
+    TEST_CASE("the budget runs out honestly, and steps are recorded only when asked")
+    {
+        const EuropeanVanilla call{100.0, 1.0, OptionType::Call};
+        const QuotedMarket market{100.0, 0.05, 0.0};
+        const double target = touchstone::price(call, market.at(0.4));
+
+        SafeguardedSettings two{};
+        two.max_iterations = 2;
+        const SafeguardedResult cut = touchstone::implied_vol_safeguarded(call, market, target, two);
+        CHECK(cut.status == SafeguardedStatus::MaxIter);
+        CHECK_FALSE(cut.converged);
+        CHECK(cut.iterations == 2u);
+        CHECK(cut.steps.empty());
+        CHECK(cut.price_residual == touchstone::price(call, market.at(cut.vol)) - target);
+    }
+
+    TEST_CASE("settings, contracts and targets it cannot work with are refused")
+    {
+        const EuropeanVanilla call{100.0, 1.0, OptionType::Call};
+        const QuotedMarket market{100.0, 0.05, 0.0};
+        const double nan = std::numeric_limits<double>::quiet_NaN();
+
+        const auto refuses = [&](const SafeguardedSettings& settings) {
+            CHECK_THROWS_AS(touchstone::implied_vol_safeguarded(call, market, 10.0, settings),
+                            std::invalid_argument);
+        };
+        SafeguardedSettings inverted{};
+        inverted.min_vol = 6.0;
+        refuses(inverted);
+        SafeguardedSettings negative{};
+        negative.min_vol = -0.1;
+        refuses(negative);
+        SafeguardedSettings start{};
+        start.initial_vol = nan;
+        refuses(start);
+        SafeguardedSettings tolerance{};
+        tolerance.price_tolerance = 0.0;
+        refuses(tolerance);
+        SafeguardedSettings budget{};
+        budget.max_iterations = 0;
+        refuses(budget);
+
+        CHECK_THROWS_AS(touchstone::implied_vol_safeguarded(call, market, nan),
+                        std::invalid_argument);
+        CHECK_THROWS_AS(
+            touchstone::implied_vol_safeguarded(EuropeanVanilla{-1.0, 1.0}, market, 10.0),
+            std::invalid_argument);
     }
 }

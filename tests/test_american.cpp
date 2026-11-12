@@ -36,6 +36,7 @@
 
 #include "american_file.hpp"
 #include "golden_file.hpp"
+#include "sweep.hpp"
 
 #include <touchstone/black_scholes.hpp>
 #include <touchstone/pde.hpp>
@@ -53,35 +54,23 @@
 #include <utility>
 #include <vector>
 
-#ifndef TOUCHSTONE_SWEEP_SCALE
-#define TOUCHSTONE_SWEEP_SCALE 1
-#endif
-
 namespace {
 
 using touchstone::BlackScholesMarket;
-using touchstone::EuropeanVanilla;
+using touchstone::AmericanVanilla;
 using touchstone::Exercise;
 using touchstone::OptionType;
 using touchstone::PdeResult;
 using touchstone::PdeSettings;
 using touchstone::testing::AmericanCase;
 
-constexpr std::size_t grid_stride = TOUCHSTONE_SWEEP_SCALE;
+constexpr std::size_t grid_stride = touchstone::testing::sweep_scale;
 
-[[nodiscard]] PdeSettings american_settings()
+[[nodiscard]] PdeSettings grid_settings()
 {
     PdeSettings settings{};
     settings.space_intervals = 1024;
     settings.time_steps = 512;
-    settings.exercise = Exercise::American;
-    return settings;
-}
-
-[[nodiscard]] PdeSettings european_settings()
-{
-    PdeSettings settings = american_settings();
-    settings.exercise = Exercise::European;
     return settings;
 }
 
@@ -127,7 +116,7 @@ TEST_SUITE("american")
         // wrongly, a boundary condition raised to intrinsic where it should not
         // be — shows up here first.
         const auto& file = touchstone::testing::american_file();
-        const PdeSettings settings = american_settings();
+        const PdeSettings settings = grid_settings();
 
         double worst = 0.0;
         std::string worst_at;
@@ -139,10 +128,10 @@ TEST_SUITE("american")
                 continue;
             }
             ++rows;
-            const double exact = touchstone::price(row.option, row.market);
+            const double exact = touchstone::price(row.european(), row.market);
             const PdeResult american = touchstone::crank_nicolson(row.option, row.market, settings);
             const PdeResult european =
-                touchstone::crank_nicolson(row.option, row.market, european_settings());
+                touchstone::crank_nicolson(row.european(), row.market, settings);
 
             const double scale = std::max(std::abs(exact), row.market.spot);
             const double error = std::abs(american.price - exact) / scale;
@@ -184,7 +173,7 @@ TEST_SUITE("american")
         // The golden file has such rows and the lattice agrees with the grid on
         // them; both are above the European price, which is the whole point.
         const auto& file = touchstone::testing::american_file();
-        const PdeSettings settings = american_settings();
+        const PdeSettings settings = grid_settings();
 
         std::size_t found = 0;
         double largest_premium = 0.0;
@@ -194,7 +183,7 @@ TEST_SUITE("american")
             if (row.option.type != OptionType::Call || row.market.rate >= 0.0) {
                 continue;
             }
-            const double european = touchstone::price(row.option, row.market);
+            const double european = touchstone::price(row.european(), row.market);
             const double premium = row.price - european;
             if (premium <= 1e-6 * std::max(european, 1.0)) {
                 continue;
@@ -221,7 +210,7 @@ TEST_SUITE("american")
     TEST_CASE("the american golden file, priced on the grid")
     {
         const auto& file = touchstone::testing::american_file();
-        const PdeSettings settings = american_settings();
+        const PdeSettings settings = grid_settings();
 
         double worst_against_spread = 0.0;
         double worst_scaled = 0.0;
@@ -275,7 +264,7 @@ TEST_SUITE("american")
         // fires loses the first, and one that fires on the wrong side loses the
         // second.
         const auto& file = touchstone::testing::american_file();
-        const PdeSettings settings = american_settings();
+        const PdeSettings settings = grid_settings();
 
         double worst_below_european = 0.0;
         double worst_below_intrinsic = 0.0;
@@ -286,10 +275,8 @@ TEST_SUITE("american")
         for (std::size_t i = 0; i < file.cases.size(); i += grid_stride) {
             const AmericanCase& row = file.cases[i];
             ++rows;
-            const double european = touchstone::price(row.option, row.market);
-            const double intrinsic = std::max(
-                touchstone::option_sign(row.option.type) * (row.market.spot - row.option.strike),
-                0.0);
+            const double european = touchstone::price(row.european(), row.market);
+            const double intrinsic = touchstone::payoff(row.option, row.market.spot);
             const PdeResult american = touchstone::crank_nicolson(row.option, row.market, settings);
             const double scale = std::max(std::abs(european), row.market.spot);
 
@@ -333,7 +320,7 @@ TEST_SUITE("american")
         // -rate corner that makes early exercise of a call optimal. Testing it
         // everywhere would be testing a statement that is false.
         const auto& file = touchstone::testing::american_file();
-        const PdeSettings settings = american_settings();
+        const PdeSettings settings = grid_settings();
 
         struct Key {
             double spot, strike, vol, rate, yield;
@@ -416,7 +403,7 @@ TEST_SUITE("american")
         struct Row {
             const char* what;
             BlackScholesMarket market;
-            EuropeanVanilla option;
+            AmericanVanilla option;
             double least_ratio;      ///< bound on the worst successive-move ratio
             double least_premium;    ///< the early-exercise premium must be real
         };
@@ -442,7 +429,6 @@ TEST_SUITE("american")
                 PdeSettings settings{};
                 settings.space_intervals = n;
                 settings.time_steps = n / 2;
-                settings.exercise = Exercise::American;
                 const PdeResult result = touchstone::crank_nicolson(row.option, row.market, settings);
                 prices.push_back(result.price);
                 table << "\n    " << std::setw(6) << n << " x " << std::setw(5) << (n / 2) << "  "
@@ -459,7 +445,8 @@ TEST_SUITE("american")
                 worst_ratio = std::min(worst_ratio, ratio);
             }
 
-            const double european = touchstone::price(row.option, row.market);
+            const double european = touchstone::price(
+                touchstone::with_exercise<Exercise::European>(row.option), row.market);
             const double premium = prices.back() - european;
             table << "\n    worst ratio " << std::fixed << std::setprecision(2) << worst_ratio
                   << " (bound " << row.least_ratio << ");  European " << std::setprecision(9)

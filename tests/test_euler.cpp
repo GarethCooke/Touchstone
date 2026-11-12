@@ -15,19 +15,13 @@
 // claims are made on the site and both have to be tested here (I1).
 
 #include "rng_fixture.hpp"
+#include "sweep.hpp"
 
 #include <touchstone/black_scholes.hpp>
 #include <touchstone/monte_carlo.hpp>
 #include <touchstone/rng.hpp>
 
 #include <doctest/doctest.h>
-
-// See `CMakeLists.txt`, where the option is declared: one by default, higher in
-// CI's sanitizer job, where the point is to walk every line rather than to
-// measure a rate precisely.
-#ifndef TOUCHSTONE_SWEEP_SCALE
-#define TOUCHSTONE_SWEEP_SCALE 1
-#endif
 
 #include <cmath>
 #include <cstddef>
@@ -122,8 +116,57 @@ Fit fit_log_log_with_errors(const std::vector<double>& dt,
 const BlackScholesMarket market{100.0, 0.3, 0.05, 0.02};
 constexpr double expiry = 1.0;
 
-constexpr std::size_t sweep_scale = TOUCHSTONE_SWEEP_SCALE;
-constexpr bool full_sweep = (sweep_scale == 1);
+using touchstone::testing::full_sweep;
+using touchstone::testing::sweep_scale;
+
+/// A sample mean and its standard error, by Welford's update.
+class RunningMean {
+public:
+    void add(double x) noexcept
+    {
+        ++count_;
+        const double delta = x - mean_;
+        mean_ += delta / static_cast<double>(count_);
+        m2_ += delta * (x - mean_);
+    }
+
+    [[nodiscard]] double mean() const noexcept { return mean_; }
+
+    [[nodiscard]] double standard_error() const noexcept
+    {
+        const double n = static_cast<double>(count_);
+        return std::sqrt(m2_ / (n - 1.0) / n);
+    }
+
+private:
+    std::size_t count_{0};
+    double mean_{0.0};
+    double m2_{0.0};
+};
+
+/// Euler and the exact sampler on the same Brownian path, `paths` times over,
+/// each pair's two terminal spots handed to `observe`.
+///
+/// The exact sampler needs `W_T / sqrt(T)`, which is the sum of the steps'
+/// normals divided by the square root of their number: the same Brownian
+/// increment, given to both schemes, so that their difference is the
+/// discretisation error and has no sampling noise standing in front of it.
+template <class Observe>
+void on_shared_paths(std::uint32_t seed, std::size_t steps, std::size_t paths, Observe observe)
+{
+    Xoshiro128SS rng(seed);
+    std::vector<double> normals(steps, 0.0);
+    for (std::size_t path = 0; path < paths; ++path) {
+        double sum = 0.0;
+        for (double& z : normals) {
+            z = rng.next_normal();
+            sum += z;
+        }
+        const double shared = sum / std::sqrt(static_cast<double>(steps));
+        observe(touchstone::terminal_spot_euler(market, expiry, normals),
+                touchstone::terminal_spot_exact(market, expiry, shared));
+    }
+}
 
 }  // namespace
 
@@ -156,36 +199,13 @@ TEST_SUITE("euler")
             // independent measurements. `test_rng.cpp` asserts the separation
             // this rule gives; using it here is what makes that assertion mean
             // something for these sweeps too.
-            Xoshiro128SS rng(stream_seed(4000u + steps));
-            std::vector<double> normals(steps, 0.0);
-
-            double mean = 0.0;
-            double m2 = 0.0;
-            std::size_t seen = 0;
-
-            for (std::size_t path = 0; path < paths; ++path) {
-                double sum = 0.0;
-                for (double& z : normals) {
-                    z = rng.next_normal();
-                    sum += z;
-                }
-                // The same Brownian increment, given to both schemes: the exact
-                // sampler needs W_T / sqrt(T), which is the sum of the steps'
-                // normals divided by the square root of their number.
-                const double shared = sum / std::sqrt(static_cast<double>(steps));
-
-                const double stepped = touchstone::terminal_spot_euler(market, expiry, normals);
-                const double exact = touchstone::terminal_spot_exact(market, expiry, shared);
-                const double gap = std::abs(stepped - exact);
-
-                ++seen;
-                const double delta = gap - mean;
-                mean += delta / static_cast<double>(seen);
-                m2 += delta * (gap - mean);
-            }
-
-            const double n = static_cast<double>(seen);
-            const double standard_error = std::sqrt(m2 / (n - 1.0) / n);
+            RunningMean gap;
+            on_shared_paths(stream_seed(4000u + steps), steps, paths,
+                            [&](double stepped, double exact) {
+                                gap.add(std::abs(stepped - exact));
+                            });
+            const double mean = gap.mean();
+            const double standard_error = gap.standard_error();
             const double step = expiry / static_cast<double>(steps);
             const bool fitted = step < asymptotic_below;
 
@@ -265,35 +285,15 @@ TEST_SUITE("euler")
               << "\n    steps        dt          bias         SE   bias/SE   bias/dt";
 
         for (const std::size_t steps : levels) {
-            Xoshiro128SS rng(stream_seed(7000u + steps));
-            std::vector<double> normals(steps, 0.0);
-
-            double mean = 0.0;
-            double m2 = 0.0;
-            std::size_t seen = 0;
-
-            for (std::size_t path = 0; path < paths; ++path) {
-                double sum = 0.0;
-                for (double& z : normals) {
-                    z = rng.next_normal();
-                    sum += z;
-                }
-                const double shared = sum / std::sqrt(static_cast<double>(steps));
-
-                const double stepped = touchstone::terminal_spot_euler(market, expiry, normals);
-                const double exact = touchstone::terminal_spot_exact(market, expiry, shared);
-                const double difference =
-                    discount
-                    * (touchstone::payoff(option, stepped) - touchstone::payoff(option, exact));
-
-                ++seen;
-                const double delta = difference - mean;
-                mean += delta / static_cast<double>(seen);
-                m2 += delta * (difference - mean);
-            }
-
-            const double n = static_cast<double>(seen);
-            const double standard_error = std::sqrt(m2 / (n - 1.0) / n);
+            RunningMean difference;
+            on_shared_paths(stream_seed(7000u + steps), steps, paths,
+                            [&](double stepped, double exact) {
+                                difference.add(discount
+                                               * (touchstone::payoff(option, stepped)
+                                                  - touchstone::payoff(option, exact)));
+                            });
+            const double mean = difference.mean();
+            const double standard_error = difference.standard_error();
             const double step = expiry / static_cast<double>(steps);
 
             dt.push_back(step);

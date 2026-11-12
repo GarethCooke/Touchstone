@@ -1,9 +1,7 @@
 #include "rng_fixture.hpp"
 
-#include <nlohmann/json.hpp>
+#include "json_file.hpp"
 
-#include <cstdlib>
-#include <fstream>
 #include <stdexcept>
 
 #ifndef TOUCHSTONE_RNG_FIXTURE_PATH
@@ -27,25 +25,12 @@ constexpr Expected expected_description[] = {
     {"spec", "docs/rng.md"},
 };
 
-std::string fixture_path()
-{
-    if (const char* from_environment = std::getenv("TOUCHSTONE_RNG_FIXTURE_PATH")) {
-        return from_environment;
-    }
-    return TOUCHSTONE_RNG_FIXTURE_PATH;
-}
-
 RngFixture load()
 {
     RngFixture fixture{};
-    fixture.path = fixture_path();
+    fixture.path = fixture_path("TOUCHSTONE_RNG_FIXTURE_PATH", TOUCHSTONE_RNG_FIXTURE_PATH);
 
-    std::ifstream stream(fixture.path);
-    if (!stream) {
-        throw std::runtime_error("rng fixture: cannot open '" + fixture.path + "'");
-    }
-
-    const nlohmann::json document = nlohmann::json::parse(stream);
+    const nlohmann::json document = read_json(fixture.path, "rng fixture");
 
     for (const Expected& field : expected_description) {
         const std::string found = document.at(field.key).get<std::string>();

@@ -6,6 +6,7 @@
 // failure here is a failure of internal consistency rather than of agreement.
 
 #include "golden_file.hpp"
+#include "greek_fields.hpp"
 
 #include <touchstone/black_scholes.hpp>
 
@@ -38,20 +39,7 @@ using touchstone::testing::Worst;
 ///     theta_c        - theta_p        =  q F - r D
 ///     rho_c          - rho_p          =  T D
 ///     dividend_rho_c - dividend_rho_p = -T F
-struct Identity {
-    const char* name;
-    double PriceAndGreeks::* value;
-};
-
-constexpr std::array<Identity, 7> identities{{
-    {"price", &PriceAndGreeks::price},
-    {"delta", &PriceAndGreeks::delta},
-    {"gamma", &PriceAndGreeks::gamma},
-    {"vega", &PriceAndGreeks::vega},
-    {"theta", &PriceAndGreeks::theta},
-    {"rho", &PriceAndGreeks::rho},
-    {"dividend_rho", &PriceAndGreeks::dividend_rho},
-}};
+constexpr const auto& identities = touchstone::testing::greek_fields;
 
 std::array<double, 7> expected_differences(const EuropeanVanilla& option,
                                            const BlackScholesMarket& market)
