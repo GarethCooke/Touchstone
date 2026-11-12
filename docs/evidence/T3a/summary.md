@@ -128,12 +128,14 @@ dependency.
    `RealFunction` concepts on the two templates. In the tests: one sweep-scale header, one
    Greek-field table, one fixture reader for all four JSON files, one shared-path loop.
 
-8. **Compilers, sanitizers, CI.** Locally: g++ 15.2 `-Werror`, clean build, 0 warnings;
-   clang 22, 0 warnings in the library (doctest's `__COUNTER__` and the MSVC CRT's `getenv`
-   in tests only); clang ASan+UBSan, 0 diagnostics. **CI on `892e28e`: all four jobs green**
-   — g++ 13.3, clang 18.1.3, GCC ASan+UBSan, and the golden job, which regenerated the path
-   fixture byte-for-byte. 116 cases and 4,139,802 assertions locally (93 and 4,135,768
-   before). `build.txt`, `tests.txt` §§1, 7.
+8. **Compilers, sanitizers, CI.** On the final tree, locally: g++ 15.2 `-Werror`, 0
+   warnings; clang 22, 0 warnings outside the tests (doctest's `__COUNTER__` and the CRT's
+   `getenv` in them); MSVC `cl.exe` 19.44, one warning, `getenv` in a test; clang
+   ASan+UBSan, 0 diagnostics. 116 cases and 4,140,435 assertions on all three compilers (93
+   and 4,135,768 before), with g++'s and clang's output identical line for line. **CI on
+   `47c8108`, the last code commit: all four jobs green, 0 warnings** — g++ 13.3, clang
+   18.1.3, GCC ASan+UBSan, and the golden job, which regenerated the path fixture
+   byte-for-byte. `build.txt`, `tests.txt` §§1, 7, 8.
 
 9. **The repeated-code review, and closing it.** A fresh agent session, given the owner's
    rule and the brief's catalogue and told to edit nothing, read every file under
@@ -142,9 +144,12 @@ dependency.
    (the two solvers' validation, `ClosedForm` copying its quote's fields, the two concepts,
    the log-drift formed in two associations), and a good deal of older repetition in the
    tests the catalogue had only scanned — the worst-error idiom hand-written at 17 sites,
-   SCHEMA.md's scaled error re-implemented six ways. Every finding it called real is closed
-   but four, each of which is two different measurements rather than one written twice;
-   of the borderline ones, five are closed and the rest kept with a reason.
+   SCHEMA.md's scaled error re-implemented six ways. Every finding it rated real is
+   closed. In three of them part of what it named is kept, each because the two places
+   are different things: Monte Carlo's discounted intrinsic in its overflow recovery, the
+   two fixture readers' `load()` bodies, and three signed or differently scaled figures
+   in the American suite. Of its ten borderline findings, two are closed, two partly, and
+   six kept with the reason.
    **`review.md` has every finding and its closure.** Closing them moved no number the
    suite reports: the library's fixes changed nothing in its output, and the tests' changed
    one message and the assertion count (`tests.txt` §7).
@@ -153,7 +158,7 @@ dependency.
 
 | Criterion | Result |
 |---|---|
-| Every test that was green is green, on both compilers and under the sanitizers | **PASS** — all 93 baseline cases still pass, now 116 of 116. CI on `892e28e`: g++ 13.3 18/18, clang 18.1.3 18/18, GCC ASan+UBSan 18/18. Locally: g++ 15.2 and clang 22 116/116, clang ASan+UBSan 116/116 with 0 diagnostics. Reported numbers unchanged but two, both explained (Done 1). |
+| Every test that was green is green, on both compilers and under the sanitizers | **PASS** — all 93 baseline cases still pass, now 116 of 116. CI on `47c8108`: g++ 13.3 18/18, clang 18.1.3 18/18, GCC ASan+UBSan 18/18. Locally: g++ 15.2, clang 22 and MSVC 19.44 116/116, clang ASan+UBSan 116/116 with 0 diagnostics. Reported numbers unchanged but two, both explained (Done 1). |
 | A path fixture | **PASS** — `golden/paths-known-answers.json` and its generator; reproduced to 1.7e-16 against 1e-12; the site's `paths.ts` reproduces it too; CI regenerates it byte-for-byte. |
 | The second solver against page 2.11's committed trace | **PASS** — iterate by iterate to 7.1e-15, iteration and bisection counts and status as committed; the five other committed targets likewise. |
 | An American contract refused by the closed form at compile time | **PASS** — `tests/test_contract.cpp`, `static_assert`s over concepts: the file fails to compile if any of the refusals stops holding. |
@@ -230,9 +235,10 @@ And the judgement calls, each *Decision — owner may overrule*:
   than every step, and the implied-vol solvers no longer revalidate the whole input at every
   step; neither was timed, and nothing here claims a speed. F4's "about eight milliseconds"
   in `pde.hpp` stays for T5 to measure or cut.
-- **MSVC's own compiler was not run.** clang 22 targeting MSVC built and passed the suite
-  against the MSVC STL and the UCRT, which is close to F7's MSVC half but is not `cl.exe`.
-  Emscripten is T4's.
+- **MSVC is built and run here, not in CI.** `cl.exe` 19.44 built the final tree at the
+  project's `/W4 /permissive-` with one warning, the CRT's `getenv` deprecation in a test,
+  and passed 116 cases (`build.txt` §6). That is F7's MSVC half done once on one machine,
+  not claimed as supported. Emscripten is T4's.
 - **The history still in unchanged comments stays** until T5 moves it (ruling 8); the
   history T3a removed from the comments it changed is in `history.md`.
 - **F6** (`.clang-format`, `.clang-tidy`, `.editorconfig`) is the owner's; **F10** and
@@ -259,8 +265,8 @@ rule — is reported under **Decisions** rather than settled by amendment.
 
 ## Owner actions
 
-1. **Read this pack and merge `m/T3a`.** T3a's tollgate is V. CI is green on `892e28e`;
-   anything pushed after it is listed in `tests.txt` §7 with its own run.
+1. **Read this pack and merge `m/T3a`.** T3a's tollgate is V. CI is green on `47c8108`,
+   the last commit to touch code; the commit after it changes only this pack.
 2. **Rule on the two solvers' stopping rules** if the brief meant them to share one
    (Decisions). Nothing waits on it.
 3. **Rule on NaN against saturation** for the second solver's refusals before L5 binds it,

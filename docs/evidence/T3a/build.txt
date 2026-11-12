@@ -100,3 +100,25 @@ for the two compilers the project claims.
   same script writes different bytes: one exp() in the 252-step exact path differs in the
   last bit and the difference propagates along the path — 36 of 672 values, worst scaled
   difference 1.7e-16, four orders inside the fixture's 1e-12.
+
+6. After the review, the final tree
+-----------------------------------
+
+  g++ 15.2, TOUCHSTONE_WARNINGS_AS_ERRORS=ON: builds, 0 warnings.
+
+  clang 22: 0 warnings outside tests/. Building it found one real fault the g++ build had
+  hidden: tests/test_pde.cpp used std::array without including <array>, which libstdc++
+  reached transitively and the MSVC STL does not. Fixed before the commit, with <utility>
+  added to test_monte_carlo.cpp for its std::pair on the same check.
+
+  MSVC cl.exe 19.44.35230 (Visual Studio 2022), CMake's "Visual Studio 17 2022" generator,
+  the project's own MSVC flags (/W4 /permissive-), RelWithDebInfo, warnings counted rather
+  than fatal:
+      one warning, C4996, std::getenv in tests/json_file.cpp (the CRT's deprecation)
+      0 in src/, include/ or the header self-containment units
+    Before the review there was a second, C4127 "conditional expression is constant", at
+    test_monte_carlo.cpp's `grid_stride == 1`; review finding 3.33 replaced it with
+    `if constexpr (full_sweep)`. This is the first build of the library by MSVC's own
+    compiler — the MSVC half of the brief's F7, which CI does not run and nothing claims.
+
+  clang 22 ASan+UBSan, rebuilt from the final tree: 116 cases, 0 diagnostics (tests.txt §7).
