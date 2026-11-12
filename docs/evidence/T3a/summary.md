@@ -257,6 +257,86 @@ the Emscripten build and its embind API, which now has `ClosedForm`, the path AP
 solvers, and `detail::GridSolver` for D8 to bind, and whose header self-containment check
 already covers every header it will include.
 
+---
+
+### 2026-11-12 · claude-opus-5-5 · Monte Carlo walks each path once again, with the step and the draw inlinable; no reported number moved; on this machine the defaults are back to main's time and Euler at 64 steps is 10% behind it
+
+An independent timing of `main` against this branch (g++ 13.3, -O3) found Monte Carlo
+slower on the branch — Euler at 64 steps 20.6 → 28.5 ms a call, the defaults 1.17 → 1.29 ms
+— and named two causes in the code: under Euler each path was walked twice, once for the
+growth factor and once for the discounted one, where `main` carried both through one loop;
+and `GbmStep::factor` was defined in `src/paths.cpp`, so every step was a call across
+translation units with a branch on the scheme. This entry fixes both, without changing a
+number the suite reports.
+
+**Done**
+
+1. **One walk carries both factors.** `detail::walk` and `detail::grow` take an
+   `std::array<double, N>` of starting values and advance every one by the same factor, formed
+   once per step and multiplied into each value in the order given. Under Euler, Monte Carlo
+   grows `{1, e^{-rT}}` in one walk where it made two, and the multiplications are `main`'s in
+   `main`'s order: growth times the factor, then discounted growth times the factor. A path
+   written out and `terminal_growth_euler` are the same walk with one value. The stepping is
+   still written once.
+2. **The factor is visible to the inliner.** `GbmStep`, its constructor and `factor`, moved
+   from `src/paths.cpp` into `detail/path_generator.hpp`. At -O3 g++ inlines it, and tests the
+   scheme once before the loop rather than at every step (seen in the assembly; `timing.txt`
+   §4).
+3. **`PathGenerator::draw` moved into the header too**, which was not asked for. Under the
+   exact scheme a path is one normal, so `draw` was a call across translation units at every
+   step, as the factor was. Moving it is what brought the default setting back to `main`'s
+   time (`timing.txt` §4).
+4. **No reported number moved.** Both local compilers: 116 cases, 4,140,435 assertions, all
+   passed, and the suite's whole output identical to the branch's final runs; g++ and clang
+   identical to each other; g++ at -Werror with no warning (`tests.txt` §9, `build.txt` §7).
+5. **Timed before and after, on this machine only**: g++ 15.2 (MinGW), the library at
+   Release (-O3 -DNDEBUG), AMD Ryzen 7 3800X, Windows 11; 15 rounds, order rotated, pinned to
+   one core; medians (`timing.txt`):
+
+   | `monte_carlo`, one call | `main` | branch as pushed | this change |
+   |---|---|---|---|
+   | Euler, 64 steps, 32768 paths | 28.58 ms | 35.77 ms | 31.51 ms |
+   | defaults (exact, 32768 paths) | 1.712 ms | 1.756 ms | 1.718 ms |
+
+   Under Euler that is 59% of the loss recovered, and 2.9 ms (10%) still behind `main`. At
+   the defaults it is 6 µs from `main`, inside the spread of `main`'s own runs.
+6. **CI**: pending; recorded below when the run completes.
+
+**Decisions** (each *Decision — owner may overrule*)
+
+- **`draw` moved as well as the factor**, for the reason in Done 3, and measured.
+- **The exact scheme keeps its one multiplication** by the discount rather than carrying
+  `{1, e^{-rT}}` through its one-step walk. In a walk zero is absorbing, so where the discount
+  has underflowed to zero and the growth overflowed, the carried value would be zero; the
+  multiplication gives a NaN there instead, which sends it to the exponential recovery and a
+  finite value. Everywhere else the two agree.
+- **`advance` is unchanged, and its zero tests cost about 1.5 ms of the 2.9 ms Euler still
+  lags `main`**: without them (a build made only to measure this, never committed) the call
+  is 30.0 ms. Those tests are what keep an infinity times a zero, and so a NaN, out of every
+  path. A form returning the same bits in every case with one test on the product in place
+  of two on the operands measured no faster (`timing.txt` §3, §4). The rule stays, and so
+  does the time.
+- **No compile-time dispatch on the scheme.** Once g++ can see the factor it already chooses
+  one loop per scheme at entry.
+
+**Not done**
+
+- **The rest of the Euler gap**: about 1.5 ms at 64 steps on this machine that is neither
+  the two causes named nor `advance`, and was not attributed.
+- **No other compiler, flag or machine was timed**: not CI's g++ 13.3, which the independent
+  timing used, not clang or MSVC, not RelWithDebInfo's -O2. Nothing here claims a time for
+  them. Whether g++ at -O2 also lifts the scheme's test out of the loop was not checked; GCC
+  unswitches loops at -O3.
+- **The local sanitizer and MSVC builds were not re-run** for this change; CI's sanitizer job
+  is.
+- **No benchmark was added to the repository.** The harness and its driver are reproduced in
+  `timing.txt` and built by hand; ruling 7 leaves performance to T5.
+
+**Exact next step**
+
+The owner reads this entry and `timing.txt`, then merges `m/T3a` as the first entry's next
+step says.
+
 ## Amendments
 
 **None proposed.** No dependency, technology or invariant changes. The rulings brief is the
@@ -265,12 +345,15 @@ rule — is reported under **Decisions** rather than settled by amendment.
 
 ## Owner actions
 
-1. **Read this pack and merge `m/T3a`.** T3a's tollgate is V. CI is green on `47c8108`,
-   the last commit to touch code; the commit after it changes only this pack.
+1. **Read this pack and merge `m/T3a`.** T3a's tollgate is V. CI: see the Monte Carlo
+   timing entry, which records the run on the last commit to touch code.
 2. **Rule on the two solvers' stopping rules** if the brief meant them to share one
    (Decisions). Nothing waits on it.
 3. **Rule on NaN against saturation** for the second solver's refusals before L5 binds it,
    if the site's NaN is what D9 should get from the library itself.
+4. **Rule on `advance`'s zero tests** if their measured cost under Euler (about 1.5 ms of a
+   31.5 ms call at 64 steps, on this machine) is not worth what they rule out. Nothing waits
+   on it.
 
 ## What is in this pack
 
@@ -281,5 +364,7 @@ rule — is reported under **Decisions** rather than settled by amendment.
   numbers; the site's `paths.ts` against the fixture; the review; CI.
 - `review.md` — the repeated-code review's findings, and how each was closed.
 - `history.md` — the history removed from changed comments, kept verbatim for T5.
+- `timing.txt` — Monte Carlo timed on `main`, the branch as first pushed, and after the
+  timing follow-up: machine, compiler, flags, method, results, the harness and its driver.
 - `diff.txt` — `git diff --stat` against `6b8a60a`.
 - No `screenshots/`: T3a has no UI.

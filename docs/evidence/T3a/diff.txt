@@ -3,69 +3,71 @@ to the branch head, docs/evidence/T3a/ included
 
  .github/workflows/ci.yml                     |  10 +
  CMakeLists.txt                               |  25 +-
- README.md                                    |  57 +++--
- docs/evidence/T3a/build.txt                  | 124 ++++++++++
+ README.md                                    |  57 +++-
+ docs/evidence/T3a/build.txt                  | 142 ++++++++
+ docs/evidence/T3a/diff.txt                   |  73 +++++
  docs/evidence/T3a/history.md                 |  19 ++
- docs/evidence/T3a/review.md                  |  93 ++++++++
- docs/evidence/T3a/summary.md                 | 285 +++++++++++++++++++++++
- docs/evidence/T3a/tests.txt                  | 210 +++++++++++++++++
+ docs/evidence/T3a/review.md                  |  93 ++++++
+ docs/evidence/T3a/summary.md                 | 370 +++++++++++++++++++++
+ docs/evidence/T3a/tests.txt                  | 240 ++++++++++++++
+ docs/evidence/T3a/timing.txt                 | 381 ++++++++++++++++++++++
  golden/README.md                             |   7 +-
- golden/generate_paths.py                     | 301 ++++++++++++++++++++++++
- golden/paths-known-answers.json              | 831 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- include/touchstone/black_scholes.hpp         | 152 +++++++++++--
- include/touchstone/bump_greeks.hpp           | 124 +++++-----
- include/touchstone/contract.hpp              |  90 ++++++++
- include/touchstone/detail/callable.hpp       |  17 ++
- include/touchstone/detail/checks.hpp         |  26 +++
+ golden/generate_paths.py                     | 301 +++++++++++++++++
+ golden/paths-known-answers.json              | 831 +++++++++++++++++++++++++++++++++++++++++++++++
+ include/touchstone/black_scholes.hpp         | 152 +++++++--
+ include/touchstone/bump_greeks.hpp           | 124 ++++---
+ include/touchstone/contract.hpp              |  90 +++++
+ include/touchstone/detail/callable.hpp       |  17 +
+ include/touchstone/detail/checks.hpp         |  26 ++
  include/touchstone/detail/differences.hpp    |  20 ++
- include/touchstone/detail/grid_solver.hpp    | 129 +++++++++++
- include/touchstone/detail/path_generator.hpp | 114 ++++++++++
- include/touchstone/{ => detail}/scales.hpp   |  88 +++++--
- include/touchstone/implied_vol.hpp           | 115 ++++++++--
- include/touchstone/monte_carlo.hpp           |  32 +--
+ include/touchstone/detail/grid_solver.hpp    | 129 ++++++++
+ include/touchstone/detail/path_generator.hpp | 153 +++++++++
+ include/touchstone/{ => detail}/scales.hpp   |  88 +++--
+ include/touchstone/implied_vol.hpp           | 115 ++++++-
+ include/touchstone/monte_carlo.hpp           |  32 +-
  include/touchstone/normal.hpp                |  10 +-
- include/touchstone/paths.hpp                 |  89 ++++++++
- include/touchstone/pde.hpp                   |  42 ++--
+ include/touchstone/paths.hpp                 |  89 +++++
+ include/touchstone/pde.hpp                   |  42 +--
  include/touchstone/rng.hpp                   |   3 +-
  include/touchstone/root_finding.hpp          |  17 +-
- src/black_scholes.cpp                        | 411 +++++++++++++++++----------------
- src/bump_greeks.cpp                          |  81 ++++---
- src/implied_vol.cpp                          | 416 ++++++++++++++++++++++++----------
- src/monte_carlo.cpp                          | 313 ++++++++++++-------------
- src/paths.cpp                                | 134 +++++++++++
- src/pde.cpp                                  | 531 +++++++++++++++++++++++++------------------
- src/tridiagonal.cpp                          | 132 ++++++-----
+ src/black_scholes.cpp                        | 411 ++++++++++++-----------
+ src/bump_greeks.cpp                          |  81 +++--
+ src/implied_vol.cpp                          | 416 +++++++++++++++++-------
+ src/monte_carlo.cpp                          | 318 +++++++++---------
+ src/paths.cpp                                | 112 +++++++
+ src/pde.cpp                                  | 531 +++++++++++++++++-------------
+ src/tridiagonal.cpp                          | 132 ++++----
  tests/CMakeLists.txt                         |  10 +-
- tests/american_file.cpp                      |  56 +----
+ tests/american_file.cpp                      |  56 +---
  tests/american_file.hpp                      |  14 +-
- tests/errors.hpp                             |  69 ++++++
- tests/forward_contract.hpp                   |  42 ++++
- tests/golden_file.cpp                        |  89 ++------
- tests/golden_file.hpp                        |  36 ++-
- tests/greek_fields.hpp                       |  93 ++++++++
+ tests/errors.hpp                             |  69 ++++
+ tests/forward_contract.hpp                   |  42 +++
+ tests/golden_file.cpp                        |  89 +----
+ tests/golden_file.hpp                        |  36 +-
+ tests/greek_fields.hpp                       |  93 ++++++
  tests/grid_bumps.hpp                         |  37 +++
- tests/json_file.cpp                          | 111 +++++++++
- tests/json_file.hpp                          |  65 ++++++
- tests/rng_fixture.cpp                        |  41 +---
+ tests/json_file.cpp                          | 111 +++++++
+ tests/json_file.hpp                          |  65 ++++
+ tests/rng_fixture.cpp                        |  41 +--
  tests/rng_fixture.hpp                        |  20 ++
- tests/row_inputs.hpp                         |  18 ++
- tests/statistics.cpp                         |  61 +++--
+ tests/row_inputs.hpp                         |  18 +
+ tests/statistics.cpp                         |  61 +++-
  tests/statistics.hpp                         |  23 ++
  tests/sweep.hpp                              |  24 ++
- tests/test_american.cpp                      | 112 ++++-----
+ tests/test_american.cpp                      | 112 +++----
  tests/test_associations.cpp                  |  12 +-
- tests/test_bump_greeks.cpp                   |  89 +++-----
- tests/test_closed_form.cpp                   | 119 +++++++---
- tests/test_contract.cpp                      | 170 ++++++++++++++
- tests/test_euler.cpp                         | 182 ++++++++-------
- tests/test_implied_vol.cpp                   | 330 ++++++++++++++++++++++++---
- tests/test_limits.cpp                        |  44 ++--
- tests/test_monte_carlo.cpp                   | 102 +++------
+ tests/test_bump_greeks.cpp                   |  89 ++---
+ tests/test_closed_form.cpp                   | 119 +++++--
+ tests/test_contract.cpp                      | 170 ++++++++++
+ tests/test_euler.cpp                         | 182 ++++++-----
+ tests/test_implied_vol.cpp                   | 330 +++++++++++++++++--
+ tests/test_limits.cpp                        |  44 +--
+ tests/test_monte_carlo.cpp                   | 102 ++----
  tests/test_normal.cpp                        |   6 +-
- tests/test_parity.cpp                        |  60 ++---
- tests/test_paths.cpp                         | 314 +++++++++++++++++++++++++
- tests/test_pde.cpp                           | 211 ++++++++++++-----
- tests/test_rng.cpp                           |  26 +--
- tests/test_three_way.cpp                     | 108 +++++----
+ tests/test_parity.cpp                        |  60 +---
+ tests/test_paths.cpp                         | 314 ++++++++++++++++++
+ tests/test_pde.cpp                           | 211 ++++++++----
+ tests/test_rng.cpp                           |  26 +-
+ tests/test_three_way.cpp                     | 108 +++---
  tests/test_tridiagonal.cpp                   |  20 +-
- 67 files changed, 6016 insertions(+), 1746 deletions(-)
+ 69 files changed, 6625 insertions(+), 1746 deletions(-)

@@ -122,3 +122,21 @@ for the two compilers the project claims.
     compiler — the MSVC half of the brief's F7, which CI does not run and nothing claims.
 
   clang 22 ASan+UBSan, rebuilt from the final tree: 116 cases, 0 diagnostics (tests.txt §7).
+
+7. The Monte Carlo timing follow-up
+-----------------------------------
+
+  The change of the same date (summary.md): three files, include/touchstone/detail/
+  path_generator.hpp, src/paths.cpp and src/monte_carlo.cpp.
+
+  g++ 15.2, TOUCHSTONE_WARNINGS_AS_ERRORS=ON, RelWithDebInfo: builds, 0 warnings, including
+  the header self-containment unit for detail/path_generator.hpp, which now holds GbmStep
+  and PathGenerator::draw and includes <array>, <cmath> and detail/scales.hpp for them.
+  clang 22, RelWithDebInfo: 0 warnings outside tests/.
+
+  The timing builds are separate and are described in timing.txt: g++ 15.2 at Release
+  (-O3 -DNDEBUG), the library alone, for main, the pushed branch head, this change and one
+  uncommitted attribution variant.
+
+  Not re-run for this change: the local sanitizer build and MSVC. CI's sanitizer job runs on
+  the pushed commit (tests.txt section 8).
