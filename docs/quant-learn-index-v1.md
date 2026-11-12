@@ -148,7 +148,8 @@ depth · counterparty risk (CVA) · credit (CDS).
 - **D9** Implied vol solver and smile viewer (2.11, 3.4)
 - **D10** Bump-and-revalue risk table (3.5)
 
-Simple ones in TypeScript; the heavy ones on the WASM build.
+TypeScript first. From L5 every demo runs on the WASM build of the library, and the
+TypeScript numerics are retired (constitution I15, amendment A6).
 
 ## Knowledge checks
 

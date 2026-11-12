@@ -81,7 +81,9 @@ fast CI, and the generating script is itself a Part 3 page ("reading QuantLib").
 
 **B3. Numerics.** Doubles throughout. N(x) via `std::erfc`. Inverse CDF shared with TS
 (A6). Thomas tridiagonal solver for Crank–Nicolson; no Eigen. Implied vol by Newton with a
-Brent fallback; Jäckel's rational solver is a later upgrade if it earns a page.
+Brent fallback; Jäckel's rational solver is a later upgrade if it earns a page. Beside it,
+by the owner's ruling of 2026-11-12, a second solver that records its steps: Newton with a
+bisection guard, the method page 2.11 teaches, so that D9 runs on the library.
 
 **B4. WASM.** Emscripten + embind; one `.wasm` plus glue; size budget ~500 KB. Built in
 the library's CI, published as a GitHub release artifact; the site vendors a pinned version

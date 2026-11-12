@@ -18,7 +18,7 @@ evidenced by screenshots.
 ## Suggested order
 
 L0 → T0 → S1… (owner's cadence, in parallel with everything below) → T1 → L1 → T2 → T3 →
-L2 (once S11 is done) → L4a → L3 → P1 → L4b → T4 → T5 → L5 → P2 → L6.
+L2 (once S11 is done) → L4a → L3 → P1 → L4b → T3a → T4 → T5 → L5 → P2 → L6.
 
 Fable-review tollgates, eight in total: L0, L1, L2, T1, T5, L5, P2, L6.
 
@@ -36,7 +36,8 @@ Fable-review tollgates, eight in total: L0, L1, L2, T1, T5, L5, P2, L6.
 | T1 | T0 |
 | T2 | T1, L0 (RNG fixture) |
 | T3 | T2 |
-| T4 | T3 |
+| T3a | T3 |
+| T4 | T3a |
 | T5 | T4 |
 | P1 | L3 |
 | P2 | T5 |
@@ -121,10 +122,12 @@ snippet.
 
 ### ☐ L5 — Part 3 and demos D7–D10 on the WASM backend
 **Entry:** L3, T3, T4.
-**Deliverables:** `wasmBackend` behind `PricingBackend` (I15); D7 Monte Carlo convergence
+**Deliverables:** `wasmBackend` behind `PricingBackend` (I15), carrying every demo: D1–D6
+and D9 move onto it from the TypeScript backend; D7 Monte Carlo convergence
 with error bars; D8 PDE grid heatmap; D9 implied-vol solver and smile viewer with a Deribit
 fixture (I7); D10 bump-and-revalue risk table; pages 3.1–3.7, drafted with the owner per I2.
 **Exit:** TS and WASM backends agree on every known-answer and demo test within tolerance;
+the TypeScript numerics are then removed and the suite runs on WASM alone (A6);
 D9's fixture carries source and date; pages `published` after owner review.
 **Tollgate:** F. **Executor:** Opus. **Size:** three sessions.
 
@@ -181,18 +184,42 @@ Greeks match analytic within tolerance; implied vol round-trips golden prices to
 the stretch; `require_valid` repaired in `black_scholes.cpp`, which edits T1 after
 its tollgate.
 
+### ☐ T3a — Settle the library before it is bound
+**Entry:** T3; the owner's design rulings of 2026-11-12 in
+`docs/briefs/T3a-design-rulings.md`, from which the session derives its work order.
+**Deliverables:** a path API: Brownian and GBM paths written into a caller's span,
+exact-stepped and Euler, with an explicit drift; a second implied-vol solver, Newton with a
+bisection guard, recording its steps, beside Newton–Brent; `AmericanVanilla` as a contract
+type of its own, sharing one definition of its fields with `EuropeanVanilla`, and `exercise`
+gone from `PdeSettings`; `scales.hpp` under `include/touchstone/detail/`; three classes
+beneath the free functions: a closed-form evaluation that validates and computes once, a grid
+solver that owns its matrices and its solution, a path generator; the nine repeats the rulings
+list removed, and the tests' with them; the README's status current.
+**Exit:** every test that was green is green, on both compilers and under the sanitizers;
+each new piece has its test: a path fixture, the second solver against page 2.11's committed
+trace, an American contract refused by the closed form at compile time; the free functions'
+signatures unchanged except where a ruling changes them; a review for repeated code by a
+session that did not write the change, its findings closed; no new dependency.
+**Tollgate:** V. **Executor:** Opus. **Size:** two to three sessions.
+
 ### ☐ T4 — WASM artifact
-**Entry:** T3.
-**Deliverables:** Emscripten build with an embind API mirroring `PricingBackend`; size under
-500 KB; built in CI; published as a GitHub release artifact with a version tag.
-**Exit:** artifact builds in CI; a smoke test loads it in Node and reproduces the RNG fixture
-and one golden price.
+**Entry:** T3a.
+**Deliverables:** Emscripten build with an embind API carrying every `PricingBackend` method
+and the Monte Carlo, grid and bump-Greek entry points D7, D8 and D10 will need, since L5
+cannot edit this repository (I18); C++ exception catching switched on, each exception reaching
+JavaScript as an error; size under 500 KB, reported with and without exception support; built
+in CI; published as a GitHub release artifact tagged `v0.4.0`.
+**Exit:** artifact builds in CI; a smoke test loads it in Node, reproduces the RNG fixture
+and one golden price, and survives an input the library rejects. Over 500 KB, the session
+stops and returns to the owner.
 **Tollgate:** V. **Executor:** Opus. **Size:** one session.
 
 ### ☐ T5 — Architecture write-up and going public
 **Entry:** T4.
 **Deliverables:** `ARCHITECTURE.md` as the golden source for the portal page, in the
-DepthCharge style; README final; `v1.0.0` tag.
+DepthCharge style, carrying measured timings for the five entry points with the machine they
+were taken on, and the milestone and review history that the source comments then leave out;
+README final; `v1.0.0` tag.
 **Exit:** every claim in `ARCHITECTURE.md` maps to a test or a file; CI green; tag pushed.
 **Tollgate:** F — bounded-claims review, as for Temper's page. **Executor:** Opus.
 **Size:** one session. Unlocks P2.

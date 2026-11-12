@@ -73,7 +73,10 @@ tell within thirty seconds that nothing is claimed beyond what is demonstrated.
   MDX carries prose only; checks live beside their page.
 - **I15 — Demos are separated from compute by `PricingBackend`.** TypeScript implementation
   first; WASM implementation swapped in behind the same interface. Both MUST pass the same
-  known-answer and parity tests.
+  known-answer and parity tests. Once L5 has shown that they do, the TypeScript implementation
+  is retired: every demo runs on the WASM build, and Touchstone is the only implementation of
+  the numerics behind `PricingBackend`. A teaching device the library would never ship MAY be
+  built in the demo layer from the backend's outputs.
 - **I16 — The RNG is frozen** by `docs/rng.md` (xoshiro128\*\*, fmix32 seed expansion,
   53-bit doubles, AS241 normals, known-answer fixtures). Changing it is an amendment and
   invalidates every fixture.
@@ -197,3 +200,10 @@ or owner)`.
   uses", which is doctest, and the golden file is JSON, which C++20 cannot read without either
   a dependency or an untested parser of our own sitting between the oracle and every assertion
   · authority: owner, during T1.
+- **A6** · 2026-11-12 · I15 · TypeScript first, WASM swapped in behind the same interface,
+  both passing the same tests → the same, and once L5 has shown the two agree the TypeScript
+  implementation is retired: every demo runs on the WASM build and Touchstone is the only
+  implementation of the numerics behind `PricingBackend`; teaching devices built from the
+  backend's outputs stay in the demo layer · reason: two implementations of one calculation
+  drift — the site's closed-form domain check kept the form T3 replaced in the library — and
+  the programme's claim is that the demos run on the library · authority: owner, before T4.
