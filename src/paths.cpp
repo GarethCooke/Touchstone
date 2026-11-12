@@ -4,41 +4,18 @@
 #include <touchstone/detail/path_generator.hpp>
 #include <touchstone/detail/scales.hpp>
 
+#include <array>
 #include <cmath>
 #include <stdexcept>
 
 namespace touchstone {
 namespace detail {
 
-GbmStep::GbmStep(Scheme scheme, double drift, double vol, double dt) noexcept
-    : scheme_(scheme),
-      dt_(dt),
-      drift_term_(scheme == Scheme::ExactTerminal ? log_drift_time(drift, vol, dt)
-                                                  : drift_time(drift, dt)),
-      diffusion_(total_volatility(vol, dt))
-{
-}
-
-double GbmStep::factor(double z) const noexcept
-{
-    if (scheme_ == Scheme::ExactTerminal) {
-        return std::exp(drift_term_ + diffusion_ * z);
-    }
-    return 1.0 + drift_term_ + diffusion_ * z;
-}
-
 PathGenerator::PathGenerator(std::uint32_t seed, const GbmStep& step) noexcept
     : rng_(seed),
       step_(step),
       sqrt_dt_(std::sqrt(step.dt()))
 {
-}
-
-void PathGenerator::draw(std::span<double> normals) noexcept
-{
-    for (double& z : normals) {
-        z = rng_.next_normal();
-    }
 }
 
 void PathGenerator::write_brownian(std::span<double> path) noexcept
@@ -60,7 +37,8 @@ void PathGenerator::write_gbm(double spot, std::span<double> path) noexcept
     path[0] = spot;
     const std::span<double> steps = path.subspan(1);
     draw(steps);
-    walk(step_, spot, steps, 1.0, [steps](std::size_t k, double value) { steps[k] = value; });
+    walk(step_, std::array{spot}, steps, 1.0,
+         [steps](std::size_t k, const std::array<double, 1>& value) { steps[k] = value[0]; });
 }
 
 }  // namespace detail

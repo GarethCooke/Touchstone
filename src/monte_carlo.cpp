@@ -3,6 +3,7 @@
 #include <touchstone/detail/path_generator.hpp>
 #include <touchstone/detail/scales.hpp>
 
+#include <array>
 #include <cmath>
 #include <limits>
 #include <stdexcept>
@@ -180,8 +181,8 @@ double terminal_growth_euler(const BlackScholesMarket& market,
         return 1.0;
     }
     return detail::grow(
-        risk_neutral_step(market, Scheme::EulerMaruyama, expiry_years, normals.size()), 1.0,
-        normals, 1.0);
+        risk_neutral_step(market, Scheme::EulerMaruyama, expiry_years, normals.size()),
+        std::array{1.0}, normals, 1.0)[0];
 }
 
 double terminal_spot(const BlackScholesMarket& market, double growth) noexcept
@@ -276,21 +277,25 @@ MonteCarloResult monte_carlo(const EuropeanVanilla& option,
             // far enough into the right tail overflows a double while its
             // discount factor underflows to zero, and `0 * inf` is a NaN.
             //
-            // Under Euler the discounted factor is grown alongside, from the
-            // discount rather than from one, which keeps every partial product
-            // on the scale it will finish at. Under the exact scheme it is one
-            // multiplication, and a second exponential — the discount taken
-            // inside the exponent — only where that multiplication is not
-            // finite, which on the golden grid is never.
-            const double growth = generator.grow(1.0, normals, sign);
+            // Under Euler the discounted factor is grown alongside, in the same
+            // walk, from the discount rather than from one, which keeps every
+            // partial product on the scale it will finish at. Under the exact
+            // scheme it is one multiplication, and a second exponential — the
+            // discount taken inside the exponent — only where that
+            // multiplication is not finite, which on the golden grid is never.
+            double growth = 0.0;
             double discounted_growth = 0.0;
             if (exact) {
+                growth = generator.grow(std::array{1.0}, normals, sign)[0];
                 discounted_growth = growth * discount;
                 if (!std::isfinite(discounted_growth)) {
                     discounted_growth = discounted_exact.factor(sign * normals[0]);
                 }
             } else {
-                discounted_growth = generator.grow(discount, normals, sign);
+                const std::array<double, 2> grown =
+                    generator.grow(std::array{1.0, discount}, normals, sign);
+                growth = grown[0];
+                discounted_growth = grown[1];
             }
             const double terminal = terminal_spot(market, growth);
 
