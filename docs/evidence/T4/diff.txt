@@ -1,16 +1,20 @@
 git diff --stat 1a9b465 (main at T4's start) against m/T4, this file excluded
 
- .github/workflows/ci.yml      |   9 +-
- .github/workflows/release.yml |  74 ++++
- .github/workflows/wasm.yml    |  51 +++
- CMakeLists.txt                |  29 +-
- README.md                     |  26 +-
- docs/evidence/T4/build.txt    |  87 +++++
- docs/evidence/T4/summary.md   | 229 ++++++++++++
- docs/evidence/T4/tests.txt    | 161 +++++++++
- wasm/CMakeLists.txt           |  37 ++
- wasm/binding.cpp              | 823 ++++++++++++++++++++++++++++++++++++++++++
- wasm/build.sh                 |  48 +++
- wasm/errors.post.js           |  36 ++
- wasm/smoke.test.mjs           | 269 ++++++++++++++
- 13 files changed, 1872 insertions(+), 7 deletions(-)
+ .github/workflows/ci.yml                  |   9 +-
+ .github/workflows/release.yml             |  56 +++
+ .github/workflows/wasm.yml                |  96 ++++
+ CMakeLists.txt                            |  29 +-
+ README.md                                 |  26 +-
+ docs/evidence/T4/build.txt                |  96 ++++
+ docs/evidence/T4/summary.md               | 334 ++++++++++++
+ docs/evidence/T4/tests.txt                | 328 ++++++++++++
+ include/touchstone/detail/grid_solver.hpp |   8 +-
+ include/touchstone/pde.hpp                |  45 ++
+ src/pde.cpp                               |  53 ++
+ tests/test_pde.cpp                        | 108 ++++
+ wasm/CMakeLists.txt                       |  37 ++
+ wasm/binding.cpp                          | 808 ++++++++++++++++++++++++++++++
+ wasm/build.sh                             |  48 ++
+ wasm/errors.post.js                       |  36 ++
+ wasm/smoke.test.mjs                       | 270 ++++++++++
+ 17 files changed, 2376 insertions(+), 11 deletions(-)

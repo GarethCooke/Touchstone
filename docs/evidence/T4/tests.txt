@@ -8,9 +8,9 @@ Branch m/T4, base 1a9b465. Toolchains and build commands are in build.txt.
 
     node --test wasm/smoke.test.mjs        # TOUCHSTONE_WASM defaults to build-wasm/wasm/touchstone.mjs
 
-  Local, Node v24.13.1, the final tree. The lines beginning '#' are the test's own reported
-  numbers; every expected value is read from a committed file (golden/, experiments/) or is
-  another entry point of the same module.
+  Local, Node v24.13.1, the final tree (7c1be27). The lines beginning '#' are the test's own
+  reported numbers; every expected value is read from a committed file (golden/,
+  experiments/) or is another entry point of the same module.
 
     # rng: 3 seeds x 10; uniforms exact; worst normal difference 0
     # golden 'one-day-atm': price 0.4203523730423484 against 0.4203523730423497; worst of seven 6.166047049073064e-14
@@ -19,23 +19,23 @@ Branch m/T4, base 1a9b465. Toolchains and build commands are in build.txt.
     # paths: 3 Brownian, 10 GBM; worst scaled difference 0
     # 2.11 trace: 4 iterates, worst difference 7.105427357601002e-15
     # survived 3 x 100000 refusals; the named golden row and the RNG fixture unchanged; then a 513 x 1026 surface
-    ✔ the module says which version of the library it is: the project's (1.9755ms)
-    ✔ the RNG fixture: uniforms to the bit, normals to 1e-12 (4.0994ms)
-    ✔ one golden price, and its Greeks, to the file's own tolerance (2.2739ms)
-    ✔ every golden row, to the file's own tolerances (150.0357ms)
-    ✔ the path fixture, Brownian and GBM, to its own tolerance (2.3802ms)
-    ✔ page 2.11's committed trace, iterate by iterate (3.0263ms)
-    ✔ page 2.11's refusals come back with their status and no NaN (0.8031ms)
-    ✔ no-arbitrage bounds are the price at zero volatility and its limit at infinity (1.2203ms)
-    ✔ Monte Carlo: within three standard errors of the closed form, and the same from the same seed (28.4155ms)
-    ✔ the grid: European at the closed form, American above it, both at the payoff's floor (15.9014ms)
-    ✔ the grid's surface: every level read, today's the price (1.7541ms)
-    ✔ bump Greeks over each pricer (35.4004ms)
-    ✔ the library's defaults are the module's (0.3423ms)
-    ✔ an input the library rejects is a RangeError with the library's reason (2.301ms)
-    ✔ an argument of the wrong shape is a TypeError naming the field (0.5335ms)
-    ✔ a thrown getter on an argument reaches the caller as itself (0.1832ms)
-    ✔ the module survives a hundred thousand refusals of each kind, and then still agrees with the fixtures (11862.0749ms)
+    ✔ the module says which version of the library it is: the project's (1.4236ms)
+    ✔ the RNG fixture: uniforms to the bit, normals to 1e-12 (3.7728ms)
+    ✔ one golden price, and its Greeks, to the file's own tolerance (1.6141ms)
+    ✔ every golden row, to the file's own tolerances (126.3997ms)
+    ✔ the path fixture, Brownian and GBM, to its own tolerance (1.5118ms)
+    ✔ page 2.11's committed trace, iterate by iterate (2.375ms)
+    ✔ page 2.11's refusals come back with their status and no NaN (0.676ms)
+    ✔ no-arbitrage bounds are the price at zero volatility and its limit at infinity (0.35ms)
+    ✔ Monte Carlo: within three standard errors of the closed form, and the same from the same seed (22.9681ms)
+    ✔ the grid: European at the closed form, American above it, both at the payoff's floor (15.4491ms)
+    ✔ the grid's surface: every level read, today's the price (2.0824ms)
+    ✔ bump Greeks over each pricer (35.7263ms)
+    ✔ the library's defaults are the module's (0.3953ms)
+    ✔ an input the library rejects is a RangeError with the library's reason (2.9765ms)
+    ✔ an argument of the wrong shape is a TypeError naming the field (1.6139ms)
+    ✔ a thrown getter on an argument reaches the caller as itself (0.5565ms)
+    ✔ the module survives a hundred thousand refusals of each kind, and then still agrees with the fixtures (9181.2473ms)
     ℹ tests 17
     ℹ suites 0
     ℹ pass 17
@@ -43,7 +43,7 @@ Branch m/T4, base 1a9b465. Toolchains and build commands are in build.txt.
     ℹ cancelled 0
     ℹ skipped 0
     ℹ todo 0
-    ℹ duration_ms 12309.1797
+    ℹ duration_ms 11390.5016
 
   What the roadmap's exit names, and where it is above:
 
@@ -52,8 +52,10 @@ Branch m/T4, base 1a9b465. Toolchains and build commands are in build.txt.
                                        seeds of golden/rng-known-answers.json; worst normal 0
     and one golden price               bs_vanilla.json's edge row 'one-day-atm': price and six
                                        Greeks within the file's 1e-8, worst 6.2e-14; and then
-                                       all 7234 rows within the file's tolerances, worst 2.8e-13
-                                       on the grid and 1.6e-11 on the edge block
+                                       all 7234 rows within the file's tolerances: worst 1.6e-11
+                                       over all of them, which is the 34-row edge block's
+                                       (tolerance 1e-8); 2.8e-13 on the 7200-row grid
+                                       (tolerance 1e-10)
     survives an input the library      a RangeError carrying the library's message; then
     rejects                            100,000 refusals by the library, 100,000 by the binding
                                        (wrong shape), 100,000 by a getter that throws, after
@@ -66,10 +68,12 @@ Branch m/T4, base 1a9b465. Toolchains and build commands are in build.txt.
   iterate (7.1e-15, as native) and its five refusals with their statuses and no NaN; the
   Monte Carlo within three standard errors of the closed form and identical from one seed;
   the grid European at the closed form and American above it; the surface's last level
-  equal to crankNicolson's price exactly; bump Greeks over the closed form within 1e-6 of
-  the analytic ones, and over the grid and the Monte Carlo.
+  equal to crankNicolson's price exactly, with a stride that divides the steps and one that
+  does not, and a stride of 0 refused as a RangeError; bump Greeks over the closed form
+  within 1e-6 of the analytic ones, and over the grid and the Monte Carlo.
 
-  The same smoke test also passes on the JavaScript-EH build (build.txt section 3), 17 of 17.
+  The same smoke test also passed on the JavaScript-EH build at 9d64a8c (build.txt section 3),
+  17 of 17; that build was not repeated.
 
 2. Why the refusals are repeated: the two ways the module dies
 -------------------------------------------------------------
@@ -77,7 +81,8 @@ Branch m/T4, base 1a9b465. Toolchains and build commands are in build.txt.
   An exception that unwinds WebAssembly frames — C++ or JavaScript — does not restore the
   module's stack pointer. Embind restores it only around calls that stack-allocate their
   arguments, and these take emscripten::val. Each such throw leaks the frames' stack, and
-  the default 64 KB stack runs out. Measured on the final tree:
+  the default 64 KB stack runs out. Measured at 9d64a8c and again on the final tree
+  (7c1be27), with the same counts:
 
   a. A JavaScript exception thrown inside a call. The binding's first design read argument
      fields with val property access, so a getter that throws would throw from inside the
@@ -121,43 +126,216 @@ Branch m/T4, base 1a9b465. Toolchains and build commands are in build.txt.
     for (; i < 1_000_000; i++) { try { t.priceAndGreeks({ ...opt, strike: -1 }, mkt); } catch (e) { first ??= e.message; if (!/Aborted/.test(e.message)) { console.log(`refusal ${i + 1}: ${e.constructor.name}: ${e.message}`); break; } } }
     if (i === 1_000_000) console.log('1e6 refusals, each:', first);
 
-3. The native suite, unchanged
-------------------------------
+3. The native suite
+-------------------
 
-  g++ 15.2 (MinGW), RelWithDebInfo, -Werror, from PowerShell (build.txt section 4):
+  g++ 15.2 (MinGW), RelWithDebInfo, -Werror, from PowerShell (build.txt section 4), on the
+  final tree (7c1be27):
 
     100% tests passed, 0 tests failed out of 18
-    Total Test time (real) = 212.42 sec
-    ts_all  Passed  109.38 sec
+    Total Test time (real) = 213.04 sec
+    ts_all  Passed  105.26 sec
 
-  The library's sources are unchanged on this branch; the root CMakeLists.txt's changes
-  apply under Emscripten only, besides the version.
+  The four cases added for crank_nicolson_surface (tests/test_pde.cpp, suite "pde"), run on
+  their own:
+
+    touchstone_tests --test-case=*surface*,*stride*
+    [doctest] test cases:  4 |  4 passed | 0 failed | 116 skipped
+    [doctest] assertions: 55 | 55 passed | 0 failed |
+
+    the surface's last level, at the spot, is crank_nicolson's price
+        stride 8 over 40 steps: 6 levels; first tau 0, last the expiry; the spot's node at
+        ln S; the last level at the spot equal to crank_nicolson's price, and every field of
+        the result equal to crank_nicolson's, exactly; the first level the solver's payoff
+    a stride that does not divide the steps still ends on today
+        stride 7 over 40: 7 levels, the stride-1 surface's levels 0, 7, ..., 35 and 40, bit
+        for bit, times and values; the last at the spot is crank_nicolson's price
+    an American surface ends on the American price
+    a stride of zero is refused
+        std::invalid_argument naming every_steps; and an input the grid refuses (spot 0)
+        refused by the surface too
+
+  The library's other sources are unchanged on this branch; the root CMakeLists.txt's
+  changes apply under Emscripten only, besides the version.
 
 4. CI
 -----
 
-  Run 43436214813 on 103af47, ubuntu-24.04: all five jobs green.
+  Run 43467745837 on 7c1be27, the last commit to touch anything the build or the workflows
+  read, ubuntu-24.04: all six jobs green.
 
     Job                       Result                                          Time
-    gcc                       g++ 13.3.0, -Werror; 18/18 ctest entries        192.6 s tests
-    clang                     clang 18.1.3, -Werror; 18/18 ctest entries      158.5 s tests
-    asan + ubsan              GCC, sweep scale 16; 18/18                      6 m 50 s job
-    golden file               every step, fixtures regenerated byte-for-byte  1 m 55 s job
-    wasm / build and          Emscripten 6.0.13 from the emsdk tag; both      48 s job
+    gcc                       g++ 13.3.0, -Werror; 18/18 ctest entries        135.0 s tests
+    clang                     clang 18.1.3, -Werror; 18/18 ctest entries      159.9 s tests
+    asan + ubsan              GCC, sweep scale 16; 18/18                      5 m 24 s job
+    golden file               every step, fixtures regenerated byte-for-byte  1 m 34 s job
+    wasm / build and          Emscripten 6.0.13 from the emsdk tag; both      1 m 22 s job
       smoke test              builds; size check; Node v22.23.4: 17/17,
-                              0 failures; artifact uploaded
+                              0 failures; release files assembled, listed,
+                              uploaded
+    wasm / the release's      the artifact downloaded into dist as the        6 s job
+      files, downloaded       release job downloads it; every attached path
+                              present; both checksums OK
 
   The wasm job's size report, on Linux:
 
                                .wasm      .mjs     total gzip -9 total
-    catching on (shipped)     145104     28784    173888         56013
-    catching off              112851     29387    142238         50020
+    catching on (shipped)     143870     28784    172654         56115
+    catching off              112189     29387    141576         49706
 
-  The .wasm files are the same size as on Windows; each .mjs is 2 bytes smaller on Linux.
-  The difference was not traced. The smoke test's reported numbers in CI are the local
-  ones, line for line (the '#' lines of section 1).
+  The .wasm files are the same size as on Windows; each .mjs is 2 bytes smaller on Linux, as
+  at 9d64a8c. The difference was not traced. The smoke test's reported numbers in CI are the
+  local ones, line for line (the '#' lines of section 1).
 
-  Run 43437447847 on a4b34c3, the last commit to touch anything the build reads (comments,
-  one error message in wasm/build.sh, and this pack): all five jobs green again, and the
-  wasm job's size report and smoke result identical to the above (173888 bytes shipped;
-  17 of 17). The commit after it changes only this pack.
+  What the release would attach, as the build job assembled it ("Assemble the release's
+  files", its `ls -l dist`), then uploaded:
+
+    total 188
+    -rw-r--r-- 1 runner runner    163 Nov 13 16:57 SHA256SUMS
+    -rw-r--r-- 1 runner runner    922 Nov 13 16:57 notes.md
+    -rw-r--r-- 1 runner runner    405 Nov 13 16:57 size.txt
+    -rw-r--r-- 1 runner runner  28784 Nov 13 16:57 touchstone.mjs
+    -rwxr-xr-x 1 runner runner 143870 Nov 13 16:57 touchstone.wasm
+
+    With the provided path, there will be 5 files uploaded
+    ...
+    SHA256 digest of uploaded artifact is d410a9baedbc8f99c98550d45ae394bf19db1679b5377bd7c8700e334691be79
+
+  And as the second job ("the release's files, downloaded") fetched it, with the release
+  job's own download step (actions/download-artifact@v7, name touchstone-wasm, path dist),
+  listed, each attached path tested, and the two checksummed files checked:
+
+    SHA256 digest of downloaded artifact is d410a9baedbc8f99c98550d45ae394bf19db1679b5377bd7c8700e334691be79
+    total 188
+    -rw-r--r-- 1 runner runner    163 Nov 13 16:57 SHA256SUMS
+    -rw-r--r-- 1 runner runner    922 Nov 13 16:57 notes.md
+    -rw-r--r-- 1 runner runner    405 Nov 13 16:57 size.txt
+    -rw-r--r-- 1 runner runner  28784 Nov 13 16:57 touchstone.mjs
+    -rw-r--r-- 1 runner runner 143870 Nov 13 16:57 touchstone.wasm
+    touchstone.mjs: OK
+    touchstone.wasm: OK
+
+  So every path the release job reads — dist/touchstone.mjs, dist/touchstone.wasm,
+  dist/size.txt, dist/SHA256SUMS and dist/notes.md — exists after that download, on every
+  push. (The executable bit on the .wasm is Emscripten's, kept by cp; the artifact does not
+  carry modes.)
+
+  Earlier runs, before the audit's fixes: 43436214813 on 103af47 and 43437447847 on a4b34c3,
+  five jobs each, all green, with the wasm job's 17 of 17 and a shipped size of 173888 bytes
+  on Linux. Those runs uploaded the artifact the audit found the release job could not read:
+  three paths under build-wasm/, rooted there, so wasm/touchstone.mjs where the release job
+  read touchstone.mjs. Nothing on a push downloaded it, so nothing failed.
+
+5. The surface moved and the forwarders folded: every number as it was
+-----------------------------------------------------------------------
+
+  The artifact at 9d64a8c (built in a scratch worktree, catching on, the same toolchain;
+  145104 + 28786 bytes, as section 3 of build.txt recorded it) and the final one, loaded side
+  by side in Node v24.13.1, and the same 30 calls made on each: every overload count of every
+  entry point whose registration changed, the surface at strides 1, 7, 8, 40 and 1000,
+  defaulted, American, on an unsmoothed grid without Rannacher steps, and three refusals.
+  Results compared with Object.is on every number, keys in order. The output, with repeated
+  lines counted rather than repeated and one long message cut at '...':
+
+    same   crankNicolsonSurface(2 args) value
+    same   crankNicolsonSurface(3 args) value
+    same   crankNicolsonSurface(4 args) value          x 8 (the strides and grids above)
+    same   crankNicolsonSurface(4 args) TypeError: sampling must be an object
+    same   crankNicolsonSurface(4 args) RangeError: sampling.everySteps must be an integer from 0 to 4294967295
+    same   crankNicolsonSurface(4 args) RangeError: pde: the grid is in ln(spot), so the spot must be positive; ...
+    same   impliedVol(3 args) value
+    same   impliedVol(4 args) value
+    same   monteCarlo(2 args) value
+    same   monteCarlo(3 args) value
+    same   crankNicolson(2 args) value
+    same   crankNicolson(3 args) value
+    same   bumpGreeks(2 args) value
+    same   bumpGreeks(3 args) value
+    same   bumpGreeks(4 args) value                    x 2 (the grid, American; the Monte Carlo)
+    same   uniforms, normals, brownianPath, gbmPath, priceAndGreeks, noArbitrageBounds, defaults
+    30 calls, 0 differ; version 0.4.0 / 0.4.0
+
+  One message changed, and it was meant to: a stride of 0 is now refused by the library, in
+  its words, where the binding refused it in its own.
+
+    9d64a8c   RangeError: sampling.everySteps must be at least 1
+    7c1be27   RangeError: pde: every_steps must be at least 1
+
+  Every other setting the library refuses already reads that way through the module ("pde:
+  time_steps must be at least 1"). Calling with too few or too many arguments is embind's
+  BindingError on both, listing the same accepted counts; the raw_ functions are hidden from
+  enumeration on both.
+
+  The comparison script, as run (a scratch file, not committed):
+
+    // Every call whose code path changed, on the old artifact and the new, compared
+    // bit for bit (Object.is on every number, keys in order).
+    import { pathToFileURL } from 'node:url'
+    
+    const [oldPath, newPath] = process.argv.slice(2)
+    const load = async (p) => (await import(pathToFileURL(p).href)).default()
+    const before = await load(oldPath)
+    const after = await load(newPath)
+    
+    const plain = (v) => {
+      if (v instanceof Float64Array) return { f64: Array.from(v) }
+      if (Array.isArray(v)) return v.map(plain)
+      if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, plain(x)]))
+      return v
+    }
+    const same = (a, b) => {
+      if (typeof a === 'number' && typeof b === 'number') return Object.is(a, b)
+      if (Array.isArray(a)) return Array.isArray(b) && a.length === b.length && a.every((x, i) => same(x, b[i]))
+      if (a && typeof a === 'object') {
+        const ka = Object.keys(a); const kb = Object.keys(b ?? {})
+        return ka.length === kb.length && ka.every((k, i) => k === kb[i] && same(a[k], b[k]))
+      }
+      return a === b
+    }
+    const outcome = (m, name, args) => {
+      try { return { ok: plain(m[name](...structuredClone(args))) } } catch (e) { return { threw: e.constructor.name, message: e.message } }
+    }
+    
+    const call = { strike: 100, expiryYears: 1, type: 'call' }
+    const put = { strike: 105, expiryYears: 0.5, type: 'put' }
+    const mkt = { spot: 100, vol: 0.3, rate: 0.05, dividendYield: 0.02 }
+    const small = { spaceIntervals: 128, timeSteps: 40 }
+    const cases = [
+      ['crankNicolsonSurface', [call, mkt]],
+      ['crankNicolsonSurface', [call, mkt, small]],
+      ['crankNicolsonSurface', [call, mkt, small, {}]],
+      ['crankNicolsonSurface', [call, mkt, small, { everySteps: 1 }]],
+      ['crankNicolsonSurface', [call, mkt, small, { everySteps: 7 }]],
+      ['crankNicolsonSurface', [call, mkt, small, { everySteps: 8 }]],
+      ['crankNicolsonSurface', [call, mkt, small, { everySteps: 40 }]],
+      ['crankNicolsonSurface', [call, mkt, small, { everySteps: 1000 }]],
+      ['crankNicolsonSurface', [{ ...put, exercise: 'american' }, mkt, small, { everySteps: 3 }]],
+      ['crankNicolsonSurface', [put, mkt, { spaceIntervals: 300, timeSteps: 97, rannacherSteps: 0, smoothPayoff: false }, { everySteps: 5 }]],
+      ['crankNicolsonSurface', [call, mkt, small, 'x']],
+      ['crankNicolsonSurface', [call, mkt, small, { everySteps: -1 }]],
+      ['crankNicolsonSurface', [call, { ...mkt, spot: 0 }, small, { everySteps: 2 }]],
+      ['impliedVol', [call, mkt, 12]],
+      ['impliedVol', [call, mkt, 12, { trace: true }]],
+      ['monteCarlo', [call, mkt]],
+      ['monteCarlo', [call, mkt, { paths: 5000, seed: 7 }]],
+      ['crankNicolson', [put, mkt]],
+      ['crankNicolson', [{ ...put, exercise: 'american' }, mkt, small]],
+      ['bumpGreeks', [call, mkt]],
+      ['bumpGreeks', [call, mkt, { spotRelative: 1e-3 }]],
+      ['bumpGreeks', [{ ...put, exercise: 'american' }, mkt, {}, { method: 'crankNicolson', settings: small }]],
+      ['bumpGreeks', [call, mkt, {}, { method: 'monteCarlo', settings: { paths: 4000 } }]],
+      ['uniforms', [1, 5]], ['normals', [2, 5]],
+      ['brownianPath', [{ seed: 3, steps: 16, horizon: 1 }]],
+      ['gbmPath', [{ seed: 3, steps: 16, horizon: 1, spot: 100, drift: 0.05, vol: 0.2, scheme: 'euler' }]],
+      ['priceAndGreeks', [call, mkt]], ['noArbitrageBounds', [call, mkt]], ['defaults', []],
+    ]
+    
+    let differ = 0
+    for (const [name, args] of cases) {
+      const a = outcome(before, name, args); const b = outcome(after, name, args)
+      const ok = same(a, b)
+      if (!ok) differ++
+      const what = a.ok ? 'value' : `${a.threw}: ${a.message}${b.message !== a.message ? `  ->  ${b.threw}: ${b.message}` : ''}`
+      console.log(`${ok ? 'same  ' : 'DIFFER'} ${name}(${args.length} args) ${what}`)
+    }
+    console.log(`${cases.length} calls, ${differ} differ; version ${before.version} / ${after.version}`)

@@ -57,7 +57,7 @@ the RNG fixture and one golden price, and survives an input the library rejects.
 
 ---
 
-### 2026-11-13 · claude-opus-5-5 · Touchstone in the browser: 174 KB with exception catching, every `PricingBackend` method and the three entry points the later demos need, held to the fixtures in Node, and no refusal that can kill it
+### 2026-11-13 · claude-opus-5-5 · Touchstone in the browser: 173 KB with exception catching, every `PricingBackend` method and the three entry points the later demos need, held to the fixtures in Node, and no refusal that can kill it
 
 **Done**
 
@@ -71,12 +71,13 @@ the RNG fixture and one golden price, and survives an input the library rejects.
    declares: camelCase fields, `'call'`/`'put'`, `'exact'`/`'euler'`, partial settings filled
    from the library's defaults, `Float64Array` paths, the step trace when `trace` is set.
    Beyond the interface: `monteCarlo` (D7); `crankNicolson` and `crankNicolsonSurface`, the
-   grid's solution at every node and every *n*-th level, expiry to today, for D8, both
-   accepting `exercise: 'american'`; `bumpGreeks` over the closed form, the grid (European
+   grid's solution at every node and every *n*-th level, expiry to today, for D8 — the
+   library's `crank_nicolson_surface`, translated — both accepting `exercise: 'american'`; `bumpGreeks` over the closed form, the grid (European
    or American) or the Monte Carlo, for D10; `defaults()`, the library's settings, so the site
    never retypes them; and `version`. Each value type's JavaScript fields are written once,
    as a table that both reads and writes it; each enumeration's names likewise. No
-   arithmetic happens on the way through.
+   arithmetic happens on the way through, and the binding includes nothing from
+   `touchstone/detail/`.
 3. **Errors (ruling 3), and what it took for the module to survive them.** Catching is on
    (`-fwasm-exceptions`). Every C++ exception is caught inside the module and becomes a
    JavaScript error: `RangeError` for an input the library rejects (its own message, as the
@@ -91,10 +92,10 @@ the RNG fixture and one golden price, and survives an input the library rejects.
    `wasm/errors.post.js` throws it once the call has returned; and the arguments are
    structured-cloned in JavaScript first, so that a getter or a proxy on a caller's object
    runs, and throws if it throws, before the module is entered.
-4. **Size, both ways** (`build.txt` §3). Shipped, with catching: **173,890 bytes** (.wasm
-   145,104 + .mjs 28,786), 56,017 gzipped: 35% of the 500,000-byte budget, read strictly as
-   the two files uncompressed. Without catching: 142,240 bytes, 50,024 gzipped. Catching
-   costs 31,650 bytes. `wasm/build.sh` builds both, writes the report, and fails over budget.
+4. **Size, both ways** (`build.txt` §3). Shipped, with catching: **172,656 bytes** (.wasm
+   143,870 + .mjs 28,786), 56,119 gzipped: 34.5% of the 500,000-byte budget, read strictly
+   as the two files uncompressed. Without catching: 141,578 bytes, 49,710 gzipped. Catching
+   costs 31,078 bytes. `wasm/build.sh` builds both, writes the report, and fails over budget.
 5. **The smoke test** (`wasm/smoke.test.mjs`, `node --test`, no package). 17 tests, all
    passing (`tests.txt` §1). The criterion: the module loads in Node; the RNG fixture
    reproduces (uniforms to the bit, normals worst 0 against 1e-12); the golden row
@@ -102,33 +103,38 @@ the RNG fixture and one golden price, and survives an input the library rejects.
    and an input the library rejects is a `RangeError` with the library's reason — then
    100,000 refusals each by the library, by the binding and by a throwing getter, after which
    the named row is identical to the bit, the RNG fixture still reproduces and a 4.2 MB grid
-   surface is still allocated. Beyond the criterion: all 7234 golden rows (worst 2.8e-13 on
-   the grid), the path fixture **to the bit**, page 2.11's trace iterate by iterate to
+   surface is still allocated. Beyond the criterion: all 7234 golden rows within the file's
+   tolerances — worst 1.6e-11 over all of them, on the 34-row edge block (tolerance 1e-8),
+   and 2.8e-13 on the 7200-row grid (tolerance 1e-10) — the path fixture **to the bit**, page 2.11's trace iterate by iterate to
    7.1e-15 (as native) and its refusals with no NaN, and each extra entry point against the
    closed form.
 6. **CI and the release.** `.github/workflows/wasm.yml` installs Emscripten from the
    first-party emsdk repository at the pinned tag, runs `wasm/build.sh` and the smoke test on
-   Node 22 (the site's), and uploads the artifact. `ci.yml` calls it on every push;
-   `release.yml` calls it on a `v*` tag, checks the tag against `CMakeLists.txt`'s version,
-   and creates the GitHub release with `touchstone.mjs`, `touchstone.wasm`, `size.txt` and
-   `SHA256SUMS`: the files that passed the smoke test in the same run. The project version
-   is 0.4.0 (F11). The session pushed no tag and created no release.
-7. **The native side is unchanged**: g++ 15.2 locally, 0 warnings, 18 of 18 ctest entries
+   Node 22 (the site's), assembles everything a release attaches — `touchstone.mjs`,
+   `touchstone.wasm`, `size.txt`, `SHA256SUMS` — and the release notes in one flat
+   directory, lists it, and uploads it; a second job downloads it as the release job does
+   and checks every attached file is where the release reads it and matches its sum.
+   `ci.yml` calls it on every push; `release.yml` calls it on a `v*` tag, checks the tag
+   against `CMakeLists.txt`'s version, downloads, and runs `gh release create` on those
+   files: the ones that passed the smoke test in the same run. The project version is 0.4.0
+   (F11). The session pushed no tag and created no release.
+7. **The native side**: g++ 15.2 locally, 0 warnings, 18 of 18 ctest entries, including four
+   new cases for `crank_nicolson_surface`, the one function added to the library
    (`tests.txt` §3); CI's three native jobs in `tests.txt` §4.
 
 **Exit criteria**
 
 | Criterion | Result |
 |---|---|
-| Artifact builds in CI | **PASS** — runs 43436214813 on `103af47` and 43437447847 on `a4b34c3`, the last commit to touch anything the build reads: the `wasm` job built both ways, checked the size, ran the smoke test on Node 22 (17 of 17) and uploaded the artifact; gcc 13.3, clang 18.1.3, ASan+UBSan and the golden job green beside it (`tests.txt` §4). |
+| Artifact builds in CI | **PASS** — run 43467745837 on `7c1be27`, the last commit to touch anything the build or the workflows read: the `wasm` job built both ways, checked the size, ran the smoke test on Node 22 (17 of 17), assembled the release's files and uploaded them; the `downloaded` job fetched them as the release job does and checked each; gcc 13.3, clang 18.1.3, ASan+UBSan and the golden job green beside them (`tests.txt` §4). |
 | A smoke test loads it in Node | **PASS** — `wasm/smoke.test.mjs`; locally on Node 24, in CI on Node 22. |
 | …reproduces the RNG fixture | **PASS** — all three seeds; uniforms identical, normals worst difference 0 (tolerance 1e-12). |
-| …and one golden price | **PASS** — `one-day-atm`, price 0.4203523730423484 against 0.4203523730423497, all seven outputs within 6.2e-14 (tolerance 1e-8); and all 7234 rows within the file's tolerances. |
+| …and one golden price | **PASS** — `one-day-atm`, price 0.4203523730423484 against 0.4203523730423497, all seven outputs within 6.2e-14 (tolerance 1e-8); and all 7234 rows within the file's tolerances: worst 1.6e-11 over all of them, on the 34-row edge block (tolerance 1e-8); 2.8e-13 on the 7200-row grid (tolerance 1e-10). |
 | …and survives an input the library rejects | **PASS** — `RangeError` with the library's message; 300,000 refusals of three kinds, then the fixtures again, unchanged. Without the design of Done 3 the module dies at call 2,074 (or, without catching, refusal 178). |
-| Size under 500 KB, reported with and without exception support | **PASS** — 173,890 bytes with, 142,240 without; gzipped 56,017 and 50,024. |
+| Size under 500 KB, reported with and without exception support | **PASS** — 172,656 bytes with, 141,578 without; gzipped 56,119 and 49,710. |
 | Every `PricingBackend` method, and the entry points D7, D8 and D10 need | **PASS** — the seven methods with `types.ts`'s shapes; `monteCarlo`, `crankNicolson`, `crankNicolsonSurface`, `bumpGreeks`; each exercised by the smoke test. |
 | C++ exception catching on, each exception reaching JavaScript as an error | **PASS** — `-fwasm-exceptions`; `RangeError`, `TypeError` or `Error`, never a C++ exception and never a crash. |
-| Published as a GitHub release artifact tagged `v0.4.0` | **SET UP, NOT RUN** — by the owner's instruction the session pushed no tag. `release.yml` runs on the tag; the commands are under **Exact next step**. |
+| Published as a GitHub release artifact tagged `v0.4.0` | **SET UP; THE RELEASE JOB FIRST RUNS ON THE TAG** — by the owner's instruction the session pushed no tag. Run on every push, and seen in run 43467745837: the build, the size check, the smoke test, the assembly of the four attached files and the notes into one flat directory, its listing and upload (`wasm.yml`), and the release job's download step itself, into `dist`, after which every path the release job reads exists and both checksums verify (`wasm.yml`, `downloaded`). Run first on the tag: `release.yml`'s trigger and its call of `wasm.yml`, the tag check (its `sed` run locally against `CMakeLists.txt`: 0.4.0), and `gh release create` with `contents: write`. The commands are under **Exact next step**. |
 
 **Decisions (with why)** — each *Decision — owner may overrule*, besides those in the work
 order:
@@ -173,9 +179,9 @@ order:
 **Not done**
 
 - **The release has not run.** `release.yml`'s build half is `wasm.yml`, which CI runs on
-  every push; its release job (the tag check, whose `sed` was run locally against
-  `CMakeLists.txt` and gave 0.4.0; the download; `gh release create`) runs for the first
-  time on the owner's tag. Linting the workflows with `actionlint` was declined by the
+  every push, download included (Exit criteria, last row). What runs for the first time on
+  the owner's tag is the trigger, the tag check (whose `sed` was run locally against
+  `CMakeLists.txt` and gave 0.4.0) and `gh release create`. Linting the workflows with `actionlint` was declined by the
   session's permissions; the three files parse as YAML, and GitHub accepted `ci.yml`'s call
   of `wasm.yml`.
 - **No browser loaded the artifact.** Node only, here and in CI; the browser is L5's, which
@@ -206,6 +212,104 @@ gh release view v0.4.0                 # four assets: touchstone.mjs, touchstone
 If the release run fails, delete the tag (`git push origin :refs/tags/v0.4.0`, then
 `git tag -d v0.4.0`), fix on a branch, and tag again after the merge. T5 then unlocks.
 
+---
+
+### 2026-11-13 · claude-opus-5-5 · After the audit: the release's files assembled flat and downloaded on every push, the surface sampler in the library, one registration for optional arguments; no number moved
+
+An audit of `9d64a8c` (Fable) passed the artifact. It ran the smoke test on its own
+machine (17 of 17), loaded the module in headless Chromium in a page and in a worker with
+the same numbers to the bit, and reproduced both ways the module dies. It found one defect
+to fix before the merge and three smaller items. This entry addresses all four, and the
+entry above now gives the current figures.
+
+**Done**
+
+1. **The release job would have failed on the tag.** `wasm.yml` uploaded three paths under
+   `build-wasm/`. `upload-artifact` roots such an artifact at their common ancestor, so it
+   held `wasm/touchstone.mjs`, `wasm/touchstone.wasm` and `size.txt`, and the release job's
+   `sha256sum touchstone.mjs` in `dist` would have found nothing, as would `gh release
+   create`. Now `wasm.yml` copies everything a release attaches (`touchstone.mjs`,
+   `touchstone.wasm`, `size.txt`, `SHA256SUMS`) into one flat `dist/`, together with the
+   release notes. It lists the directory and uploads it. A second job in `wasm.yml`,
+   `downloaded`, fetches the artifact into `dist` with the release job's own download step,
+   lists it, tests every path the release job reads and checks both checksums. The release
+   job is left with the tag check, the download and `gh release create`. Run 43467745837 on
+   `7c1be27`: both listings are quoted in `tests.txt` §4, the files are flat, and both
+   checksums verify.
+2. **The surface sampler is in the library.** `pde.hpp` gains `crank_nicolson_surface`,
+   for European and American contracts, returning a `PdeSurface`: the log-spots, the kept
+   times to expiry, the values level-major, and `crank_nicolson`'s `PdeResult`. A
+   `SurfaceSampling{every_steps}` chooses the levels. The loop that was in `binding.cpp`
+   moved unchanged into `src/pde.cpp`, and it refuses a stride of 0 there. There are four
+   native test cases (55 assertions, `tests.txt` §3):
+   - the last level at the spot is `crank_nicolson`'s price, and every field of the result
+     is `crank_nicolson`'s, exactly;
+   - a stride of 7 over 40 steps ends on today and keeps the stride-1 surface's levels 0, 7,
+     …, 35 and 40, bit for bit;
+   - an American surface ends on the American price;
+   - a stride of 0 is refused, and so is any input the grid refuses.
+
+   The binding now reads `sampling` through a field table, like every other settings object,
+   and writes the result. It includes nothing from `touchstone/detail/`. `detail::GridSolver`
+   stays internal, and its header now names both of its callers.
+3. **The seven forwarders are one template.** `bind<Fn, Required>("name")` registers `Fn`
+   once for each argument count from `Required` up to all of them. Each form calls `Fn` with
+   `undefined` in the places left out (`binding.cpp`, the end). It reads at least as clearly
+   as the forwarders did:
+   - each JavaScript function is now one registration line that says what it requires, such
+     as `bind<&implied, 3>("impliedVol")`, so 19 registration lines become 12;
+   - nothing named `surface_3` has to be matched against a `bind` line any more;
+   - an optional argument added later needs no new forwarder.
+
+   The cost is in the machinery: 28 lines of code where the forwarders and the old `bind`
+   were 13, index-sequence templates under a comment that says what they do.
+4. **The golden figures, both stated.** Over all 7,234 rows the worst error is 1.6e-11, on
+   the 34-row edge block (tolerance 1e-8). The 7,200-row grid's worst is 2.8e-13 (tolerance
+   1e-10). The entry above said "2.8e-13 on the grid" where a reader would take it for the
+   whole file. Done 5 and the exit table now give both.
+5. **No number moved.** I loaded the artifact at `9d64a8c` and the new one side by side and
+   made the same 30 calls on each. They covered every overload count of every entry point
+   whose registration changed, the surface at five strides and three grids, and three
+   refusals. Every number and every key was identical (`tests.txt` §5). The smoke test
+   reports the same numbers line for line, 17 of 17, locally and in CI. The two probes give
+   the same counts: 2,074 calls and 178 refusals. The shipped artifact is 1,234 bytes
+   smaller: 172,656 bytes, 56,119 gzipped. Without catching it is 141,578 bytes
+   (`build.txt` §3).
+
+**Decisions (with why)** — each *Decision — owner may overrule*:
+
+- **The release notes travel in the artifact**, as `dist/notes.md` beside the four attached
+  files. `wasm.yml` writes them, and the release job passes them to `--notes-file` without
+  attaching them. The notes have to come from somewhere, and the release job is left only
+  the tag check, the download and the release. Written in `wasm.yml`, they are produced and
+  downloaded on every push like everything else. They name the commit rather than the tag,
+  because the release's title names the tag.
+- **The `downloaded` job goes beyond the audit's letter.** The fix asked for the files to
+  be listed in the log. A listing shows what was uploaded, but not what a download gives the
+  release job, and that gap is where the defect was. The job costs about 6 seconds a push.
+- **A stride of 0 is now refused in the library's words.** The message changes from
+  "sampling.everySteps must be at least 1" to "pde: every_steps must be at least 1". That
+  is how every other setting the library refuses already reads through the module. The
+  smoke test now checks the refusal.
+- **The sampling is a struct, `SurfaceSampling`, rather than a bare stride argument.** It
+  follows the library's convention of settings structs, and it lets the binding read it
+  with the same field table as every other settings object.
+
+**Not done**
+
+- **The release job has still not run.** The parts that run first on the tag are listed in
+  the exit table's last row.
+- **No browser here.** The audit loaded `9d64a8c` in headless Chromium. The artifact this
+  entry builds was loaded in Node only. Its values are identical to `9d64a8c`'s on every
+  call compared.
+- **`actionlint`**, as before: not run. The workflows parse as YAML, and GitHub ran
+  `wasm.yml`'s two jobs from `ci.yml`.
+
+**Exact next step**
+
+As above: the owner reads this pack and merges `m/T4`. Once `main`'s CI is green, the owner
+pushes `v0.4.0` with the commands in the first entry.
+
 ## Amendments
 
 **None proposed.** Node runs the smoke test because the roadmap's exit names it; it is in the
@@ -224,6 +328,7 @@ programme's stack already (I19, the site's) and adds no package. Emscripten is i
 - `build.txt` — the toolchain and why that version, how the artifact is built, its size both
   ways and the JavaScript-EH comparison, the native build.
 - `tests.txt` — the smoke test's whole output, the two ways the module dies and the probes
-  that measured them, the native suite, CI.
+  that measured them, the native suite with the surface's new cases, CI with the release
+  files as assembled and as downloaded, and the before-and-after comparison of the module.
 - `diff.txt` — `git diff --stat` against `1a9b465`.
 - No `screenshots/`: T4 has no UI.

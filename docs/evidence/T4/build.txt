@@ -42,40 +42,49 @@ bound"). Local builds on one machine; CI (tests.txt section 4) is the authoritat
   Warnings. Every translation unit, the binding included, is compiled with the project's
   warning set and -Werror (touchstone_warnings). Both builds: 0 warnings.
 
-  The library's sources are unchanged. This is the first time Emscripten has built them
-  (F7's Emscripten half), and they built as they are.
+  The library's sources were built under Emscripten as they were at the base, the first time
+  Emscripten has built them (F7's Emscripten half). Since then one function has been added
+  to them, crank_nicolson_surface in pde.hpp and src/pde.cpp (summary.md, second entry),
+  which both compilers build at -Werror with no warning.
 
 3. Size
 -------
 
-  wasm/build.sh's report on the final tree (build-wasm/size.txt), bytes:
+  wasm/build.sh's report on the final tree (7c1be27; build-wasm/size.txt), bytes:
 
                                .wasm      .mjs     total gzip -9 total
-    catching on (shipped)     145104     28786    173890         56017
-    catching off              112851     29389    142240         50024
+    catching on (shipped)     143870     28786    172656         56119
+    catching off              112189     29389    141578         49710
 
     budget                                        500000
 
   The budget is read strictly: the .wasm and the .mjs together, uncompressed, against
-  500,000 bytes (500 KB at 1000 bytes to the KB). The shipped artifact is 34.8% of it.
+  500,000 bytes (500 KB at 1000 bytes to the KB). The shipped artifact is 34.5% of it.
   wasm/build.sh fails the build above it, which fails CI and the release.
 
-  What catching costs: 31,650 bytes (+22%) uncompressed, 5,993 bytes gzipped.
+  What catching costs: 31,078 bytes (+22%) uncompressed, 6,409 bytes gzipped.
 
-  For comparison only, not shipped: Emscripten's JavaScript-based exception handling
-  (-fexceptions in place of -fwasm-exceptions, built in build-wasm-jseh by hand):
+  At 9d64a8c, before the surface sampler moved into the library and the forwarders were
+  folded (summary.md, second entry), the same report read 145104 + 28786 = 173890 shipped
+  (56017 gzipped) and 112851 + 29389 = 142240 without catching (50024). The .mjs files are
+  unchanged; each .wasm is smaller, by 1,234 and 662 bytes.
+
+  For comparison only, not shipped, and measured at 9d64a8c, not rebuilt since:
+  Emscripten's JavaScript-based exception handling (-fexceptions in place of
+  -fwasm-exceptions, built in build-wasm-jseh by hand):
 
     catching on, JS-based EH  187091     34264    221355         60405
 
-  It passes the same smoke test (17 of 17). It costs 79,115 bytes against the 31,650 of
-  WebAssembly's own exception handling, which is why the latter ships (summary.md,
-  Decisions).
+  It passed the same smoke test (17 of 17). It cost 79,115 bytes against the 31,650 that
+  WebAssembly's own exception handling cost on the same tree, which is why the latter ships
+  (summary.md, Decisions).
 
-4. The native build, unchanged
-------------------------------
+4. The native build
+-------------------
 
   The root CMakeLists.txt gained the version (0.1.0 -> 0.4.0), an Emscripten-only block and
   an Emscripten-only add_subdirectory(wasm). The native configuration takes none of them.
+  The library gained crank_nicolson_surface and the suite four test cases for it.
 
     cmake -S . -B build-gcc-t4 -G Ninja -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=RelWithDebInfo
     cmake --build build-gcc-t4          # 0 warnings, -Werror on
