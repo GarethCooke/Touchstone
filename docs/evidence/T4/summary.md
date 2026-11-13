@@ -120,7 +120,7 @@ the RNG fixture and one golden price, and survives an input the library rejects.
 
 | Criterion | Result |
 |---|---|
-| Artifact builds in CI | **PASS** — run 43436214813 on `103af47`: the `wasm` job built both ways, checked the size, ran the smoke test on Node 22 (17 of 17) and uploaded the artifact; gcc 13.3, clang 18.1.3, ASan+UBSan and the golden job green beside it (`tests.txt` §4). |
+| Artifact builds in CI | **PASS** — runs 43436214813 on `103af47` and 43437447847 on `a4b34c3`, the last commit to touch anything the build reads: the `wasm` job built both ways, checked the size, ran the smoke test on Node 22 (17 of 17) and uploaded the artifact; gcc 13.3, clang 18.1.3, ASan+UBSan and the golden job green beside it (`tests.txt` §4). |
 | A smoke test loads it in Node | **PASS** — `wasm/smoke.test.mjs`; locally on Node 24, in CI on Node 22. |
 | …reproduces the RNG fixture | **PASS** — all three seeds; uniforms identical, normals worst difference 0 (tolerance 1e-12). |
 | …and one golden price | **PASS** — `one-day-atm`, price 0.4203523730423484 against 0.4203523730423497, all seven outputs within 6.2e-14 (tolerance 1e-8); and all 7234 rows within the file's tolerances. |

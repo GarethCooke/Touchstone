@@ -157,5 +157,7 @@ Branch m/T4, base 1a9b465. Toolchains and build commands are in build.txt.
   The difference was not traced. The smoke test's reported numbers in CI are the local
   ones, line for line (the '#' lines of section 1).
 
-  The commits after 103af47 change comments, one error message in wasm/build.sh, and this
-  pack: no code the build or the tests run.
+  Run 43437447847 on a4b34c3, the last commit to touch anything the build reads (comments,
+  one error message in wasm/build.sh, and this pack): all five jobs green again, and the
+  wasm job's size report and smoke result identical to the above (173888 bytes shipped;
+  17 of 17). The commit after it changes only this pack.
