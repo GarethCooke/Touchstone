@@ -2,8 +2,8 @@
 
 A C++20 pricing and risk library for European vanilla options.
 
-**In progress.** The pricing library is complete for its v1 scope and is not yet built for
-the browser — see [Status](#status). It prices European calls and puts with a dividend yield
+**In progress.** The pricing library is complete for its v1 scope and is built for the
+browser as a WebAssembly module — see [Status](#status). It prices European calls and puts with a dividend yield
 three independent ways, and the three agree across a 7200-row reference grid:
 
 - the Black-Scholes-Merton closed form and its six analytic Greeks, agreeing with QuantLib on
@@ -56,7 +56,7 @@ Milestones are ticked in `ROADMAP.md` when their tollgate passes.
 | T2 — Monte Carlo and the shared RNG | passed — [evidence](docs/evidence/T2/) |
 | T3 — finite differences, implied vol, bump Greeks | passed — [evidence](docs/evidence/T3/) |
 | T3a — settle the library before it is bound | passed — [evidence](docs/evidence/T3a/) |
-| T4 — WASM artifact | not started |
+| T4 — WASM artifact | in review — [evidence](docs/evidence/T4/) |
 | T5 — architecture write-up, `v1.0.0` | not started |
 
 ## Layout
@@ -65,6 +65,7 @@ Milestones are ticked in `ROADMAP.md` when their tollgate passes.
 include/touchstone/  the public headers — the whole API surface; detail/ is internal
 src/                 the implementation
 tests/               doctest suites, one per claim; see the table below
+wasm/                the WebAssembly binding, its build script and its Node smoke test
 third_party/         doctest and nlohmann/json, single headers, test target only
 golden/              the oracle: QuantLib-generated reference values the C++ tests read
 experiments/         numpy scripts behind the tutorial's Part 2 pages, each with its JSON result
@@ -106,6 +107,25 @@ failure in each would mean:
 | `ts_three-way` | Closed form, Monte Carlo and the grid do not agree within their stated tolerances. |
 | `ts_contract` | An American contract compiles where only a European one can be priced. This suite fails by not compiling. |
 | `ts_all` | Everything above in one run, so a mistyped filter cannot leave a suite unrun. |
+
+## The WebAssembly side
+
+The tutorial's demos run on this library compiled to WebAssembly by Emscripten, through an
+embind binding: `wasm/binding.cpp` says what it carries and how a refused input reaches
+JavaScript. The artifact is `touchstone.mjs`, an ES module whose default export
+`createTouchstone()` resolves to the module, and `touchstone.wasm` beside it. Each version
+tag's GitHub release carries both.
+
+```bash
+source <emsdk>/emsdk_env.sh            # Emscripten 6.0.13, the version CI builds with
+wasm/build.sh                          # build-wasm/: with and without exception catching, sizes
+node --test wasm/smoke.test.mjs        # load it in Node and hold it to the fixtures
+```
+
+The smoke test reproduces the RNG fixture, the golden file, the path fixture and page 2.11's
+solver trace through the module, checks the Monte Carlo, the grid and bump Greeks against
+the closed form, and makes three hundred thousand refused calls before checking the fixtures
+again.
 
 ## The Python side
 

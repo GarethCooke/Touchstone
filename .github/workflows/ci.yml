@@ -1,6 +1,6 @@
 # The library's gate. Tech-decision B7: native build and tests on Linux with
-# both compilers, plus the golden-file checks. The WASM build and artifact upload
-# named there arrive at T4 and are deliberately not stubbed here.
+# both compilers, the golden-file checks, and the WebAssembly build with its
+# smoke test and artifact upload.
 name: library
 
 on:
@@ -70,6 +70,11 @@ jobs:
 
       - name: Test
         run: ctest --test-dir build-san --output-on-failure
+
+  # The WebAssembly artifact: built, size-checked, smoke-tested in Node and
+  # uploaded, by the workflow a release also runs.
+  wasm:
+    uses: ./.github/workflows/wasm.yml
 
   golden:
     name: golden file

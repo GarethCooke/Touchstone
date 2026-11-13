@@ -44,6 +44,7 @@
 #include <touchstone/black_scholes.hpp>
 
 #include <cstddef>
+#include <vector>
 
 namespace touchstone {
 
@@ -210,5 +211,49 @@ void require_valid(const AmericanVanilla& option,
 [[nodiscard]] PdeResult crank_nicolson(const AmericanVanilla& option,
                                        const BlackScholesMarket& market,
                                        const PdeSettings& settings = {});
+
+/// Which time levels `crank_nicolson_surface` keeps.
+struct SurfaceSampling {
+    /// Keep the solution after every `every_steps`-th step back from expiry. At
+    /// least 1. Expiry and today are kept whatever it is, so a stride that does
+    /// not divide `time_steps` still ends on today.
+    std::size_t every_steps{1};
+};
+
+/// The grid's solution at every node of a sample of its time levels: what a
+/// heatmap of the method draws.
+struct PdeSurface {
+    /// `x = ln S` at each node, node 0 first.
+    std::vector<double> log_spots;
+
+    /// `tau` at each kept level: 0 (expiry) first, the option's expiry (today)
+    /// last.
+    std::vector<double> times_to_expiry;
+
+    /// The levels one after another, in the order of `times_to_expiry`, each
+    /// node 0 first: the value at level `l`, node `i` is
+    /// `values[l * log_spots.size() + i]`.
+    std::vector<double> values;
+
+    /// What `crank_nicolson` returns for the same inputs, bit for bit: the last
+    /// level at `result.spot_index` is `result.price`.
+    PdeResult result;
+};
+
+/// `crank_nicolson`, keeping the solution at the levels `sampling` names.
+///
+/// The same solve, step for step, so the same numbers; what this adds is that
+/// it keeps them. Its size is the node count times the kept level count — at
+/// the default settings and a stride of 1, about half a million values. Throws
+/// `std::invalid_argument` for anything `require_valid` refuses, and for a
+/// stride of 0.
+[[nodiscard]] PdeSurface crank_nicolson_surface(const EuropeanVanilla& option,
+                                                const BlackScholesMarket& market,
+                                                const PdeSettings& settings = {},
+                                                const SurfaceSampling& sampling = {});
+[[nodiscard]] PdeSurface crank_nicolson_surface(const AmericanVanilla& option,
+                                                const BlackScholesMarket& market,
+                                                const PdeSettings& settings = {},
+                                                const SurfaceSampling& sampling = {});
 
 }  // namespace touchstone

@@ -693,3 +693,111 @@ TEST_SUITE("pde")
         CHECK(solver.result().price == touchstone::crank_nicolson(put, market, settings).price);
     }
 }
+
+// The same solution, kept: `crank_nicolson_surface`.
+namespace {
+
+/// The grid the surface tests run on: small enough to keep every level.
+[[nodiscard]] PdeSettings surface_settings()
+{
+    PdeSettings settings{};
+    settings.space_intervals = 128;
+    settings.time_steps = 40;
+    return settings;
+}
+
+/// Every field of two results, compared exactly.
+void check_same_result(const PdeResult& a, const PdeResult& b)
+{
+    CHECK(a.price == b.price);
+    CHECK(a.delta == b.delta);
+    CHECK(a.gamma == b.gamma);
+    CHECK(a.space_intervals == b.space_intervals);
+    CHECK(a.time_steps == b.time_steps);
+    CHECK(a.spot_index == b.spot_index);
+    CHECK(a.log_spot_step == b.log_spot_step);
+    CHECK(a.time_step == b.time_step);
+    CHECK(a.lower_log_spot == b.lower_log_spot);
+    CHECK(a.upper_log_spot == b.upper_log_spot);
+    CHECK(a.mesh_peclet == b.mesh_peclet);
+    CHECK(a.resolution_in_sigmas == b.resolution_in_sigmas);
+    CHECK(a.dominance_margin == b.dominance_margin);
+}
+
+}  // namespace
+
+TEST_SUITE("pde")
+{
+    TEST_CASE("the surface's last level, at the spot, is crank_nicolson's price")
+    {
+        const PdeSettings settings = surface_settings();
+        const PdeResult whole = touchstone::crank_nicolson(typical_call, typical_market, settings);
+        const touchstone::PdeSurface surface =
+            touchstone::crank_nicolson_surface(typical_call, typical_market, settings, {8});
+
+        const std::size_t nodes = surface.log_spots.size();
+        const std::size_t levels = surface.times_to_expiry.size();
+        CHECK(nodes == whole.space_intervals + 1);
+        CHECK(levels == 1 + 40 / 8);
+        CHECK(surface.values.size() == levels * nodes);
+        CHECK(surface.times_to_expiry.front() == 0.0);
+        CHECK(surface.times_to_expiry.back() == typical_call.expiry_years);
+        CHECK(surface.log_spots[whole.spot_index] == std::log(typical_market.spot));
+        CHECK(surface.values[(levels - 1) * nodes + whole.spot_index] == whole.price);
+        check_same_result(surface.result, whole);
+
+        // The first level is the payoff the solver starts from.
+        const touchstone::detail::GridSolver<touchstone::Exercise::European> start(
+            typical_call, typical_market, settings);
+        const auto payoff = start.values();
+        CHECK(std::equal(payoff.begin(), payoff.end(), surface.values.begin()));
+    }
+
+    TEST_CASE("a stride that does not divide the steps still ends on today")
+    {
+        // A stride of 7 over 40 steps keeps levels 0, 7, ..., 35 and then 40: the
+        // same levels, bit for bit, as a stride of 1 keeps at those steps.
+        const PdeSettings settings = surface_settings();
+        const touchstone::PdeSurface every =
+            touchstone::crank_nicolson_surface(typical_call, typical_market, settings, {1});
+        const touchstone::PdeSurface uneven =
+            touchstone::crank_nicolson_surface(typical_call, typical_market, settings, {7});
+
+        const std::size_t nodes = every.log_spots.size();
+        CHECK(every.times_to_expiry.size() == 41u);
+        REQUIRE(uneven.times_to_expiry.size() == 1 + 40 / 7 + 1);
+        CHECK(uneven.log_spots == every.log_spots);
+
+        const std::vector<std::size_t> steps{0, 7, 14, 21, 28, 35, 40};
+        for (std::size_t l = 0; l < steps.size(); ++l) {
+            CAPTURE(l);
+            CHECK(uneven.times_to_expiry[l] == every.times_to_expiry[steps[l]]);
+            const auto kept = uneven.values.begin() + static_cast<std::ptrdiff_t>(l * nodes);
+            const auto same = every.values.begin() + static_cast<std::ptrdiff_t>(steps[l] * nodes);
+            CHECK(std::equal(kept, kept + static_cast<std::ptrdiff_t>(nodes), same));
+        }
+        CHECK(uneven.values[6 * nodes + uneven.result.spot_index]
+              == touchstone::crank_nicolson(typical_call, typical_market, settings).price);
+    }
+
+    TEST_CASE("an American surface ends on the American price")
+    {
+        const touchstone::AmericanVanilla put{100.0, 1.0, OptionType::Put};
+        const PdeSettings settings = surface_settings();
+        const touchstone::PdeSurface surface =
+            touchstone::crank_nicolson_surface(put, typical_market, settings, {8});
+        const std::size_t nodes = surface.log_spots.size();
+        const std::size_t levels = surface.times_to_expiry.size();
+        check_same_result(surface.result, touchstone::crank_nicolson(put, typical_market, settings));
+        CHECK(surface.values[(levels - 1) * nodes + surface.result.spot_index] == surface.result.price);
+    }
+
+    TEST_CASE("a stride of zero is refused")
+    {
+        CHECK_THROWS_WITH_AS(touchstone::crank_nicolson_surface(typical_call, typical_market, {}, {0}),
+                             doctest::Contains("every_steps"), std::invalid_argument);
+        // And what the grid refuses, the surface refuses.
+        CHECK_THROWS_AS(touchstone::crank_nicolson_surface(typical_call, {0.0, 0.2, 0.03, 0.01}),
+                        std::invalid_argument);
+    }
+}

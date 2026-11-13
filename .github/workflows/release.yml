@@ -1,0 +1,56 @@
+# A release, from a version tag: the WebAssembly artifact built from the tagged
+# commit and smoke-tested by wasm.yml, then attached, as tested, to a GitHub
+# release of the same name. The tutorial vendors a pinned release, so what is
+# attached here is exactly what a demo runs on.
+#
+# Nothing here pushes a tag. The owner tags a merged commit; this runs on that.
+
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  wasm:
+    uses: ./.github/workflows/wasm.yml
+
+  release:
+    name: release
+    needs: wasm
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+
+      # The smoke test has already held the module's version to CMakeLists.txt's;
+      # this holds the tag to it.
+      - name: The tag names the project's version
+        run: |
+          version=$(sed -n 's/^ *VERSION \([0-9.]*\)$/\1/p' CMakeLists.txt | head -n 1)
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "Tag $GITHUB_REF_NAME, but CMakeLists.txt says $version." >&2
+            exit 1
+          fi
+
+      # wasm.yml assembled these and its `downloaded` job fetched them the same
+      # way on every push; nothing here makes or moves a file.
+      - uses: actions/download-artifact@v7
+        with:
+          name: touchstone-wasm
+          path: dist
+
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "$GITHUB_REF_NAME"
+          dist/touchstone.mjs dist/touchstone.wasm dist/size.txt dist/SHA256SUMS
+          --repo "$GITHUB_REPOSITORY"
+          --verify-tag
+          --title "Touchstone $GITHUB_REF_NAME"
+          --notes-file dist/notes.md
