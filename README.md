@@ -55,7 +55,7 @@ Milestones are ticked in `ROADMAP.md` when their tollgate passes.
 | T1 — closed form and analytic Greeks | passed — [evidence](docs/evidence/T1/) |
 | T2 — Monte Carlo and the shared RNG | passed — [evidence](docs/evidence/T2/) |
 | T3 — finite differences, implied vol, bump Greeks | passed — [evidence](docs/evidence/T3/) |
-| T3a — settle the library before it is bound | this branch — [evidence](docs/evidence/T3a/) |
+| T3a — settle the library before it is bound | passed — [evidence](docs/evidence/T3a/) |
 | T4 — WASM artifact | not started |
 | T5 — architecture write-up, `v1.0.0` | not started |
 

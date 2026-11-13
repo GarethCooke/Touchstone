@@ -67,8 +67,9 @@ Statuses: `converged`, `below_lower_bound`, `above_upper_bound`, `below_sigma_lo
 `above_sigma_hi`, `max_iter`. It records every iterate when asked.
 
 Source of truth: `experiments/2_11_where_it_breaks.py` and its JSON. Test: the committed
-base-case trace reproduced iterate by iterate. The two solvers share what they have in common
-(the price-and-vega evaluation, the bounds, the tolerance rule).
+base-case trace reproduced iterate by iterate. The two solvers share what they have in common:
+the price-and-vega evaluation and the bounds. Each keeps its own stopping rule. (Corrected
+2026-11-13: this sentence first listed a shared tolerance rule, against the defaults above.)
 
 ### 3 · Errors
 

@@ -92,7 +92,10 @@ dependency.
 4. **One Thomas sweep (R7), and the grid solver (ruling 6, F3).** The plain solve and both
    directions of the projected one are now one template sweep, the put's direction being
    the same sweep over the mirrored index range. It keeps the classic Thomas arithmetic, so
-   every European solve is bit-identical to before; the projected solves moved from the
+   every European solve was bit-identical to `main` at `a067ccc`. (Owner's note, 2026-11-13:
+   after the review's closure at `47c8108`, an independent check with g++ 13.3 found 4 of 18
+   European solves differing from `main` by about 1e-14 relative, which is round-off.) The
+   projected solves moved from the
    pivot form to it, which is item 1's two numbers. `detail::GridSolver<E>` builds its two
    matrices once (they were rebuilt and rescanned every step), and its solution can be
    stepped and read level by level for D8: stepping it reproduces `crank_nicolson` to the

@@ -184,7 +184,7 @@ Greeks match analytic within tolerance; implied vol round-trips golden prices to
 the stretch; `require_valid` repaired in `black_scholes.cpp`, which edits T1 after
 its tollgate.
 
-### ☐ T3a — Settle the library before it is bound
+### ☑ T3a — Settle the library before it is bound
 **Entry:** T3; the owner's design rulings of 2026-11-12 in
 `docs/briefs/T3a-design-rulings.md`, from which the session derives its work order.
 **Deliverables:** a path API: Brownian and GBM paths written into a caller's span,
@@ -201,6 +201,10 @@ trace, an American contract refused by the closed form at compile time; the free
 signatures unchanged except where a ruling changes them; a review for repeated code by a
 session that did not write the change, its findings closed; no new dependency.
 **Tollgate:** V. **Executor:** Opus. **Size:** two to three sessions.
+**Passed** 2026-11-13 — evidence: `docs/evidence/T3a/`. The session's four decisions stand:
+each implied-vol solver keeps its own stopping rule; a refused price returns a volatility of
+zero or infinity with its status, never a NaN; `ClosedForm` is public and the grid solver and
+path generator are in `detail/`; a path's step keeps its zero tests.
 
 ### ☐ T4 — WASM artifact
 **Entry:** T3a.
