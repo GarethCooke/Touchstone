@@ -2,10 +2,10 @@
 // stepped and read.
 //
 // `crank_nicolson` builds one of these, runs it to today and reads three numbers
-// off it. The class is here for the callers that want more than three numbers:
-// the solution at every node, after any number of steps, is the surface a
-// heatmap of the method draws, and stepping it one level at a time is how that
-// surface is read without storing all of it.
+// off it; `crank_nicolson_surface` runs the same one and keeps the solution at
+// every node of the levels it samples. The tests step it a level at a time and
+// read it between steps, which is how they check a level without storing all of
+// them.
 //
 // Internal rather than public: the public face is `touchstone/pde.hpp`. Nothing
 // here validates beyond what the constructor does by calling `require_valid`.

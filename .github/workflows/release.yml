@@ -37,30 +37,12 @@ jobs:
             exit 1
           fi
 
+      # wasm.yml assembled these and its `downloaded` job fetched them the same
+      # way on every push; nothing here makes or moves a file.
       - uses: actions/download-artifact@v7
         with:
           name: touchstone-wasm
           path: dist
-
-      - name: Checksums and notes
-        run: |
-          (cd dist && sha256sum touchstone.mjs touchstone.wasm > SHA256SUMS)
-          {
-            echo "The WebAssembly build of Touchstone at $GITHUB_REF_NAME ($GITHUB_SHA)."
-            echo
-            echo '`touchstone.mjs` is an ES module whose default export, `createTouchstone()`,'
-            echo 'resolves to the module; it loads `touchstone.wasm` from beside itself.'
-            echo 'What the module carries, and how it reports a refused input, is written at'
-            echo 'the top of `wasm/binding.cpp`.'
-            echo
-            echo '```'
-            cat dist/size.txt
-            echo '```'
-            echo
-            echo '```'
-            cat dist/SHA256SUMS
-            echo '```'
-          } > notes.md
 
       - name: Release
         env:
@@ -71,4 +53,4 @@ jobs:
           --repo "$GITHUB_REPOSITORY"
           --verify-tag
           --title "Touchstone $GITHUB_REF_NAME"
-          --notes-file notes.md
+          --notes-file dist/notes.md

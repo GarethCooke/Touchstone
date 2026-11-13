@@ -223,6 +223,7 @@ test('an input the library rejects is a RangeError with the library\'s reason', 
   refuses(() => touchstone.impliedVol(base, baseMarket, NaN), RangeError, '')
   refuses(() => touchstone.monteCarlo(base, baseMarket, { paths: 0 }), RangeError, '')
   refuses(() => touchstone.crankNicolson(base, { ...baseMarket, spot: 0 }), RangeError, '')
+  refuses(() => touchstone.crankNicolsonSurface(base, baseMarket, {}, { everySteps: 0 }), RangeError, 'every_steps')
   refuses(() => touchstone.gbmPath({ seed: 1, steps: 0, horizon: 1, spot: 1, drift: 0, vol: 0.2, scheme: 'exact' }), RangeError, '')
   refuses(() => touchstone.uniforms(-1, 3), RangeError, 'seed')
   refuses(() => touchstone.uniforms(1.5, 3), RangeError, 'seed')

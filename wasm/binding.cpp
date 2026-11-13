@@ -31,7 +31,6 @@
 #include <touchstone/black_scholes.hpp>
 #include <touchstone/bump_greeks.hpp>
 #include <touchstone/contract.hpp>
-#include <touchstone/detail/grid_solver.hpp>
 #include <touchstone/implied_vol.hpp>
 #include <touchstone/monte_carlo.hpp>
 #include <touchstone/paths.hpp>
@@ -399,6 +398,13 @@ struct Fields<PdeResult> {
 };
 
 template <>
+struct Fields<SurfaceSampling> {
+    static constexpr auto list = std::tuple{
+        Field{"everySteps", &SurfaceSampling::every_steps},
+    };
+};
+
+template <>
 struct Fields<BumpSizes> {
     static constexpr auto list = std::tuple{
         Field{"spotRelative", &BumpSizes::spot_relative},
@@ -656,59 +662,24 @@ struct PathSpec {
     });
 }
 
-/// The grid's solution at every node, at expiry and after every `everySteps`
-/// time steps back to today — today always included — for a heatmap.
-///
-/// `values` holds the levels one after another, expiry first, each `x(0)`
-/// first: the value at level `l`, node `i` is `values[l * nodes + i]`.
+/// The library's `PdeSurface`, for a heatmap: the grid's solution at every node
+/// of the levels `sampling` keeps, with `values` level-major as it is there —
+/// the value at level `l`, node `i` is `values[l * nodes + i]`.
 [[nodiscard]] val surface(const val& option, const val& market_object, const val& settings, const val& sampling)
 {
     return guarded([&] {
         const BlackScholesMarket state = market(market_object);
         const auto pde = read<PdeSettings>(settings, "settings", Presence::Optional);
-        require_object(sampling, "sampling", Presence::Optional);
-        std::size_t every = 1;
-        if (!is_absent(sampling) && !is_absent(sampling["everySteps"])) {
-            read_value(sampling["everySteps"], "sampling.everySteps", every);
-        }
-        if (every == 0) {
-            throw std::invalid_argument("sampling.everySteps must be at least 1");
-        }
-
+        const auto kept = read<SurfaceSampling>(sampling, "sampling", Presence::Optional);
         return with_contract(option, [&](const auto& contract) {
-            detail::GridSolver solver(contract, state, pde);
-            const detail::LogSpotGrid& nodes = solver.grid();
-            const std::size_t node_count = plus_one(nodes.intervals, "settings.spaceIntervals");
-
-            std::vector<double> log_spots(node_count);
-            for (std::size_t i = 0; i < node_count; ++i) {
-                log_spots[i] = nodes.x(i);
-            }
-
-            std::vector<double> times;
-            std::vector<double> values;
-            const auto record = [&] {
-                times.push_back(solver.time_to_expiry());
-                const auto level = solver.values();
-                values.insert(values.end(), level.begin(), level.end());
-            };
-            record();
-            while (solver.advance()) {
-                if (solver.steps_taken() % every == 0) {
-                    record();
-                }
-            }
-            if (solver.steps_taken() % every != 0) {
-                record();  // Today, which the stride stepped past.
-            }
-
+            const PdeSurface surface = crank_nicolson_surface(contract, state, pde, kept);
             val out = val::object();
-            out.set("logSpots", float64_array(log_spots));
-            out.set("timesToExpiry", float64_array(times));
-            out.set("values", float64_array(values));
-            out.set("nodes", to_js(node_count));
-            out.set("levels", to_js(times.size()));
-            out.set("result", write(solver.result()));
+            out.set("logSpots", float64_array(surface.log_spots));
+            out.set("timesToExpiry", float64_array(surface.times_to_expiry));
+            out.set("values", float64_array(surface.values));
+            out.set("nodes", to_js(surface.log_spots.size()));
+            out.set("levels", to_js(surface.times_to_expiry.size()));
+            out.set("result", write(surface.result));
             return out;
         });
     });
@@ -774,50 +745,64 @@ struct PathSpec {
 }
 
 // Trailing arguments may be left out, as the TypeScript's optional parameters
-// may: embind chooses an overload by the number of arguments, so each shorter
-// form is registered as the longest with `undefined` in the missing places.
+// may. embind chooses among functions of one name by the number of arguments,
+// so a function whose last arguments are optional is registered once for each
+// count, each form calling it with `undefined` in the places left out.
 
-[[nodiscard]] val implied_3(const val& o, const val& m, const val& p) { return implied(o, m, p, val::undefined()); }
-[[nodiscard]] val monte_2(const val& o, const val& m) { return monte(o, m, val::undefined()); }
-[[nodiscard]] val grid_2(const val& o, const val& m) { return grid(o, m, val::undefined()); }
-[[nodiscard]] val surface_2(const val& o, const val& m) { return surface(o, m, val::undefined(), val::undefined()); }
-[[nodiscard]] val surface_3(const val& o, const val& m, const val& s) { return surface(o, m, s, val::undefined()); }
-[[nodiscard]] val bumped_2(const val& o, const val& m) { return bumped(o, m, val::undefined(), val::undefined()); }
-[[nodiscard]] val bumped_3(const val& o, const val& m, const val& s) { return bumped(o, m, s, val::undefined()); }
+template <class... Args>
+[[nodiscard]] consteval std::size_t arity(val (*)(Args...))
+{
+    return sizeof...(Args);
+}
+
+template <std::size_t>
+using Argument = const val&;
+
+/// `Fn` taking its first `sizeof...(I)` arguments, the rest `undefined`.
+template <auto Fn, class Given>
+struct Leading;
+
+template <auto Fn, std::size_t... I>
+struct Leading<Fn, std::index_sequence<I...>> {
+    [[nodiscard]] static val call(Argument<I>... given)
+    {
+        return [&]<std::size_t... Rest>(std::index_sequence<Rest...>) {
+            return Fn(given..., (static_cast<void>(Rest), val::undefined())...);
+        }(std::make_index_sequence<arity(Fn) - sizeof...(I)>{});
+    }
+};
 
 }  // namespace
 
-/// `fn` as `raw_<name>`: the error-returning form, which `errors.post.js`
-/// replaces with `<name>`, the error-throwing one.
-template <class Fn>
-void bind(const std::string& name, Fn fn)
+/// `Fn` as `raw_<name>`, the error-returning form, which `errors.post.js`
+/// replaces with `<name>`, the error-throwing one: callable with `Required`
+/// arguments or any number more, up to all of them.
+template <auto Fn, std::size_t Required = arity(Fn)>
+void bind(const char* name)
 {
-    emscripten::function(("raw_" + name).c_str(), fn);
+    static_assert(Required <= arity(Fn));
+    const std::string raw = std::string("raw_") + name;
+    [&]<std::size_t... Extra>(std::index_sequence<Extra...>) {
+        (emscripten::function(raw.c_str(), &Leading<Fn, std::make_index_sequence<Required + Extra>>::call), ...);
+    }(std::make_index_sequence<arity(Fn) - Required + 1>{});
 }
 
 EMSCRIPTEN_BINDINGS(touchstone)
 {
     emscripten::constant("version", std::string(TOUCHSTONE_VERSION));
 
-    bind("uniforms", &draws<&Xoshiro128SS::next_uniform>);
-    bind("normals", &draws<&Xoshiro128SS::next_normal>);
-    bind("brownianPath", &brownian);
-    bind("gbmPath", &gbm);
-    bind("priceAndGreeks", &closed_form);
-    bind("noArbitrageBounds", &bounds);
-    bind("impliedVol", &implied);
-    bind("impliedVol", &implied_3);
+    bind<&draws<&Xoshiro128SS::next_uniform>>("uniforms");
+    bind<&draws<&Xoshiro128SS::next_normal>>("normals");
+    bind<&brownian>("brownianPath");
+    bind<&gbm>("gbmPath");
+    bind<&closed_form>("priceAndGreeks");
+    bind<&bounds>("noArbitrageBounds");
+    bind<&implied, 3>("impliedVol");
 
-    bind("monteCarlo", &monte);
-    bind("monteCarlo", &monte_2);
-    bind("crankNicolson", &grid);
-    bind("crankNicolson", &grid_2);
-    bind("crankNicolsonSurface", &surface);
-    bind("crankNicolsonSurface", &surface_3);
-    bind("crankNicolsonSurface", &surface_2);
-    bind("bumpGreeks", &bumped);
-    bind("bumpGreeks", &bumped_3);
-    bind("bumpGreeks", &bumped_2);
+    bind<&monte, 2>("monteCarlo");
+    bind<&grid, 2>("crankNicolson");
+    bind<&surface, 2>("crankNicolsonSurface");
+    bind<&bumped, 2>("bumpGreeks");
 
-    bind("defaults", &defaults);
+    bind<&defaults>("defaults");
 }

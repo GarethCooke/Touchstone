@@ -41,11 +41,56 @@ jobs:
       - name: Smoke test
         run: node --test wasm/smoke.test.mjs
 
+      # What a release attaches — the module, its .wasm, the size report and
+      # their checksums — and the notes it is published with, in one flat
+      # directory. The release job reads these paths and no others.
+      - name: Assemble the release's files
+        run: |
+          mkdir dist
+          cp build-wasm/wasm/touchstone.mjs build-wasm/wasm/touchstone.wasm build-wasm/size.txt dist/
+          (cd dist && sha256sum touchstone.mjs touchstone.wasm > SHA256SUMS)
+          {
+            echo "The WebAssembly build of Touchstone at $GITHUB_SHA."
+            echo
+            echo '`touchstone.mjs` is an ES module whose default export, `createTouchstone()`,'
+            echo 'resolves to the module; it loads `touchstone.wasm` from beside itself.'
+            echo 'What the module carries, and how it reports a refused input, is written at'
+            echo 'the top of `wasm/binding.cpp`.'
+            echo
+            echo '```'
+            cat dist/size.txt
+            echo '```'
+            echo
+            echo '```'
+            cat dist/SHA256SUMS
+            echo '```'
+          } > dist/notes.md
+          ls -l dist
+
+      # A single directory is uploaded as its contents, so the artifact is flat.
       - uses: actions/upload-artifact@v7
         with:
           name: touchstone-wasm
-          path: |
-            build-wasm/wasm/touchstone.mjs
-            build-wasm/wasm/touchstone.wasm
-            build-wasm/size.txt
+          path: dist/
           if-no-files-found: error
+
+  # The release job's download, done on every push: the artifact fetched as it
+  # fetches it, into the directory it reads, and every file it attaches found
+  # there and checked against its sum.
+  downloaded:
+    name: the release's files, downloaded
+    needs: wasm
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: touchstone-wasm
+          path: dist
+
+      - name: Every file the release attaches, where it reads it
+        run: |
+          ls -l dist
+          for file in touchstone.mjs touchstone.wasm size.txt SHA256SUMS notes.md; do
+            test -f "dist/$file" || { echo "dist/$file is missing" >&2; exit 1; }
+          done
+          (cd dist && sha256sum --check --strict SHA256SUMS)

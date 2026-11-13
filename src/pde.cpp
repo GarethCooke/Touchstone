@@ -219,6 +219,43 @@ template <Exercise E>
     return solver.result();
 }
 
+template <Exercise E>
+[[nodiscard]] PdeSurface sample_to_today(const Vanilla<E>& option,
+                                         const BlackScholesMarket& market,
+                                         const PdeSettings& settings,
+                                         const SurfaceSampling& sampling)
+{
+    const std::size_t every = sampling.every_steps;
+    if (every == 0) {
+        throw std::invalid_argument("pde: every_steps must be at least 1");
+    }
+
+    detail::GridSolver<E> solver(option, market, settings);
+    PdeSurface out;
+    const std::size_t nodes = solver.values().size();
+    out.log_spots.resize(nodes);
+    for (std::size_t i = 0; i < nodes; ++i) {
+        out.log_spots[i] = solver.grid().x(i);
+    }
+
+    const auto keep = [&] {
+        out.times_to_expiry.push_back(solver.time_to_expiry());
+        const auto level = solver.values();
+        out.values.insert(out.values.end(), level.begin(), level.end());
+    };
+    keep();
+    while (solver.advance()) {
+        if (solver.steps_taken() % every == 0) {
+            keep();
+        }
+    }
+    if (solver.steps_taken() % every != 0) {
+        keep();  // Today, which the stride stepped past.
+    }
+    out.result = solver.result();
+    return out;
+}
+
 }  // namespace
 
 void require_valid(const EuropeanVanilla& option,
@@ -247,6 +284,22 @@ PdeResult crank_nicolson(const AmericanVanilla& option,
                          const PdeSettings& settings)
 {
     return solve_to_today(option, market, settings);
+}
+
+PdeSurface crank_nicolson_surface(const EuropeanVanilla& option,
+                                  const BlackScholesMarket& market,
+                                  const PdeSettings& settings,
+                                  const SurfaceSampling& sampling)
+{
+    return sample_to_today(option, market, settings, sampling);
+}
+
+PdeSurface crank_nicolson_surface(const AmericanVanilla& option,
+                                  const BlackScholesMarket& market,
+                                  const PdeSettings& settings,
+                                  const SurfaceSampling& sampling)
+{
+    return sample_to_today(option, market, settings, sampling);
 }
 
 namespace detail {
