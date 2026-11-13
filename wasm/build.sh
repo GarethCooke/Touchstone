@@ -43,6 +43,6 @@ shipped=$(( $(bytes "$root/build-wasm/wasm/touchstone.wasm") + $(bytes "$root/bu
 } | tee "$root/build-wasm/size.txt"
 
 if (( shipped > budget )); then
-    echo "The artifact is $shipped bytes, over the $budget-byte budget: T4 stops here and returns to the owner." >&2
+    echo "The artifact is $shipped bytes, over the $budget-byte budget." >&2
     exit 1
 fi

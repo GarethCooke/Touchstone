@@ -1,0 +1,161 @@
+T4 · test evidence
+==================
+
+Branch m/T4, base 1a9b465. Toolchains and build commands are in build.txt.
+
+1. The smoke test, on the shipped artifact
+------------------------------------------
+
+    node --test wasm/smoke.test.mjs        # TOUCHSTONE_WASM defaults to build-wasm/wasm/touchstone.mjs
+
+  Local, Node v24.13.1, the final tree. The lines beginning '#' are the test's own reported
+  numbers; every expected value is read from a committed file (golden/, experiments/) or is
+  another entry point of the same module.
+
+    # rng: 3 seeds x 10; uniforms exact; worst normal difference 0
+    # golden 'one-day-atm': price 0.4203523730423484 against 0.4203523730423497; worst of seven 6.166047049073064e-14
+    # golden cases: 7200 rows, worst scaled error 2.8411776910306267e-13 (tolerance 1e-10)
+    # golden edge_cases: 34 rows, worst scaled error 1.6188939078176645e-11 (tolerance 1e-8)
+    # paths: 3 Brownian, 10 GBM; worst scaled difference 0
+    # 2.11 trace: 4 iterates, worst difference 7.105427357601002e-15
+    # survived 3 x 100000 refusals; the named golden row and the RNG fixture unchanged; then a 513 x 1026 surface
+    ✔ the module says which version of the library it is: the project's (1.9755ms)
+    ✔ the RNG fixture: uniforms to the bit, normals to 1e-12 (4.0994ms)
+    ✔ one golden price, and its Greeks, to the file's own tolerance (2.2739ms)
+    ✔ every golden row, to the file's own tolerances (150.0357ms)
+    ✔ the path fixture, Brownian and GBM, to its own tolerance (2.3802ms)
+    ✔ page 2.11's committed trace, iterate by iterate (3.0263ms)
+    ✔ page 2.11's refusals come back with their status and no NaN (0.8031ms)
+    ✔ no-arbitrage bounds are the price at zero volatility and its limit at infinity (1.2203ms)
+    ✔ Monte Carlo: within three standard errors of the closed form, and the same from the same seed (28.4155ms)
+    ✔ the grid: European at the closed form, American above it, both at the payoff's floor (15.9014ms)
+    ✔ the grid's surface: every level read, today's the price (1.7541ms)
+    ✔ bump Greeks over each pricer (35.4004ms)
+    ✔ the library's defaults are the module's (0.3423ms)
+    ✔ an input the library rejects is a RangeError with the library's reason (2.301ms)
+    ✔ an argument of the wrong shape is a TypeError naming the field (0.5335ms)
+    ✔ a thrown getter on an argument reaches the caller as itself (0.1832ms)
+    ✔ the module survives a hundred thousand refusals of each kind, and then still agrees with the fixtures (11862.0749ms)
+    ℹ tests 17
+    ℹ suites 0
+    ℹ pass 17
+    ℹ fail 0
+    ℹ cancelled 0
+    ℹ skipped 0
+    ℹ todo 0
+    ℹ duration_ms 12309.1797
+
+  What the roadmap's exit names, and where it is above:
+
+    loads it in Node                   the import and createTouchstone() at the top of the file
+    reproduces the RNG fixture         uniforms to the bit and normals to 1e-12 for all three
+                                       seeds of golden/rng-known-answers.json; worst normal 0
+    and one golden price               bs_vanilla.json's edge row 'one-day-atm': price and six
+                                       Greeks within the file's 1e-8, worst 6.2e-14; and then
+                                       all 7234 rows within the file's tolerances, worst 2.8e-13
+                                       on the grid and 1.6e-11 on the edge block
+    survives an input the library      a RangeError carrying the library's message; then
+    rejects                            100,000 refusals by the library, 100,000 by the binding
+                                       (wrong shape), 100,000 by a getter that throws, after
+                                       which the named golden row is identical to the bit and
+                                       the RNG fixture still reproduces, and a 513 x 1026 grid
+                                       surface (4.2 MB) is still allocated and returned
+
+  Beyond the criterion, so that L5 inherits a binding already held to the numbers: the path
+  fixture (to the bit, against the native build's 1.7e-16); page 2.11's trace iterate by
+  iterate (7.1e-15, as native) and its five refusals with their statuses and no NaN; the
+  Monte Carlo within three standard errors of the closed form and identical from one seed;
+  the grid European at the closed form and American above it; the surface's last level
+  equal to crankNicolson's price exactly; bump Greeks over the closed form within 1e-6 of
+  the analytic ones, and over the grid and the Monte Carlo.
+
+  The same smoke test also passes on the JavaScript-EH build (build.txt section 3), 17 of 17.
+
+2. Why the refusals are repeated: the two ways the module dies
+-------------------------------------------------------------
+
+  An exception that unwinds WebAssembly frames — C++ or JavaScript — does not restore the
+  module's stack pointer. Embind restores it only around calls that stack-allocate their
+  arguments, and these take emscripten::val. Each such throw leaks the frames' stack, and
+  the default 64 KB stack runs out. Measured on the final tree:
+
+  a. A JavaScript exception thrown inside a call. The binding's first design read argument
+     fields with val property access, so a getter that throws would throw from inside the
+     module. Driving the hidden raw_ function directly, which skips errors.post.js's
+     structured clone, reproduces that:
+
+         call 2074: RuntimeError: memory access out of bounds
+
+     The first design also raised the C++ exception's JavaScript error from inside the
+     module (an EM_JS throw); its probe failed the same way before reaching 200,000. Both
+     were replaced by the design in binding.cpp: the error is returned, and thrown by
+     errors.post.js after the call has returned; the arguments are cloned before it.
+
+  b. Without exception catching (build-wasm-noexcept). The first refusal is
+     'RuntimeError: Aborted(undefined)' — the library's message lost — and the abort is
+     itself a JavaScript throw through the module's frames:
+
+         refusal 178: RuntimeError: table index is out of bounds
+
+  The smoke test's 100,000 of each kind is 48 times (a) and 560 times (b).
+
+  The two probes, as run (scratch files, not committed):
+
+    // Counterfactual: a JavaScript exception thrown from inside a wasm call (a getter read by the
+    // binding), unwinding the module's frames — what errors.post.js's structured clone prevents.
+    import createTouchstone from 'file:///C:/Development/Projects/Touchstone/build-wasm/wasm/touchstone.mjs';
+    const t = await createTouchstone();
+    const sentinel = new Error('getter');
+    const hostile = { get strike() { throw sentinel; }, expiryYears: 1, type: 'call' };
+    const mkt = { spot: 100, vol: 0.2, rate: 0.05, dividendYield: 0.02 };
+    let i = 0;
+    for (; i < 1_000_000; i++) {
+      try { t.raw_priceAndGreeks(hostile, mkt); } catch (e) { if (e !== sentinel) { console.log(`call ${i + 1}: ${e.constructor.name}: ${e.message}`); break; } }
+    }
+    if (i === 1_000_000) console.log('survived 1e6');
+
+    import createTouchstone from 'file:///C:/Development/Projects/Touchstone/build-wasm-noexcept/wasm/touchstone.mjs';
+    const t = await createTouchstone();
+    const mkt = { spot: 100, vol: 0.2, rate: 0.05, dividendYield: 0.02 }, opt = { strike: 100, expiryYears: 1, type: 'call' };
+    let i = 0, first;
+    for (; i < 1_000_000; i++) { try { t.priceAndGreeks({ ...opt, strike: -1 }, mkt); } catch (e) { first ??= e.message; if (!/Aborted/.test(e.message)) { console.log(`refusal ${i + 1}: ${e.constructor.name}: ${e.message}`); break; } } }
+    if (i === 1_000_000) console.log('1e6 refusals, each:', first);
+
+3. The native suite, unchanged
+------------------------------
+
+  g++ 15.2 (MinGW), RelWithDebInfo, -Werror, from PowerShell (build.txt section 4):
+
+    100% tests passed, 0 tests failed out of 18
+    Total Test time (real) = 212.42 sec
+    ts_all  Passed  109.38 sec
+
+  The library's sources are unchanged on this branch; the root CMakeLists.txt's changes
+  apply under Emscripten only, besides the version.
+
+4. CI
+-----
+
+  Run 43436214813 on 103af47, ubuntu-24.04: all five jobs green.
+
+    Job                       Result                                          Time
+    gcc                       g++ 13.3.0, -Werror; 18/18 ctest entries        192.6 s tests
+    clang                     clang 18.1.3, -Werror; 18/18 ctest entries      158.5 s tests
+    asan + ubsan              GCC, sweep scale 16; 18/18                      6 m 50 s job
+    golden file               every step, fixtures regenerated byte-for-byte  1 m 55 s job
+    wasm / build and          Emscripten 6.0.13 from the emsdk tag; both      48 s job
+      smoke test              builds; size check; Node v22.23.4: 17/17,
+                              0 failures; artifact uploaded
+
+  The wasm job's size report, on Linux:
+
+                               .wasm      .mjs     total gzip -9 total
+    catching on (shipped)     145104     28784    173888         56013
+    catching off              112851     29387    142238         50020
+
+  The .wasm files are the same size as on Windows; each .mjs is 2 bytes smaller on Linux.
+  The difference was not traced. The smoke test's reported numbers in CI are the local
+  ones, line for line (the '#' lines of section 1).
+
+  The commits after 103af47 change comments, one error message in wasm/build.sh, and this
+  pack: no code the build or the tests run.

@@ -1,7 +1,7 @@
 # A release, from a version tag: the WebAssembly artifact built from the tagged
 # commit and smoke-tested by wasm.yml, then attached, as tested, to a GitHub
-# release of the same name. The tutorial vendors a pinned release
-# (tech-decision B4), so what is attached here is exactly what a demo runs on.
+# release of the same name. The tutorial vendors a pinned release, so what is
+# attached here is exactly what a demo runs on.
 #
 # Nothing here pushes a tag. The owner tags a merged commit; this runs on that.
 

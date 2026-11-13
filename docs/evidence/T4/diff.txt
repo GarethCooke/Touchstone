@@ -1,0 +1,16 @@
+git diff --stat 1a9b465 (main at T4's start) against m/T4, this file excluded
+
+ .github/workflows/ci.yml      |   9 +-
+ .github/workflows/release.yml |  74 ++++
+ .github/workflows/wasm.yml    |  51 +++
+ CMakeLists.txt                |  29 +-
+ README.md                     |  26 +-
+ docs/evidence/T4/build.txt    |  87 +++++
+ docs/evidence/T4/summary.md   | 229 ++++++++++++
+ docs/evidence/T4/tests.txt    | 161 +++++++++
+ wasm/CMakeLists.txt           |  37 ++
+ wasm/binding.cpp              | 823 ++++++++++++++++++++++++++++++++++++++++++
+ wasm/build.sh                 |  48 +++
+ wasm/errors.post.js           |  36 ++
+ wasm/smoke.test.mjs           | 269 ++++++++++++++
+ 13 files changed, 1872 insertions(+), 7 deletions(-)

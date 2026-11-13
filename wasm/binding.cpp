@@ -635,7 +635,7 @@ struct PathSpec {
     });
 }
 
-// --- What D7, D8 and D10 will need ------------------------------------------
+// --- Beyond the interface: Monte Carlo, the grid, bump Greeks ---------------
 
 [[nodiscard]] val monte(const val& option, const val& market_object, const val& settings)
 {
