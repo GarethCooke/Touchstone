@@ -206,7 +206,7 @@ each implied-vol solver keeps its own stopping rule; a refused price returns a v
 zero or infinity with its status, never a NaN; `ClosedForm` is public and the grid solver and
 path generator are in `detail/`; a path's step keeps its zero tests.
 
-### ☐ T4 — WASM artifact
+### ☑ T4 — WASM artifact
 **Entry:** T3a.
 **Deliverables:** Emscripten build with an embind API carrying every `PricingBackend` method
 and the Monte Carlo, grid and bump-Greek entry points D7, D8 and D10 will need, since L5
@@ -217,6 +217,14 @@ in CI; published as a GitHub release artifact tagged `v0.4.0`.
 and one golden price, and survives an input the library rejects. Over 500 KB, the session
 stops and returns to the owner.
 **Tollgate:** V. **Executor:** Opus. **Size:** one session.
+**Passed** 2026-11-13 — evidence: `docs/evidence/T4/`. Released as `v0.4.0`. In CI at
+`9a2cdb4` the artifact is 172,654 bytes with exception catching and 141,576 without, against
+500,000. An audit outside the session ran the smoke test on the built artifact and loaded it
+in headless Chromium, in a page and in a worker. The session's decisions stand: an error is
+returned across the boundary and thrown in JavaScript, since anything thrown through the
+module's frames in time kills it; an American option is an `exercise` field that only the
+grid's entry points accept; a seed or count that is not a non-negative integer is refused.
+`crank_nicolson_surface` joined the library here, so that the binding only translates.
 
 ### ☐ T5 — Architecture write-up and going public
 **Entry:** T4.
