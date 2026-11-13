@@ -65,13 +65,19 @@ private:
 struct Bands {
     std::vector<double> sub, diag, sup;
     [[nodiscard]] Tridiagonal view() const { return Tridiagonal{sub, diag, sup}; }
+
+    /// Three bands of zeros, of order `n`.
+    [[nodiscard]] static Bands zeros(std::size_t n)
+    {
+        return Bands{std::vector<double>(n, 0.0), std::vector<double>(n, 0.0),
+                     std::vector<double>(n, 0.0)};
+    }
 };
 
 /// A strictly diagonally dominant system with `margin` to spare on every row.
 [[nodiscard]] Bands dominant_bands(std::size_t n, Lcg& rng, double margin)
 {
-    Bands bands{std::vector<double>(n, 0.0), std::vector<double>(n, 0.0),
-                std::vector<double>(n, 0.0)};
+    Bands bands = Bands::zeros(n);
     for (std::size_t i = 0; i < n; ++i) {
         bands.sub[i] = (i == 0) ? 0.0 : rng.next();
         bands.sup[i] = (i + 1 == n) ? 0.0 : rng.next();
@@ -152,8 +158,8 @@ TEST_SUITE("tridiagonal")
             Bands bands{std::vector<double>(n, -1.0 / (h * h)),
                         std::vector<double>(n, 2.0 / (h * h)),
                         std::vector<double>(n, -1.0 / (h * h))};
-            bands.sub[0] = 0.0;
-            bands.sup[n - 1] = 0.0;
+            bands.sub.at(0) = 0.0;
+            bands.sup.at(n - 1) = 0.0;
 
             std::vector<double> rhs(n, 0.0);
             std::vector<double> exact(n, 0.0);
@@ -341,8 +347,7 @@ TEST_SUITE("tridiagonal")
             // skipped for a reason that says nothing about the solver.
             for (std::size_t n : {17u, 65u, 400u}) {
                 for (int trial = 0; trial < 12; ++trial) {
-                    Bands bands{std::vector<double>(n, 0.0), std::vector<double>(n, 0.0),
-                                std::vector<double>(n, 0.0)};
+                    Bands bands = Bands::zeros(n);
                     for (std::size_t i = 0; i < n; ++i) {
                         bands.sub[i] = (i == 0) ? 0.0 : -(0.5 + 0.5 * std::abs(rng.next()));
                         bands.sup[i] = (i + 1 == n) ? 0.0 : -(0.5 + 0.5 * std::abs(rng.next()));
@@ -476,8 +481,7 @@ TEST_SUITE("tridiagonal")
         // well-posed one, which is exactly why the sweep cannot detect it and why
         // `pde.cpp` chooses the direction from the option type instead.
         constexpr std::size_t n = 200;
-        Bands bands{std::vector<double>(n, 0.0), std::vector<double>(n, 0.0),
-                    std::vector<double>(n, 0.0)};
+        Bands bands = Bands::zeros(n);
         std::vector<double> rhs(n, 0.0);
         std::vector<double> constraint(n, 0.0);
         for (std::size_t i = 0; i < n; ++i) {

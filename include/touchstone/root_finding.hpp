@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include <touchstone/detail/callable.hpp>
+
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -14,6 +16,11 @@
 #include <utility>
 
 namespace touchstone {
+
+/// A real function of one real variable: callable with a `double`, returning
+/// something that converts to one.
+template <class F>
+concept RealFunction = detail::returns_double<F, double>;
 
 /// When to stop.
 struct RootSearch {
@@ -51,7 +58,7 @@ struct RootResult {
 /// whichever end is closer to zero, rather than throwing: the caller that
 /// bracketed it knows what a failure to bracket means, and this function does
 /// not.
-template <class Function>
+template <RealFunction Function>
 [[nodiscard]] RootResult brent(Function&& f, double lower, double upper, const RootSearch& search)
 {
     RootResult result{};
@@ -116,6 +123,7 @@ template <class Function>
         }
 
         double step = bisection;
+        bool interpolated = false;
         if (std::abs(step_before_that) >= tolerance && std::abs(fa) > std::abs(fb)) {
             // Interpolate: the secant through two points, inverse quadratic
             // through three. `p / q` is the step, kept as a ratio so that its
@@ -146,11 +154,10 @@ template <class Function>
                 step_before_that = previous_step;
                 previous_step = p / q;
                 step = previous_step;
-            } else {
-                previous_step = bisection;
-                step_before_that = previous_step;
+                interpolated = true;
             }
-        } else {
+        }
+        if (!interpolated) {
             previous_step = bisection;
             step_before_that = previous_step;
         }

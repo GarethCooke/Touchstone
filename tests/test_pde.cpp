@@ -12,13 +12,16 @@
 // says by how much.
 
 #include "golden_file.hpp"
+#include "sweep.hpp"
 
 #include <touchstone/black_scholes.hpp>
+#include <touchstone/detail/grid_solver.hpp>
 #include <touchstone/pde.hpp>
 
 #include <doctest/doctest.h>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstddef>
 #include <iomanip>
@@ -26,15 +29,8 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
-
-// One row of the golden grid in every `TOUCHSTONE_SWEEP_SCALE`. A finite
-// -difference sweep is thousands of tridiagonal solves and the sanitizer build
-// is nine times slower again; every row exercises the same code, so a scaled run
-// is a shorter test rather than a weaker one. The two compiler jobs run it whole.
-#ifndef TOUCHSTONE_SWEEP_SCALE
-#define TOUCHSTONE_SWEEP_SCALE 1
-#endif
 
 namespace {
 
@@ -46,7 +42,7 @@ using touchstone::PdeSettings;
 using touchstone::PriceAndGreeks;
 using touchstone::testing::GoldenCase;
 
-constexpr std::size_t grid_stride = TOUCHSTONE_SWEEP_SCALE;
+using touchstone::testing::sweep_scale;
 
 /// The settings the golden sweep runs at.
 ///
@@ -77,18 +73,19 @@ constexpr std::size_t grid_stride = TOUCHSTONE_SWEEP_SCALE;
 /// comparing against the golden file directly would see.
 [[nodiscard]] double grid_error(double actual, double reference, const BlackScholesMarket& market)
 {
-    if (actual == reference) {
-        return 0.0;
-    }
-    if (!std::isfinite(actual) || !std::isfinite(reference)) {
-        return std::numeric_limits<double>::infinity();
-    }
-    return std::abs(actual - reference) / std::max(std::abs(reference), market.spot);
+    return touchstone::testing::scaled_error(actual, reference, market.spot);
 }
 
 /// A representative option, away from every boundary of the domain.
 constexpr BlackScholesMarket typical_market{100.0, 0.30, 0.05, 0.02};
 constexpr EuropeanVanilla typical_call{100.0, 1.0, OptionType::Call};
+
+/// What exercising at a grid node pays.
+template <class Solver, class Contract>
+[[nodiscard]] double payoff_at_node(const Solver& solver, const Contract& option, std::size_t node)
+{
+    return touchstone::payoff(option, std::exp(solver.grid().x(node)));
+}
 
 struct Fit {
     double first{};
@@ -247,6 +244,7 @@ TEST_SUITE("pde")
         double reference = 0.0;
         double at_two = 0.0;
         double worst_beyond_three = 0.0;
+        std::vector<std::pair<double, double>> errors;  // alpha, error
         for (const double alpha : {2.0, 3.0, 4.0, 6.0, 8.0, 12.0}) {
             PdeSettings settings{};
             settings.half_width_sigmas = alpha;
@@ -255,6 +253,7 @@ TEST_SUITE("pde")
             settings.time_steps = 2048;
             const PdeResult result = touchstone::crank_nicolson(typical_call, typical_market, settings);
             const double error = result.price - exact;
+            errors.emplace_back(alpha, error);
             table << "\n    alpha " << std::setw(5) << alpha << "  dx " << std::fixed
                   << std::setprecision(6) << result.log_spot_step << "  error " << std::scientific
                   << std::setprecision(3) << error << std::defaultfloat;
@@ -264,15 +263,11 @@ TEST_SUITE("pde")
                 reference = error;
             }
         }
-        // Second pass, now that the reference is known.
-        for (const double alpha : {3.0, 4.0, 8.0, 12.0}) {
-            PdeSettings settings{};
-            settings.half_width_sigmas = alpha;
-            settings.space_intervals = static_cast<std::size_t>(alpha * 560.0);
-            settings.time_steps = 2048;
-            const double error =
-                touchstone::crank_nicolson(typical_call, typical_market, settings).price - exact;
-            worst_beyond_three = std::max(worst_beyond_three, std::abs(error - reference));
+        // Now that the reference is known: every width from three outward.
+        for (const auto& [alpha, error] : errors) {
+            if (alpha >= 3.0 && alpha != 6.0) {
+                worst_beyond_three = std::max(worst_beyond_three, std::abs(error - reference));
+            }
         }
         table << "\n    worst spread over alpha in [3, 12]: " << std::scientific
               << std::setprecision(3) << worst_beyond_three << "; the discretisation error beside "
@@ -369,20 +364,16 @@ TEST_SUITE("pde")
         const auto& file = touchstone::testing::golden_file();
         const PdeSettings settings = sweep_settings();
 
-        double worst_peclet = 0.0;
+        touchstone::testing::Largest<GoldenCase> worst_peclet;
         double worst_resolution = 0.0;
         double smallest_margin = std::numeric_limits<double>::infinity();
-        std::string worst_peclet_at;
         std::size_t rows = 0;
 
-        for (std::size_t i = 0; i < file.cases.size(); i += grid_stride) {
+        for (std::size_t i = 0; i < file.cases.size(); i += sweep_scale) {
             const GoldenCase& row = file.cases[i];
             const PdeResult result = touchstone::crank_nicolson(row.option, row.market, settings);
             ++rows;
-            if (result.mesh_peclet > worst_peclet) {
-                worst_peclet = result.mesh_peclet;
-                worst_peclet_at = touchstone::testing::describe(row);
-            }
+            worst_peclet.observe(result.mesh_peclet, row);
             worst_resolution = std::max(worst_resolution, result.resolution_in_sigmas);
             smallest_margin = std::min(smallest_margin, result.dominance_margin);
         }
@@ -390,7 +381,7 @@ TEST_SUITE("pde")
         std::ostringstream report;
         report << "grid diagnostics over " << rows << " rows at " << settings.space_intervals
                << " x " << settings.time_steps << "\n    worst mesh Peclet      " << std::scientific
-               << std::setprecision(3) << worst_peclet << "  (bound 2, at " << worst_peclet_at
+               << std::setprecision(3) << worst_peclet.value() << "  (bound 2, at " << worst_peclet.at()
                << ")\n    coarsest resolution    " << worst_resolution
                << " of one total volatility per step"
                << "\n    smallest dominance     " << smallest_margin;
@@ -399,7 +390,7 @@ TEST_SUITE("pde")
         // Two is where the central difference on the convection term stops being
         // an M-matrix. The golden grid does not come close: measured at 0.102,
         // on the row with the least diffusion and the widest domain.
-        CHECK(worst_peclet < 0.15);
+        CHECK(worst_peclet.value() < 0.15);
         CHECK(smallest_margin > 0.9);
     }
 
@@ -426,23 +417,18 @@ TEST_SUITE("pde")
             {"gamma", &PriceAndGreeks::gamma, &PdeResult::gamma, 1e-6, 5e-5},
         };
 
-        double worst[3] = {0.0, 0.0, 0.0};
+        std::array<touchstone::testing::Largest<GoldenCase>, 3> worst{};
         double worst_schema[3] = {0.0, 0.0, 0.0};
-        std::string worst_at[3];
         std::size_t rows = 0;
 
-        for (std::size_t i = 0; i < file.cases.size(); i += grid_stride) {
+        for (std::size_t i = 0; i < file.cases.size(); i += sweep_scale) {
             const GoldenCase& row = file.cases[i];
             const PdeResult on_grid = touchstone::crank_nicolson(row.option, row.market, settings);
             ++rows;
             for (std::size_t f = 0; f < 3; ++f) {
                 const double reference = row.reference.*(fields[f].value);
                 const double actual = on_grid.*(fields[f].from_grid);
-                const double error = grid_error(actual, reference, row.market);
-                if (error > worst[f]) {
-                    worst[f] = error;
-                    worst_at[f] = touchstone::testing::describe(row);
-                }
+                worst[f].observe(grid_error(actual, reference, row.market), row);
                 worst_schema[f] =
                     std::max(worst_schema[f], touchstone::testing::scaled_error(actual, reference));
             }
@@ -455,15 +441,15 @@ TEST_SUITE("pde")
         for (std::size_t f = 0; f < 3; ++f) {
             report << "\n    " << std::left << std::setw(6) << fields[f].name << std::right
                    << "  scaled by max(|ref|, S) " << std::scientific << std::setprecision(3)
-                   << worst[f] << "   by SCHEMA.md's max(|ref|, 1) " << worst_schema[f]
-                   << "\n            at " << worst_at[f];
+                   << worst[f].value() << "   by SCHEMA.md's max(|ref|, 1) " << worst_schema[f]
+                   << "\n            at " << worst[f].at();
         }
         MESSAGE(report.str());
 
         for (std::size_t f = 0; f < 3; ++f) {
             const std::string field = fields[f].name;
             CAPTURE(field);
-            CHECK_MESSAGE(worst[f] <= fields[f].tolerance, worst_at[f]);
+            CHECK_MESSAGE(worst[f].value() <= fields[f].tolerance, worst[f].at());
             CHECK(worst_schema[f] <= fields[f].schema_tolerance);
         }
     }
@@ -487,10 +473,9 @@ TEST_SUITE("pde")
 
         std::size_t priced = 0;
         std::size_t refused = 0;
-        double worst = 0.0;
+        touchstone::testing::Largest<GoldenCase> worst;
         double worst_step = 0.0;
         double worst_resolution = 0.0;
-        std::string worst_at;
 
         for (const GoldenCase& row : file.edge_cases) {
             PdeResult on_grid{};
@@ -502,9 +487,7 @@ TEST_SUITE("pde")
             }
             ++priced;
             const double error = grid_error(on_grid.price, row.reference.price, row.market);
-            if (error > worst) {
-                worst = error;
-                worst_at = touchstone::testing::describe(row);
+            if (worst.observe(error, row)) {
                 worst_step = on_grid.log_spot_step;
                 worst_resolution = on_grid.resolution_in_sigmas;
             }
@@ -514,12 +497,12 @@ TEST_SUITE("pde")
         report << "edge block: " << priced << " priced, " << refused
                << " refused as outside the grid's domain"
                << "\n    worst price error scaled by max(|ref|, S): " << std::scientific
-               << std::setprecision(3) << worst << "\n    at " << worst_at << "\n    dx there "
+               << std::setprecision(3) << worst.value() << "\n    at " << worst.at() << "\n    dx there "
                << worst_step << ", " << worst_resolution << " of one total volatility per step";
         MESSAGE(report.str());
 
         CHECK(priced > 20u);
-        CHECK(worst <= 3e-2);
+        CHECK(worst.value() <= 3e-2);
     }
 
     TEST_CASE("what the grid will not price, it refuses")
@@ -585,24 +568,128 @@ TEST_SUITE("pde")
         fine.half_width_sigmas = 8.0;
         fine.rannacher_steps = 3;
 
-        double worst = 0.0;
-        std::string worst_at;
+        touchstone::testing::Largest<GoldenCase> worst;
         std::size_t rows = 0;
-        for (std::size_t i = 0; i < file.cases.size(); i += 37 * grid_stride) {
+        for (std::size_t i = 0; i < file.cases.size(); i += 37 * sweep_scale) {
             const GoldenCase& row = file.cases[i];
             ++rows;
             const double a = touchstone::crank_nicolson(row.option, row.market, coarse).price;
             const double b = touchstone::crank_nicolson(row.option, row.market, fine).price;
             const double error = grid_error(a, b, row.market);
-            if (error > worst) {
-                worst = error;
-                worst_at = touchstone::testing::describe(row);
-            }
+            worst.observe(error, row);
         }
         MESSAGE("two unrelated grids over " << rows << " rows: worst difference scaled by "
                                             << "max(|other|, S) is " << std::scientific
-                                            << std::setprecision(3) << worst << "\n    at "
-                                            << worst_at);
-        CHECK(worst < 1e-4);
+                                            << std::setprecision(3) << worst.value() << "\n    at "
+                                            << worst.at());
+        CHECK(worst.value() < 1e-4);
+    }
+}
+
+// The grid solver behind `crank_nicolson`, stepped and read the way a heatmap of
+// the method would read it.
+TEST_SUITE("pde")
+{
+    TEST_CASE("stepping the grid level by level is crank_nicolson")
+    {
+        const PdeSettings settings = sweep_settings();
+        touchstone::detail::GridSolver<touchstone::Exercise::European> solver(
+            typical_call, typical_market, settings);
+        CHECK(solver.steps_taken() == 0u);
+        CHECK(solver.time_to_expiry() == 0.0);
+
+        std::size_t levels = 0;
+        double previous_tau = 0.0;
+        while (solver.advance()) {
+            ++levels;
+            CHECK(solver.time_to_expiry() > previous_tau);
+            previous_tau = solver.time_to_expiry();
+        }
+        CHECK(levels == settings.time_steps);
+        CHECK(solver.steps_taken() == settings.time_steps);
+        CHECK(solver.time_to_expiry() == typical_call.expiry_years);
+        CHECK_FALSE(solver.advance());
+
+        // The same arithmetic in the same order, so the same bits.
+        const PdeResult stepped = solver.result();
+        const PdeResult whole = touchstone::crank_nicolson(typical_call, typical_market, settings);
+        CHECK(stepped.price == whole.price);
+        CHECK(stepped.delta == whole.delta);
+        CHECK(stepped.gamma == whole.gamma);
+        CHECK(stepped.dominance_margin == whole.dominance_margin);
+        CHECK(solver.values().size() == whole.space_intervals + 1);
+    }
+
+    TEST_CASE("before the first step the solution is the payoff, node by node")
+    {
+        PdeSettings settings = sweep_settings();
+        settings.smooth_payoff = false;
+        const touchstone::detail::GridSolver<touchstone::Exercise::European> solver(
+            typical_call, typical_market, settings);
+        const auto values = solver.values();
+        for (std::size_t i = 0; i < values.size(); ++i) {
+            CAPTURE(i);
+            CHECK(values[i] == payoff_at_node(solver, typical_call, i));
+        }
+    }
+
+    TEST_CASE("today's solution is readable across the grid, not only at the spot")
+    {
+        // What a heatmap of the method draws is the whole solution, so the whole
+        // solution has to be right, not only the node the price is read from.
+        // Every node within three total volatilities of the spot is compared
+        // with the closed form at that node's own spot; outside that the
+        // Dirichlet boundaries are what the values mean, and they are not this
+        // test's subject.
+        const PdeSettings settings{};
+        touchstone::detail::GridSolver<touchstone::Exercise::European> solver(
+            typical_call, typical_market, settings);
+        solver.solve();
+
+        const double half_width = 3.0 * typical_market.vol * std::sqrt(typical_call.expiry_years);
+        const double log_spot = std::log(typical_market.spot);
+        const auto values = solver.values();
+        double worst = 0.0;
+        std::size_t compared = 0;
+        for (std::size_t i = 0; i < values.size(); ++i) {
+            const double x = solver.grid().x(i);
+            if (std::abs(x - log_spot) > half_width) {
+                continue;
+            }
+            BlackScholesMarket at_node = typical_market;
+            at_node.spot = std::exp(x);
+            const double exact = touchstone::price(typical_call, at_node);
+            worst = std::max(worst,
+                             touchstone::testing::scaled_error(values[i], exact, at_node.spot));
+            ++compared;
+        }
+        MESSAGE("grid solution against the closed form at " << compared
+                << " nodes within three total volatilities of the spot: worst scaled by "
+                << "max(V, S) " << std::scientific << std::setprecision(3) << worst);
+        // Measured at 8.8e-7 with the default grid; the bound is that rounded up
+        // by about three, as elsewhere in this suite.
+        CHECK(compared > 400u);
+        CHECK(worst <= 3e-6);
+    }
+
+    TEST_CASE("an American solution never falls below the payoff, at any level")
+    {
+        // The constraint the projected sweep imposes, read off the solution at
+        // every level rather than inferred from the price at the end.
+        const touchstone::AmericanVanilla put{100.0, 1.0, OptionType::Put};
+        const BlackScholesMarket market{90.0, 0.25, 0.06, 0.0};
+        const PdeSettings settings = sweep_settings();
+        touchstone::detail::GridSolver<touchstone::Exercise::American> solver(put, market, settings);
+
+        double worst_shortfall = 0.0;
+        while (solver.advance()) {
+            const auto values = solver.values();
+            for (std::size_t i = 0; i < values.size(); ++i) {
+                const double exercise = payoff_at_node(solver, put, i);
+                worst_shortfall = std::max(worst_shortfall, exercise - values[i]);
+            }
+        }
+        CHECK(worst_shortfall <= 0.0);
+        CHECK(solver.result().price == touchstone::crank_nicolson(put, market, settings).price);
     }
 }

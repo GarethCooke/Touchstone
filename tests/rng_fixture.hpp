@@ -3,8 +3,11 @@
 
 #pragma once
 
+#include <touchstone/rng.hpp>
+
 #include <cstddef>
 #include <cstdint>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -56,6 +59,23 @@ const RngFixture& rng_fixture();
 [[nodiscard]] constexpr std::uint32_t stream_seed(std::size_t index) noexcept
 {
     return static_cast<std::uint32_t>(index) * 2654435761u + 1u;
+}
+
+/// The next `out.size()` normals of `rng`'s stream, in order.
+inline void fill_normals(Xoshiro128SS& rng, std::span<double> out) noexcept
+{
+    for (double& z : out) {
+        z = rng.next_normal();
+    }
+}
+
+/// The first `n` normals of the stream `seed` starts.
+[[nodiscard]] inline std::vector<double> normals_from(std::uint32_t seed, std::size_t n)
+{
+    Xoshiro128SS rng(seed);
+    std::vector<double> out(n, 0.0);
+    fill_normals(rng, out);
+    return out;
 }
 
 }  // namespace touchstone::testing

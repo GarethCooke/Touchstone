@@ -15,19 +15,13 @@
 // claims are made on the site and both have to be tested here (I1).
 
 #include "rng_fixture.hpp"
+#include "sweep.hpp"
 
 #include <touchstone/black_scholes.hpp>
 #include <touchstone/monte_carlo.hpp>
 #include <touchstone/rng.hpp>
 
 #include <doctest/doctest.h>
-
-// See `CMakeLists.txt`, where the option is declared: one by default, higher in
-// CI's sanitizer job, where the point is to walk every line rather than to
-// measure a rate precisely.
-#ifndef TOUCHSTONE_SWEEP_SCALE
-#define TOUCHSTONE_SWEEP_SCALE 1
-#endif
 
 #include <cmath>
 #include <cstddef>
@@ -52,6 +46,8 @@ using touchstone::testing::stream_seed;
 struct Fit {
     double slope{};
     double intercept{};
+    double mean_x{};      ///< The mean of log(dt).
+    double variance_x{};  ///< The sum of squared deviations of log(dt) from it.
     double worst_residual{};
     double slope_error{};   ///< Set only when the points carry standard errors.
     double worst_scatter{}; ///< Largest relative standard error among the points.
@@ -76,6 +72,8 @@ Fit fit_log_log(const std::vector<double>& dt, const std::vector<double>& error)
     }
 
     Fit fit{};
+    fit.mean_x = mean_x;
+    fit.variance_x = variance;
     fit.slope = covariance / variance;
     fit.intercept = mean_y - fit.slope * mean_x;
     for (std::size_t i = 0; i < dt.size(); ++i) {
@@ -96,17 +94,8 @@ Fit fit_log_log_with_errors(const std::vector<double>& dt,
                             const std::vector<double>& value_error)
 {
     Fit fit = fit_log_log(dt, value);
-
-    const double n = static_cast<double>(dt.size());
-    double mean_x = 0.0;
-    for (const double step : dt) {
-        mean_x += std::log(step) / n;
-    }
-    double variance_x = 0.0;
-    for (const double step : dt) {
-        const double dx = std::log(step) - mean_x;
-        variance_x += dx * dx;
-    }
+    const double mean_x = fit.mean_x;
+    const double variance_x = fit.variance_x;
 
     double variance_slope = 0.0;
     for (std::size_t i = 0; i < dt.size(); ++i) {
@@ -122,8 +111,76 @@ Fit fit_log_log_with_errors(const std::vector<double>& dt,
 const BlackScholesMarket market{100.0, 0.3, 0.05, 0.02};
 constexpr double expiry = 1.0;
 
-constexpr std::size_t sweep_scale = TOUCHSTONE_SWEEP_SCALE;
-constexpr bool full_sweep = (sweep_scale == 1);
+/// A convergence rate is a statement about small dt, so both measurements fit
+/// their rate over the steps below this and report the coarser ones unfitted.
+/// They are not noise — at half a year a step, Euler is simply not
+/// approximating anything yet.
+constexpr double asymptotic_below = 0.13;
+
+/// The fitted slope, as both measurements report it.
+[[nodiscard]] std::string slope_line(const Fit& fit, double expected, bool with_residual)
+{
+    std::ostringstream out;
+    out << "\n    slope over dt < " << std::fixed << std::setprecision(2) << asymptotic_below
+        << ": " << std::setprecision(4) << fit.slope << " +/- " << fit.slope_error << " ("
+        << std::setprecision(1) << expected << " expected)";
+    if (with_residual) {
+        out << ", worst residual " << std::setprecision(4) << fit.worst_residual;
+    }
+    return out.str();
+}
+
+using touchstone::testing::full_sweep;
+using touchstone::testing::sweep_scale;
+
+/// A sample mean and its standard error, by Welford's update.
+class RunningMean {
+public:
+    void add(double x) noexcept
+    {
+        ++count_;
+        const double delta = x - mean_;
+        mean_ += delta / static_cast<double>(count_);
+        m2_ += delta * (x - mean_);
+    }
+
+    [[nodiscard]] double mean() const noexcept { return mean_; }
+
+    [[nodiscard]] double standard_error() const noexcept
+    {
+        const double n = static_cast<double>(count_);
+        return std::sqrt(m2_ / (n - 1.0) / n);
+    }
+
+private:
+    std::size_t count_{0};
+    double mean_{0.0};
+    double m2_{0.0};
+};
+
+/// Euler and the exact sampler on the same Brownian path, `paths` times over,
+/// each pair's two terminal spots handed to `observe`.
+///
+/// The exact sampler needs `W_T / sqrt(T)`, which is the sum of the steps'
+/// normals divided by the square root of their number: the same Brownian
+/// increment, given to both schemes, so that their difference is the
+/// discretisation error and has no sampling noise standing in front of it.
+template <class Observe>
+void on_shared_paths(std::uint32_t seed, std::size_t steps, std::size_t paths, Observe observe)
+{
+    Xoshiro128SS rng(seed);
+    std::vector<double> normals(steps, 0.0);
+    for (std::size_t path = 0; path < paths; ++path) {
+        touchstone::testing::fill_normals(rng, normals);
+        double sum = 0.0;
+        for (const double z : normals) {
+            sum += z;
+        }
+        const double shared = sum / std::sqrt(static_cast<double>(steps));
+        observe(touchstone::terminal_spot_euler(market, expiry, normals),
+                touchstone::terminal_spot_exact(market, expiry, shared));
+    }
+}
 
 }  // namespace
 
@@ -139,7 +196,6 @@ TEST_SUITE("euler")
         // fitted. They are not noise — at half a year a step, Euler is simply
         // not approximating anything yet, and the successive ratios below show
         // where it starts to: they climb toward sqrt(2) and settle.
-        constexpr double asymptotic_below = 0.13;
 
         std::vector<double> dt;
         std::vector<double> error;
@@ -156,36 +212,13 @@ TEST_SUITE("euler")
             // independent measurements. `test_rng.cpp` asserts the separation
             // this rule gives; using it here is what makes that assertion mean
             // something for these sweeps too.
-            Xoshiro128SS rng(stream_seed(4000u + steps));
-            std::vector<double> normals(steps, 0.0);
-
-            double mean = 0.0;
-            double m2 = 0.0;
-            std::size_t seen = 0;
-
-            for (std::size_t path = 0; path < paths; ++path) {
-                double sum = 0.0;
-                for (double& z : normals) {
-                    z = rng.next_normal();
-                    sum += z;
-                }
-                // The same Brownian increment, given to both schemes: the exact
-                // sampler needs W_T / sqrt(T), which is the sum of the steps'
-                // normals divided by the square root of their number.
-                const double shared = sum / std::sqrt(static_cast<double>(steps));
-
-                const double stepped = touchstone::terminal_spot_euler(market, expiry, normals);
-                const double exact = touchstone::terminal_spot_exact(market, expiry, shared);
-                const double gap = std::abs(stepped - exact);
-
-                ++seen;
-                const double delta = gap - mean;
-                mean += delta / static_cast<double>(seen);
-                m2 += delta * (gap - mean);
-            }
-
-            const double n = static_cast<double>(seen);
-            const double standard_error = std::sqrt(m2 / (n - 1.0) / n);
+            RunningMean gap;
+            on_shared_paths(stream_seed(4000u + steps), steps, paths,
+                            [&](double stepped, double exact) {
+                                gap.add(std::abs(stepped - exact));
+                            });
+            const double mean = gap.mean();
+            const double standard_error = gap.standard_error();
             const double step = expiry / static_cast<double>(steps);
             const bool fitted = step < asymptotic_below;
 
@@ -208,9 +241,7 @@ TEST_SUITE("euler")
         }
 
         const Fit fit = fit_log_log_with_errors(dt, error, error_of_error);
-        table << "\n    slope over dt < " << std::fixed << std::setprecision(2)
-              << asymptotic_below << ": " << std::setprecision(4) << fit.slope << " +/- "
-              << fit.slope_error << " (0.5 expected), worst residual " << fit.worst_residual;
+        table << slope_line(fit, 0.5, true);
         MESSAGE(table.str());
 
         // Euler-Maruyama is strong order one half on multiplicative noise. Half,
@@ -251,7 +282,6 @@ TEST_SUITE("euler")
         // would be the fit's rather than the scheme's.
         constexpr std::size_t paths = 1000000 / sweep_scale;
         const std::vector<std::size_t> levels{2, 4, 8, 16, 32, 64};
-        constexpr double asymptotic_below = 0.13;
         const EuropeanVanilla option{100.0, expiry, OptionType::Call};
         const double discount = std::exp(-market.rate * expiry);
         const double reference = touchstone::price(option, market);
@@ -265,35 +295,15 @@ TEST_SUITE("euler")
               << "\n    steps        dt          bias         SE   bias/SE   bias/dt";
 
         for (const std::size_t steps : levels) {
-            Xoshiro128SS rng(stream_seed(7000u + steps));
-            std::vector<double> normals(steps, 0.0);
-
-            double mean = 0.0;
-            double m2 = 0.0;
-            std::size_t seen = 0;
-
-            for (std::size_t path = 0; path < paths; ++path) {
-                double sum = 0.0;
-                for (double& z : normals) {
-                    z = rng.next_normal();
-                    sum += z;
-                }
-                const double shared = sum / std::sqrt(static_cast<double>(steps));
-
-                const double stepped = touchstone::terminal_spot_euler(market, expiry, normals);
-                const double exact = touchstone::terminal_spot_exact(market, expiry, shared);
-                const double difference =
-                    discount
-                    * (touchstone::payoff(option, stepped) - touchstone::payoff(option, exact));
-
-                ++seen;
-                const double delta = difference - mean;
-                mean += delta / static_cast<double>(seen);
-                m2 += delta * (difference - mean);
-            }
-
-            const double n = static_cast<double>(seen);
-            const double standard_error = std::sqrt(m2 / (n - 1.0) / n);
+            RunningMean difference;
+            on_shared_paths(stream_seed(7000u + steps), steps, paths,
+                            [&](double stepped, double exact) {
+                                difference.add(discount
+                                               * (touchstone::payoff(option, stepped)
+                                                  - touchstone::payoff(option, exact)));
+                            });
+            const double mean = difference.mean();
+            const double standard_error = difference.standard_error();
             const double step = expiry / static_cast<double>(steps);
 
             dt.push_back(step);
@@ -333,9 +343,7 @@ TEST_SUITE("euler")
         REQUIRE(fine_dt.size() >= 3u);
 
         const Fit fit = fit_log_log_with_errors(fine_dt, fine_bias, fine_error);
-        table << "\n    slope over dt < " << std::fixed << std::setprecision(2)
-              << asymptotic_below << ": " << std::setprecision(4) << fit.slope << " +/- "
-              << fit.slope_error << " (1.0 expected)";
+        table << slope_line(fit, 1.0, false);
         if (!full_sweep) {
             table << "\n    reduced sweep (scale " << sweep_scale
                   << "): the bias is not resolved and is not asserted to be";

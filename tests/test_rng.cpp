@@ -7,6 +7,7 @@
 // it, a check on the page and a test here have stopped being the same check.
 
 #include "rng_fixture.hpp"
+#include "statistics.hpp"
 
 #include <touchstone/normal.hpp>
 #include <touchstone/rng.hpp>
@@ -103,25 +104,10 @@ std::uint32_t unfmix32(std::uint32_t h)
     return h;
 }
 
-std::vector<double> normals_from(std::uint32_t seed, std::size_t n)
-{
-    Xoshiro128SS rng(seed);
-    std::vector<double> out(n, 0.0);
-    for (double& value : out) {
-        value = rng.next_normal();
-    }
-    return out;
-}
-
 double correlation(const std::vector<double>& a, const std::vector<double>& b)
 {
-    const double n = static_cast<double>(a.size());
-    double mean_a = 0.0;
-    double mean_b = 0.0;
-    for (std::size_t i = 0; i < a.size(); ++i) {
-        mean_a += a[i] / n;
-        mean_b += b[i] / n;
-    }
+    const double mean_a = touchstone::testing::moments(a).mean;
+    const double mean_b = touchstone::testing::moments(b).mean;
     double covariance = 0.0;
     double variance_a = 0.0;
     double variance_b = 0.0;
@@ -399,7 +385,7 @@ TEST_SUITE("rng")
             // Consecutive indices, which is what the sweeps use. Spreading the
             // sample over the seed space instead would test a property the
             // sweeps do not rely on and skip the one they do.
-            samples.push_back(normals_from(stream_seed(i), draws));
+            samples.push_back(touchstone::testing::normals_from(stream_seed(i), draws));
         }
 
         const std::size_t pairs = streams * (streams - 1) / 2;
@@ -407,8 +393,8 @@ TEST_SUITE("rng")
         // independent standard normal streams has standard deviation
         // 1/sqrt(n), and this is the two-sided normal quantile that leaves a
         // one-in-a-million chance of any of the pairs exceeding it.
-        const double bound =
-            -norm_inv(1e-6 / (2.0 * static_cast<double>(pairs))) / std::sqrt(static_cast<double>(draws));
+        const double bound = touchstone::testing::bonferroni_bound(1e-6, static_cast<double>(pairs))
+                             / std::sqrt(static_cast<double>(draws));
 
         double worst = 0.0;
         for (std::size_t i = 0; i < streams; ++i) {

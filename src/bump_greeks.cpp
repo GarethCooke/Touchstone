@@ -1,10 +1,49 @@
 #include <touchstone/bump_greeks.hpp>
 
-#include <algorithm>
-#include <cmath>
+#include <touchstone/detail/checks.hpp>
+
 #include <stdexcept>
 
 namespace touchstone {
+namespace detail {
+
+Bumps bumps(const EuropeanVanilla& option,
+            const BlackScholesMarket& market,
+            const BumpSizes& sizes) noexcept
+{
+    Bumps out{};
+    out.delta_spot = sizes.spot_relative * market.spot;
+    out.gamma_spot = sizes.spot_relative_for_gamma * market.spot;
+
+    const auto in_market = [&](auto field, double by) {
+        BlackScholesMarket moved = market;
+        moved.*field += by;
+        return BumpedPoint{option, moved};
+    };
+    const auto in_expiry = [&](double by) {
+        EuropeanVanilla moved = option;
+        moved.expiry_years += by;
+        return BumpedPoint{moved, market};
+    };
+
+    out.points[DeltaUp] = in_market(&BlackScholesMarket::spot, out.delta_spot);
+    out.points[DeltaDown] = in_market(&BlackScholesMarket::spot, -out.delta_spot);
+    out.points[GammaUp] = in_market(&BlackScholesMarket::spot, out.gamma_spot);
+    out.points[GammaDown] = in_market(&BlackScholesMarket::spot, -out.gamma_spot);
+    out.points[VolUp] = in_market(&BlackScholesMarket::vol, sizes.vol_absolute);
+    out.points[VolDown] = in_market(&BlackScholesMarket::vol, -sizes.vol_absolute);
+    out.points[RateUp] = in_market(&BlackScholesMarket::rate, sizes.rate_absolute);
+    out.points[RateDown] = in_market(&BlackScholesMarket::rate, -sizes.rate_absolute);
+    out.points[YieldUp] =
+        in_market(&BlackScholesMarket::dividend_yield, sizes.dividend_yield_absolute);
+    out.points[YieldDown] =
+        in_market(&BlackScholesMarket::dividend_yield, -sizes.dividend_yield_absolute);
+    out.points[Longer] = in_expiry(sizes.expiry_absolute);
+    out.points[Shorter] = in_expiry(-sizes.expiry_absolute);
+    return out;
+}
+
+}  // namespace detail
 
 void require_valid(const EuropeanVanilla& option,
                    const BlackScholesMarket& market,
@@ -12,10 +51,12 @@ void require_valid(const EuropeanVanilla& option,
 {
     require_valid(option, market);
 
-    const auto positive = [](double x) { return std::isfinite(x) && x > 0.0; };
-    if (!positive(sizes.spot_relative) || !positive(sizes.spot_relative_for_gamma)
-        || !positive(sizes.vol_absolute) || !positive(sizes.rate_absolute)
-        || !positive(sizes.dividend_yield_absolute) || !positive(sizes.expiry_absolute)) {
+    if (!detail::is_finite_positive(sizes.spot_relative)
+        || !detail::is_finite_positive(sizes.spot_relative_for_gamma)
+        || !detail::is_finite_positive(sizes.vol_absolute)
+        || !detail::is_finite_positive(sizes.rate_absolute)
+        || !detail::is_finite_positive(sizes.dividend_yield_absolute)
+        || !detail::is_finite_positive(sizes.expiry_absolute)) {
         throw std::invalid_argument("bump greeks: every bump size must be finite and positive");
     }
 
@@ -38,31 +79,9 @@ void require_valid(const EuropeanVanilla& option,
     // Every bumped point is priced, so every bumped point has to be priceable.
     // Checked here rather than discovered thirteen calls later, where the
     // exception would name a market the caller never constructed.
-    const double spot_bump =
-        std::max(sizes.spot_relative, sizes.spot_relative_for_gamma) * market.spot;
-    const auto also = [&](const EuropeanVanilla& contract, const BlackScholesMarket& state) {
-        require_valid(contract, state);
-    };
-    also(option, BlackScholesMarket{market.spot + spot_bump, market.vol, market.rate,
-                                    market.dividend_yield});
-    also(option, BlackScholesMarket{market.spot - spot_bump, market.vol, market.rate,
-                                    market.dividend_yield});
-    also(option, BlackScholesMarket{market.spot, market.vol + sizes.vol_absolute, market.rate,
-                                    market.dividend_yield});
-    also(option, BlackScholesMarket{market.spot, market.vol - sizes.vol_absolute, market.rate,
-                                    market.dividend_yield});
-    also(option, BlackScholesMarket{market.spot, market.vol, market.rate + sizes.rate_absolute,
-                                    market.dividend_yield});
-    also(option, BlackScholesMarket{market.spot, market.vol, market.rate - sizes.rate_absolute,
-                                    market.dividend_yield});
-    also(option, BlackScholesMarket{market.spot, market.vol, market.rate,
-                                    market.dividend_yield + sizes.dividend_yield_absolute});
-    also(option, BlackScholesMarket{market.spot, market.vol, market.rate,
-                                    market.dividend_yield - sizes.dividend_yield_absolute});
-    also(EuropeanVanilla{option.strike, option.expiry_years + sizes.expiry_absolute, option.type},
-         market);
-    also(EuropeanVanilla{option.strike, option.expiry_years - sizes.expiry_absolute, option.type},
-         market);
+    for (const detail::BumpedPoint& point : detail::bumps(option, market, sizes).points) {
+        require_valid(point.option, point.market);
+    }
 }
 
 PriceAndGreeks bump_greeks(const EuropeanVanilla& option,

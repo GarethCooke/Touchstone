@@ -1,0 +1,381 @@
+T3a · timing evidence — Monte Carlo, main against the branch, before and after the fix
+====================================================================================
+
+Taken 2026-11-12 on one machine, for one compiler, at one setting of its flags. Nothing here
+claims a time on any other machine, compiler or flag, and nothing claims a time for any
+function but monte_carlo at the two settings below.
+
+1. What was timed, and how
+--------------------------
+
+  Machine     AMD Ryzen 7 3800X 8-Core, Windows 11 Pro 10.0.26200
+  Compiler    g++ 15.2.0 (x86_64-posix-seh-rev0, MinGW-Builds), libstdc++, the MinGW runtime
+  Library     CMAKE_BUILD_TYPE=Release, which for g++ is -O3 -DNDEBUG; -std=c++20 and the
+              project's warning flags; TOUCHSTONE_BUILD_TESTS=OFF; a static library
+  Harness     g++ -O3 -DNDEBUG -std=c++20, linked against each library (source in section 5)
+
+  Four libraries, each built the same way:
+
+    main      6b8a60a
+    before    c4eb343, the branch as it was pushed
+    after     this change
+    attrib.   this change with one line altered and never committed: detail::advance as the
+              plain product `current * factor`, without its two zero tests. It exists only to
+              say how much of what remains is those tests.
+
+  The call: monte_carlo on a call, K = 100, T = 1; S = 100, sigma = 0.2, r = 0.05, q = 0.02.
+  Two settings:
+
+    default   MonteCarloSettings{} — exact scheme, 32768 paths, seed 1, no antithetic
+    euler64   the same with scheme = EulerMaruyama, steps = 64 (2,097,152 path-steps)
+
+  Each process makes 3 warm-up calls per setting, then 40 timed Euler calls and 400 timed
+  default calls, and prints the median wall time of one call (std::chrono::steady_clock).
+  A driver (section 6) runs the four executables in turn for 15 rounds, the order rotated by
+  one each round, each process pinned to one logical core at high priority. The figure
+  reported is the median of the 15 medians, with the smallest and largest beside it.
+
+  Every executable printed the same price for each setting, to 17 significant digits:
+  9.2221528015480025 (euler64) and 9.2654458141056377 (default).
+
+2. The result
+-------------
+
+  euler64      median      min      max    per path-step   against main   against before
+  main       28.583 ms   28.160   31.501       13.63 ns          —            -20.1%
+  before     35.773 ms   35.078   37.064       17.06 ns       +25.2%              —
+  after      31.506 ms   30.961   40.763       15.02 ns       +10.2%          -11.9%
+  attrib.    30.047 ms   29.407   34.921       14.33 ns        +5.1%          -16.0%
+
+  default      median      min      max    per path        against main   against before
+  main        1.712 ms    1.692    1.775       52.2 ns           —             -2.5%
+  before      1.756 ms    1.736    1.861       53.6 ns         +2.6%              —
+  after       1.718 ms    1.710    1.878       52.4 ns         +0.4%           -2.2%
+  attrib.     1.719 ms    1.694    1.838       52.5 ns         +0.4%           -2.1%
+
+3. What it says, on this machine
+--------------------------------
+
+  - At the default settings the change takes monte_carlo from 1.756 ms back to 1.718 ms,
+    against main's 1.712 — a difference from main smaller than the spread of main's own runs.
+
+  - Under Euler at 64 steps it takes the call from 35.8 ms to 31.5 ms: 59% of the 7.2 ms the
+    branch had lost against main. 2.9 ms (10%) remains.
+
+  - About half of that remainder, 1.5 ms, is detail::advance's two zero tests, which main's
+    Monte Carlo loop did not make: without them (the attribution build) the call is 30.0 ms.
+    The other 1.5 ms was not attributed.
+
+  - The zero tests stay. They are what makes an infinity times a zero impossible in a path,
+    which is why the path API cannot return a NaN. A formulation returning the same bits in
+    every case with one test on the product in place of two on the operands —
+
+        const double product = current * factor;
+        if (std::fabs(product) > 0.0) return product;
+        return (current == 0.0 || factor == 0.0) ? 0.0 : product;
+
+    — was built and timed in an earlier run of the same driver and measured no faster
+    (section 4), so the rule is kept as written.
+
+  It does not say how the branch compares with main on CI's g++ 13.3, on clang, on MSVC, at
+  other flags or on other hardware. The timing this follows (g++ 13.3, -O3, another
+  machine: euler64 20.6 -> 28.5 ms, default 1.17 -> 1.29 ms) was not reproduced here, and
+  its percentages differ from these.
+
+4. The runs that chose the change
+---------------------------------
+
+  The same driver, 15 rounds, before `draw` was moved; each variant is one library:
+
+    after-1   the two changes asked for — one walk carrying both factors, GbmStep in the
+              header — and draw still in paths.cpp
+    exp       after-1 with advance as the plain product
+    exp2      after-1 with advance in the one-test form above
+    exp3      exp2 with draw in the header
+    exp4      after-1 with draw in the header — which is the change as committed
+
+  euler64      median      min      max        default     median     min      max
+  main       28.807 ms   28.341   31.292                  1.704 ms   1.690    1.828
+  before     35.827 ms   35.182   38.365                  1.766 ms   1.742    1.900
+  after-1    32.065 ms   31.304   36.385                  1.751 ms   1.730    1.837
+  exp        30.113 ms   29.579   31.654                  1.722 ms   1.704    1.822
+  exp2       32.030 ms   31.479   33.642                  1.768 ms   1.749    2.048
+  exp3       31.561 ms   30.869   36.990                  1.732 ms   1.720    1.816
+  exp4       31.601 ms   31.008   33.994                  1.719 ms   1.713    1.789
+
+  Moving draw into the header (after-1 -> exp4) is what brought the default setting back:
+  under the exact scheme a path is one normal, so draw was a call across translation units
+  once per path, as the factor was once per step. The one-test advance (exp2) did nothing
+  measurable at either setting.
+
+  g++'s -O3 assembly for monte_carlo.cpp after the change has the scheme's test outside the
+  walk's loop: one loop per scheme, chosen once at entry, with the factor inlined. No
+  compile-time dispatch on the scheme was added, because the compiler already does this
+  once it can see the factor.
+
+5. The harness, verbatim
+------------------------
+
+    // Times one call of touchstone::monte_carlo, for two settings: the defaults
+    // (exact scheme, 32768 paths) and Euler-Maruyama at 64 steps over the same
+    // paths. Compiled once against each library under comparison; the source uses
+    // only what main and the branch share.
+    //
+    //   timing <label> <euler calls> <default calls>
+    //
+    // Prints one line per setting: label, setting, the median wall time of one
+    // call in milliseconds over the calls made, and the price as a check that the
+    // libraries compute the same thing.
+
+    #include <touchstone/monte_carlo.hpp>
+
+    #include <algorithm>
+    #include <chrono>
+    #include <cstdio>
+    #include <cstdlib>
+    #include <vector>
+
+    namespace {
+
+    volatile double sink = 0.0;
+
+    double median_ms(const touchstone::EuropeanVanilla& option,
+                     const touchstone::BlackScholesMarket& market,
+                     const touchstone::MonteCarloSettings& settings,
+                     int calls,
+                     double& price)
+    {
+        for (int i = 0; i < 3; ++i) {
+            sink = sink + touchstone::monte_carlo(option, market, settings).price;
+        }
+        std::vector<double> ms;
+        ms.reserve(static_cast<std::size_t>(calls));
+        for (int i = 0; i < calls; ++i) {
+            const auto start = std::chrono::steady_clock::now();
+            const touchstone::MonteCarloResult result = touchstone::monte_carlo(option, market, settings);
+            const auto stop = std::chrono::steady_clock::now();
+            price = result.price;
+            sink = sink + result.price;
+            ms.push_back(std::chrono::duration<double, std::milli>(stop - start).count());
+        }
+        std::sort(ms.begin(), ms.end());
+        return ms[ms.size() / 2];
+    }
+
+    }  // namespace
+
+    int main(int argc, char** argv)
+    {
+        if (argc != 4) {
+            std::fprintf(stderr, "usage: timing <label> <euler calls> <default calls>\n");
+            return 2;
+        }
+        const char* label = argv[1];
+        const int euler_calls = std::atoi(argv[2]);
+        const int default_calls = std::atoi(argv[3]);
+
+        touchstone::EuropeanVanilla option{};
+        option.strike = 100.0;
+        option.expiry_years = 1.0;
+        option.type = touchstone::OptionType::Call;
+
+        touchstone::BlackScholesMarket market{};
+        market.spot = 100.0;
+        market.vol = 0.2;
+        market.rate = 0.05;
+        market.dividend_yield = 0.02;
+
+        const touchstone::MonteCarloSettings defaults{};
+
+        touchstone::MonteCarloSettings euler{};
+        euler.scheme = touchstone::Scheme::EulerMaruyama;
+        euler.steps = 64;
+
+        double price = 0.0;
+        const double euler_ms = median_ms(option, market, euler, euler_calls, price);
+        std::printf("%s euler64 %.4f %.17g\n", label, euler_ms, price);
+        const double default_ms = median_ms(option, market, defaults, default_calls, price);
+        std::printf("%s default %.4f %.17g\n", label, default_ms, price);
+        return 0;
+    }
+
+6. The driver, verbatim (PowerShell 7)
+--------------------------------------
+
+    # Runs each timing executable in turn, round after round, the order rotated each
+    # round, every process pinned to one core at high priority. Prints the raw lines
+    # and then, per variant and setting, the median over rounds of each run's median.
+    param(
+        [string[]]$Variants,
+        [int]$Rounds = 11,
+        [int]$EulerCalls = 30,
+        [int]$DefaultCalls = 300,
+        [int]$Core = 3,
+        [string]$Dir = $PSScriptRoot
+    )
+
+    $raw = @()
+    for ($round = 0; $round -lt $Rounds; $round++) {
+        $order = @()
+        for ($i = 0; $i -lt $Variants.Count; $i++) {
+            $order += $Variants[($i + $round) % $Variants.Count]
+        }
+        foreach ($v in $order) {
+            $out = Join-Path $env:TEMP "timing-$v.out"
+            $p = Start-Process -FilePath (Join-Path $Dir "timing-$v.exe") `
+                -ArgumentList $v, $EulerCalls, $DefaultCalls `
+                -NoNewWindow -PassThru -RedirectStandardOutput $out
+            try {
+                $p.ProcessorAffinity = [IntPtr](1 -shl $Core)
+                $p.PriorityClass = 'High'
+            } catch {}
+            $p.WaitForExit()
+            $raw += Get-Content $out
+        }
+    }
+
+    $raw | ForEach-Object { "raw $_" }
+
+    $rows = $raw | ForEach-Object {
+        $f = $_ -split ' '
+        [pscustomobject]@{ Variant = $f[0]; Setting = $f[1]; Ms = [double]$f[2]; Price = $f[3] }
+    }
+    foreach ($setting in 'euler64', 'default') {
+        foreach ($v in $Variants) {
+            $ms = @($rows | Where-Object { $_.Variant -eq $v -and $_.Setting -eq $setting } |
+                    ForEach-Object { $_.Ms } | Sort-Object)
+            $prices = @($rows | Where-Object { $_.Variant -eq $v -and $_.Setting -eq $setting } |
+                        ForEach-Object { $_.Price } | Sort-Object -Unique)
+            $median = $ms[[int][Math]::Floor($ms.Count / 2)]
+            "{0,-8} {1,-8} median {2,8:F3} ms   min {3,8:F3}   max {4,8:F3}   runs {5}   price {6}" -f `
+                $setting, $v, $median, $ms[0], $ms[-1], $ms.Count, ($prices -join ',')
+        }
+    }
+
+  Run as:  drive.ps1 -Variants main,before,after,exp -Rounds 15 -EulerCalls 40 -DefaultCalls 400
+
+7. The raw lines of the run in section 2
+----------------------------------------
+
+  label, setting, median ms of the run, price
+
+    main euler64 29.7086 9.2221528015480025
+    main default 1.7585 9.2654458141056377
+    before euler64 35.4057 9.2221528015480025
+    before default 1.7816 9.2654458141056377
+    after euler64 31.3461 9.2221528015480025
+    after default 1.7277 9.2654458141056377
+    exp euler64 30.6742 9.2221528015480025
+    exp default 1.7217 9.2654458141056377
+    before euler64 36.3588 9.2221528015480025
+    before default 1.8611 9.2654458141056377
+    after euler64 31.8939 9.2221528015480025
+    after default 1.7272 9.2654458141056377
+    exp euler64 30.5105 9.2221528015480025
+    exp default 1.7097 9.2654458141056377
+    main euler64 29.5380 9.2221528015480025
+    main default 1.6994 9.2654458141056377
+    after euler64 31.5055 9.2221528015480025
+    after default 1.7161 9.2654458141056377
+    exp euler64 29.8389 9.2221528015480025
+    exp default 1.7192 9.2654458141056377
+    main euler64 29.8045 9.2221528015480025
+    main default 1.7751 9.2654458141056377
+    before euler64 36.4906 9.2221528015480025
+    before default 1.7571 9.2654458141056377
+    exp euler64 30.2521 9.2221528015480025
+    exp default 1.7222 9.2654458141056377
+    main euler64 28.5108 9.2221528015480025
+    main default 1.7154 9.2654458141056377
+    before euler64 35.9787 9.2221528015480025
+    before default 1.7520 9.2654458141056377
+    after euler64 32.0359 9.2221528015480025
+    after default 1.7164 9.2654458141056377
+    main euler64 29.3128 9.2221528015480025
+    main default 1.7033 9.2654458141056377
+    before euler64 35.7725 9.2221528015480025
+    before default 1.7558 9.2654458141056377
+    after euler64 32.2311 9.2221528015480025
+    after default 1.7271 9.2654458141056377
+    exp euler64 29.4463 9.2221528015480025
+    exp default 1.7139 9.2654458141056377
+    before euler64 35.1495 9.2221528015480025
+    before default 1.7689 9.2654458141056377
+    after euler64 31.3007 9.2221528015480025
+    after default 1.7394 9.2654458141056377
+    exp euler64 30.0465 9.2221528015480025
+    exp default 1.7788 9.2654458141056377
+    main euler64 30.5256 9.2221528015480025
+    main default 1.7067 9.2654458141056377
+    after euler64 40.7633 9.2221528015480025
+    after default 1.8779 9.2654458141056377
+    exp euler64 30.6142 9.2221528015480025
+    exp default 1.7186 9.2654458141056377
+    main euler64 31.5007 9.2221528015480025
+    main default 1.7118 9.2654458141056377
+    before euler64 36.2895 9.2221528015480025
+    before default 1.7356 9.2654458141056377
+    exp euler64 30.8005 9.2221528015480025
+    exp default 1.6938 9.2654458141056377
+    main euler64 29.3369 9.2221528015480025
+    main default 1.6987 9.2654458141056377
+    before euler64 35.6901 9.2221528015480025
+    before default 1.7447 9.2654458141056377
+    after euler64 31.4137 9.2221528015480025
+    after default 1.7155 9.2654458141056377
+    main euler64 28.4526 9.2221528015480025
+    main default 1.7229 9.2654458141056377
+    before euler64 35.8969 9.2221528015480025
+    before default 1.7651 9.2654458141056377
+    after euler64 31.0890 9.2221528015480025
+    after default 1.7163 9.2654458141056377
+    exp euler64 29.7530 9.2221528015480025
+    exp default 1.7116 9.2654458141056377
+    before euler64 35.1624 9.2221528015480025
+    before default 1.7591 9.2654458141056377
+    after euler64 31.5727 9.2221528015480025
+    after default 1.7104 9.2654458141056377
+    exp euler64 31.3996 9.2221528015480025
+    exp default 1.8376 9.2654458141056377
+    main euler64 28.2437 9.2221528015480025
+    main default 1.7095 9.2654458141056377
+    after euler64 30.9611 9.2221528015480025
+    after default 1.7144 9.2654458141056377
+    exp euler64 29.4070 9.2221528015480025
+    exp default 1.7126 9.2654458141056377
+    main euler64 28.3456 9.2221528015480025
+    main default 1.6918 9.2654458141056377
+    before euler64 35.0778 9.2221528015480025
+    before default 1.7418 9.2654458141056377
+    exp euler64 29.5785 9.2221528015480025
+    exp default 1.7002 9.2654458141056377
+    main euler64 28.3500 9.2221528015480025
+    main default 1.7206 9.2654458141056377
+    before euler64 37.0641 9.2221528015480025
+    before default 1.7477 9.2654458141056377
+    after euler64 31.7146 9.2221528015480025
+    after default 1.7104 9.2654458141056377
+    main euler64 28.3683 9.2221528015480025
+    main default 1.7477 9.2654458141056377
+    before euler64 35.4384 9.2221528015480025
+    before default 1.7381 9.2654458141056377
+    after euler64 31.4611 9.2221528015480025
+    after default 1.7405 9.2654458141056377
+    exp euler64 34.9206 9.2221528015480025
+    exp default 1.7261 9.2654458141056377
+    before euler64 35.8315 9.2221528015480025
+    before default 1.7870 9.2654458141056377
+    after euler64 31.5845 9.2221528015480025
+    after default 1.7181 9.2654458141056377
+    exp euler64 29.6382 9.2221528015480025
+    exp default 1.7124 9.2654458141056377
+    main euler64 28.1601 9.2221528015480025
+    main default 1.7308 9.2654458141056377
+    after euler64 31.4599 9.2221528015480025
+    after default 1.7407 9.2654458141056377
+    exp euler64 29.6016 9.2221528015480025
+    exp default 1.7390 9.2654458141056377
+    main euler64 28.5834 9.2221528015480025
+    main default 1.6989 9.2654458141056377
+    before euler64 35.1496 9.2221528015480025
+    before default 1.7561 9.2654458141056377

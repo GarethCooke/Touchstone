@@ -112,3 +112,13 @@ jobs:
         run: |
           uv run --frozen golden/generate_american_vanilla.py
           git diff --exit-code -- golden/american_vanilla.json
+
+      # The path fixture: docs/rng.md and the site's paths.ts, transcribed into
+      # plain Python. The generator first reproduces rng-known-answers.json and
+      # refuses to write if it cannot. The committed bytes were written on Linux;
+      # another platform's exp may differ in the last bit and propagate along a
+      # path, which is inside the fixture's tolerance but not byte-identical.
+      - name: The path generator still produces the committed file
+        run: |
+          uv run --frozen golden/generate_paths.py
+          git diff --exit-code -- golden/paths-known-answers.json

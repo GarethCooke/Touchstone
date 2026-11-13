@@ -1,0 +1,134 @@
+// The scalar quantities every pricing method in this library forms from a
+// market and an expiry — each written once, in one association.
+//
+// Floating-point addition and multiplication are not associative, so `0.5 σ² T`
+// grouped as `((0.5 σ) σ) T` and grouped as `(0.5 σ) (σ T)` are two different
+// numbers at the edges of the range, and two different domains: one overflows
+// where the other does not. That matters twice over.
+//
+//   - **A domain check is only as good as its association.** `require_valid` in
+//     `black_scholes.cpp` promises that an accepted input never produces a NaN.
+//     It keeps that promise by checking that each product the formulas form is
+//     representable — which is a promise about *these expressions*, not about
+//     the mathematics. A check that formed the same quantity a different way
+//     would guard a different set of inputs than the one the formulas actually
+//     use, and the gap between the two is silent: `inf - inf` is a NaN, and a
+//     NaN compares false against every tolerance a caller might test it with.
+//     `tests/test_associations.cpp` is what holds the check and the formulas
+//     together.
+//
+//   - **Three methods must agree.** The closed form, the Monte Carlo and the
+//     finite-difference grid are only comparable if they are pricing the same
+//     option, and at the last few digits that means forming the same `σ√T` from
+//     the same two doubles by the same route. Two roundings of one quantity are
+//     two quantities.
+//
+// Nothing here validates. These are the expressions themselves, so that the
+// code that checks them and the code that uses them cannot drift apart; every
+// one may return an infinity or a NaN for an input outside the domain, and
+// deciding what to do about that is the caller's `require_valid`, not this file.
+
+#pragma once
+
+#include <cmath>
+
+namespace touchstone::detail {
+
+/// `r − q` — the rate at which the forward grows, and the risk-neutral drift of
+/// the spot.
+[[nodiscard]] inline double carry_rate(double rate, double dividend_yield) noexcept
+{
+    return rate - dividend_yield;
+}
+
+/// `μ T` — a drift accumulated over a time. Every rate-times-time product in the
+/// library is this one function, so that each is formed in one association.
+[[nodiscard]] inline double drift_time(double drift, double years) noexcept
+{
+    return drift * years;
+}
+
+/// `(r − q) T` — the cost of carry over the life of the option.
+[[nodiscard]] inline double carry_time(double rate, double dividend_yield, double years) noexcept
+{
+    return drift_time(carry_rate(rate, dividend_yield), years);
+}
+
+/// `−r T` — the logarithm of the discount factor. Formed on its own where an
+/// exponential would be taken of a sum that contains it, so that a large and a
+/// small factor are never multiplied when their logarithms could be added.
+[[nodiscard]] inline double log_discount(double rate, double years) noexcept
+{
+    return -rate * years;
+}
+
+/// `e^{−rT}`. Also the dividend discount `e^{−qT}`, which is the same function
+/// of a different rate.
+[[nodiscard]] inline double discount_factor(double rate, double years) noexcept
+{
+    return std::exp(log_discount(rate, years));
+}
+
+/// `σ²` — the instantaneous variance, as the finite-difference grid's diffusion
+/// coefficient needs it. Nothing that can use `total_variance` should use this:
+/// `σ²` overflows for a volatility above 1.3e154 whatever the time it is
+/// multiplied by afterwards.
+[[nodiscard]] inline double variance(double vol) noexcept
+{
+    return vol * vol;
+}
+
+/// `σ√T` — the total volatility to expiry, and the only scale the terminal
+/// log-price distribution has.
+///
+/// The volatility is scaled by the square root of the time rather than the
+/// variance by the time: `(σ√T)²` survives a volatility above 1.3e154 that
+/// `σ² T` does not, and every method in the library reads its width from this.
+[[nodiscard]] inline double total_volatility(double vol, double years) noexcept
+{
+    return vol * std::sqrt(years);
+}
+
+/// `(σ√T)²` — the variance of the terminal log-price, squared from
+/// `total_volatility` rather than formed as `σ² T`, for the reason given there.
+[[nodiscard]] inline double total_variance(double vol, double years) noexcept
+{
+    const double total_vol = total_volatility(vol, years);
+    return total_vol * total_vol;
+}
+
+/// `(μ − σ²/2) T` — the drift of the log-price over a time, formed as
+/// `μ T − (σ√T)² / 2`. The exact GBM step and the grid's forward both read the
+/// log-price's drift from here, so they cannot form it two ways; per unit of time
+/// (`years = 1`) it is the grid's convection coefficient.
+[[nodiscard]] inline double log_drift_time(double drift, double vol, double years) noexcept
+{
+    return drift_time(drift, years) - 0.5 * total_variance(vol, years);
+}
+
+/// `½ σ² T` — the convexity correction in `d₁`. Associated as `((0.5 σ) σ) T`,
+/// which is what `black_scholes.cpp` writes and therefore what its domain check
+/// must guard.
+[[nodiscard]] inline double half_variance_time(double vol, double years) noexcept
+{
+    return 0.5 * vol * vol * years;
+}
+
+/// `ln(S/K) + (r − q) T` — log-moneyness measured against the forward, which is
+/// the numerator of `d₁` without its variance term. Positive means the forward
+/// is above the strike.
+///
+/// The two terms are formed and added separately, exactly as written. A check
+/// that instead formed `(r − q + ½σ²)` first and multiplied by `T` afterwards
+/// would accept inputs on which these two terms are `+∞` and `−∞`; their sum is
+/// then a NaN, and the check would have said the input was fine.
+[[nodiscard]] inline double forward_log_moneyness(double spot,
+                                                  double strike,
+                                                  double rate,
+                                                  double dividend_yield,
+                                                  double years) noexcept
+{
+    return std::log(spot / strike) + carry_time(rate, dividend_yield, years);
+}
+
+}  // namespace touchstone::detail

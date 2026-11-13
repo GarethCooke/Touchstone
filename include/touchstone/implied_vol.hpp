@@ -27,24 +27,9 @@
 #include <touchstone/black_scholes.hpp>
 
 #include <cstddef>
+#include <vector>
 
 namespace touchstone {
-
-/// The market with the volatility left out, because that is the unknown.
-///
-/// A separate type rather than a `BlackScholesMarket` with a field to ignore:
-/// an ignored field is a trap, and this one would be the trap of quoting a
-/// volatility to a function whose job is to tell you what it is.
-struct QuotedMarket {
-    double spot{};
-    double rate{};
-    double dividend_yield{};
-
-    [[nodiscard]] BlackScholesMarket at(double vol) const noexcept
-    {
-        return BlackScholesMarket{spot, vol, rate, dividend_yield};
-    }
-};
 
 struct ImpliedVolSettings {
     /// Stop when `|price(vol) - target|` falls to this, **times the option's own
@@ -180,5 +165,103 @@ void require_valid(const EuropeanVanilla& option,
                                            const QuotedMarket& market,
                                            double target_price,
                                            const ImpliedVolSettings& settings = {});
+
+// --- Newton with a bisection guard, step by step -----------------------------
+//
+// The second solver, and the one page 2.11 teaches: Newton on the volatility
+// with the analytic vega, inside a bracket that the sign of each price error
+// narrows, and a bisection wherever Newton would leave the bracket or has no
+// slope to follow. It is slower to start than the solver above, because it
+// starts from a fixed guess rather than from Manaster and Koehler's point, and
+// it is the one whose every step can be shown: the tutorial's D9 prints them.
+//
+// `experiments/2_11_where_it_breaks.py` is its specification, and its committed
+// JSON is what `tests/test_implied_vol.cpp` holds it to, iterate by iterate. The
+// defaults below are that experiment's.
+//
+// It shares the closed form's volatility-free half and the no-arbitrage bounds
+// with `implied_vol`. It does not share the stopping rule: the experiment's is
+// relative to the price above one and absolute below it, where `implied_vol`'s
+// is relative to the scale the price is computed at, and each solver is
+// specified by its own.
+
+/// How a solve ended. `to_string` gives the experiment's word for each.
+enum class SafeguardedStatus {
+    /// `converged`: the price error reached the tolerance, or the bracket closed.
+    Converged,
+    /// `below_lower_bound`: below the price at zero volatility, which no
+    /// volatility produces. Refused.
+    BelowLowerBound,
+    /// `above_upper_bound`: above the limit as the volatility grows without
+    /// bound, which no finite volatility produces. Refused.
+    AboveUpperBound,
+    /// `below_sigma_lo`: inside the bounds, but below the price at `min_vol`, so
+    /// the answer lies below the search interval.
+    BelowSigmaLo,
+    /// `above_sigma_hi`: inside the bounds, but above the price at `max_vol`, so
+    /// the answer lies above the search interval.
+    AboveSigmaHi,
+    /// `max_iter`: the iteration budget ran out.
+    MaxIter,
+};
+
+/// The experiment's word for a status: `converged`, `below_lower_bound`, and so
+/// on — the string page 2.11's JSON records and D9 shows.
+[[nodiscard]] const char* to_string(SafeguardedStatus status) noexcept;
+
+struct SafeguardedSettings {
+    double initial_vol{0.2};  ///< Where Newton starts, moved into the bracket if outside it.
+    double min_vol{1e-6};     ///< The bottom of the bracket.
+    double max_vol{5.0};      ///< The top of the bracket.
+    /// Stop when `|price(vol) - target| <= price_tolerance * max(1, |target|)`.
+    double price_tolerance{1e-12};
+    /// ...or when the bracket is narrower than this.
+    double vol_tolerance{1e-14};
+    std::size_t max_iterations{100};
+    /// Record every iterate in `SafeguardedResult::steps`.
+    bool record_steps{false};
+};
+
+/// One iterate: the volatility tried, the price there, and that price less the
+/// target. Recorded before the iterate's step is taken, so the last one is the
+/// answer when the price error is what stopped the solve.
+struct SafeguardedStep {
+    std::size_t iteration{};
+    double vol{};
+    double price{};
+    double price_error{};
+};
+
+struct SafeguardedResult {
+    /// The answer, or, for a refusal, the nearest the model gets: zero below
+    /// the lower bound, infinity above the upper one, the end of the bracket for
+    /// the two statuses that name one. Never a NaN.
+    double vol{};
+    SafeguardedStatus status{SafeguardedStatus::Converged};
+    bool converged{};
+    std::size_t iterations{};
+    std::size_t bisections{};  ///< Steps that bisected rather than took Newton's.
+    /// `price(vol) - target`, signed; against the bound itself for a refusal.
+    double price_residual{};
+    /// `dV/dsigma` at `vol`: how far the price pins the answer down. Zero at an
+    /// infinite volatility, which is its limit there.
+    double vega{};
+    std::vector<SafeguardedStep> steps;  ///< Empty unless `record_steps` was set.
+};
+
+/// Throws `std::invalid_argument` if the settings cannot be run, the option and
+/// market are outside the closed form's domain at either end of the bracket, or
+/// the target is not finite. A finite target outside the bounds is not an error:
+/// it is answered with a status.
+void require_valid(const EuropeanVanilla& option,
+                   const QuotedMarket& market,
+                   double target_price,
+                   const SafeguardedSettings& settings);
+
+/// Solve `price(vol) = target_price` by Newton with a bisection guard.
+[[nodiscard]] SafeguardedResult implied_vol_safeguarded(const EuropeanVanilla& option,
+                                                        const QuotedMarket& market,
+                                                        double target_price,
+                                                        const SafeguardedSettings& settings = {});
 
 }  // namespace touchstone

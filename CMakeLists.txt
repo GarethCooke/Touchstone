@@ -63,6 +63,7 @@ endif()
 add_library(touchstone STATIC
     src/black_scholes.cpp
     src/monte_carlo.cpp
+    src/paths.cpp
     src/bump_greeks.cpp
     src/implied_vol.cpp
     src/pde.cpp
@@ -74,24 +75,32 @@ target_include_directories(touchstone
 target_link_libraries(touchstone PRIVATE touchstone_warnings)
 
 # --- Header self-containment ------------------------------------------------
-# One generated translation unit per public header, including only that header.
-# A header that quietly depends on something its includer happened to pull in
-# first fails here rather than in the first consumer that includes it alone —
-# which at T4 is the Emscripten binding, the least convenient place to find out.
-set(TOUCHSTONE_PUBLIC_HEADERS
+# One generated translation unit per header under include/, the internal ones in
+# detail/ included, each including only that header. A header that quietly
+# depends on something its includer happened to pull in first fails here rather
+# than in the first consumer that includes it alone — which is the WebAssembly
+# binding, the least convenient place to find out.
+set(TOUCHSTONE_HEADERS
     black_scholes.hpp
     bump_greeks.hpp
+    contract.hpp
     implied_vol.hpp
     monte_carlo.hpp
     normal.hpp
+    paths.hpp
     pde.hpp
     rng.hpp
     root_finding.hpp
-    scales.hpp
-    tridiagonal.hpp)
+    tridiagonal.hpp
+    detail/callable.hpp
+    detail/checks.hpp
+    detail/differences.hpp
+    detail/grid_solver.hpp
+    detail/path_generator.hpp
+    detail/scales.hpp)
 
 set(touchstone_header_check_sources "")
-foreach(header IN LISTS TOUCHSTONE_PUBLIC_HEADERS)
+foreach(header IN LISTS TOUCHSTONE_HEADERS)
     string(MAKE_C_IDENTIFIER "${header}" header_stem)
     set(generated "${CMAKE_CURRENT_BINARY_DIR}/header_check/${header_stem}.cpp")
     file(CONFIGURE OUTPUT "${generated}" CONTENT "#include <touchstone/${header}>\n")

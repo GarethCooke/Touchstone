@@ -1,9 +1,7 @@
 #include "rng_fixture.hpp"
 
-#include <nlohmann/json.hpp>
+#include "json_file.hpp"
 
-#include <cstdlib>
-#include <fstream>
 #include <stdexcept>
 
 #ifndef TOUCHSTONE_RNG_FIXTURE_PATH
@@ -17,35 +15,24 @@ namespace {
 struct Expected {
     const char* key;
     const char* value;
+    std::string RngFixture::* field;
 };
 
-constexpr Expected expected_description[] = {
-    {"generator", "xoshiro128**"},
-    {"seedExpansion", "fmix32(seed + i), i = 0..3"},
-    {"uniform", "((hi >>> 5) * 2^26 + (lo >>> 6)) * 2^-53, hi drawn first"},
-    {"normal", "AS241 (Wichura PPND16) inverse CDF of the i-th uniform of the same stream"},
-    {"spec", "docs/rng.md"},
+const Expected expected_description[] = {
+    {"generator", "xoshiro128**", &RngFixture::generator},
+    {"seedExpansion", "fmix32(seed + i), i = 0..3", &RngFixture::seed_expansion},
+    {"uniform", "((hi >>> 5) * 2^26 + (lo >>> 6)) * 2^-53, hi drawn first", &RngFixture::uniform_rule},
+    {"normal", "AS241 (Wichura PPND16) inverse CDF of the i-th uniform of the same stream",
+     &RngFixture::normal_rule},
+    {"spec", "docs/rng.md", &RngFixture::spec},
 };
-
-std::string fixture_path()
-{
-    if (const char* from_environment = std::getenv("TOUCHSTONE_RNG_FIXTURE_PATH")) {
-        return from_environment;
-    }
-    return TOUCHSTONE_RNG_FIXTURE_PATH;
-}
 
 RngFixture load()
 {
     RngFixture fixture{};
-    fixture.path = fixture_path();
+    fixture.path = fixture_path("TOUCHSTONE_RNG_FIXTURE_PATH", TOUCHSTONE_RNG_FIXTURE_PATH);
 
-    std::ifstream stream(fixture.path);
-    if (!stream) {
-        throw std::runtime_error("rng fixture: cannot open '" + fixture.path + "'");
-    }
-
-    const nlohmann::json document = nlohmann::json::parse(stream);
+    const nlohmann::json document = read_json(fixture.path, "rng fixture");
 
     for (const Expected& field : expected_description) {
         const std::string found = document.at(field.key).get<std::string>();
@@ -56,13 +43,9 @@ RngFixture load()
                                      + "\" — the fixture describes a different generator than "
                                        "docs/rng.md specifies");
         }
+        fixture.*(field.field) = found;
     }
 
-    fixture.generator = document.at("generator").get<std::string>();
-    fixture.seed_expansion = document.at("seedExpansion").get<std::string>();
-    fixture.uniform_rule = document.at("uniform").get<std::string>();
-    fixture.normal_rule = document.at("normal").get<std::string>();
-    fixture.spec = document.at("spec").get<std::string>();
     fixture.count = document.at("count").get<std::size_t>();
 
     for (const auto& entry : document.at("vectors")) {

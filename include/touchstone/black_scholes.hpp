@@ -9,25 +9,9 @@
 
 #pragma once
 
+#include <touchstone/contract.hpp>
+
 namespace touchstone {
-
-enum class OptionType {
-    Call,
-    Put,
-};
-
-/// The `w` of the formulas: +1 for a call, -1 for a put.
-[[nodiscard]] constexpr double option_sign(OptionType type) noexcept
-{
-    return type == OptionType::Call ? 1.0 : -1.0;
-}
-
-/// The contract. What was agreed, independent of what the market is doing.
-struct EuropeanVanilla {
-    double strike{};        ///< K >= 0.
-    double expiry_years{};  ///< T >= 0, in years on the curve's own day count.
-    OptionType type{OptionType::Call};
-};
 
 /// The market. What is observed, independent of any particular contract.
 struct BlackScholesMarket {
@@ -35,6 +19,28 @@ struct BlackScholesMarket {
     double vol{};             ///< sigma >= 0, annualised, as a decimal: 0.30 is 30%.
     double rate{};            ///< r, continuously compounded. May be negative.
     double dividend_yield{};  ///< q, continuous. May be negative.
+};
+
+/// The market with the volatility left out, because that is the unknown.
+///
+/// A separate type rather than a `BlackScholesMarket` with a field to ignore:
+/// an ignored field is a trap, and this one would be the trap of quoting a
+/// volatility to a function whose job is to tell you what it is.
+struct QuotedMarket {
+    double spot{};
+    double rate{};
+    double dividend_yield{};
+
+    /// The market, quoted: everything but its volatility.
+    [[nodiscard]] static QuotedMarket of(const BlackScholesMarket& market) noexcept
+    {
+        return QuotedMarket{market.spot, market.rate, market.dividend_yield};
+    }
+
+    [[nodiscard]] BlackScholesMarket at(double vol) const noexcept
+    {
+        return BlackScholesMarket{spot, vol, rate, dividend_yield};
+    }
 };
 
 /// All seven values from one evaluation of the closed form.
@@ -75,7 +81,7 @@ struct PriceAndGreeks {
 /// the mathematics: floating-point multiplication does not associate, so a
 /// product grouped one way overflows where the same product grouped another way
 /// does not. Every quantity checked here is therefore formed by the function in
-/// `touchstone/scales.hpp` that the formulas themselves call, and adding a
+/// `touchstone/detail/scales.hpp` that the formulas themselves call, and adding a
 /// product to the formulas without adding it there is the way this promise gets
 /// broken. It has been broken once already, and `tests/test_associations.cpp`
 /// records how.
@@ -97,5 +103,113 @@ void require_valid(const EuropeanVanilla& option, const BlackScholesMarket& mark
 [[nodiscard]] double theta(const EuropeanVanilla& option, const BlackScholesMarket& market);
 [[nodiscard]] double rho(const EuropeanVanilla& option, const BlackScholesMarket& market);
 [[nodiscard]] double dividend_rho(const EuropeanVanilla& option, const BlackScholesMarket& market);
+
+// --- The evaluation behind the free functions --------------------------------
+//
+// Every free function above is one of these, built, read once and discarded. A
+// caller that wants several outputs from one input, or one input at many
+// volatilities, builds them itself and pays for the validation and the
+// arithmetic once.
+
+class ClosedForm;
+
+/// Everything in the closed form that does not depend on the volatility: the
+/// discount factors, the discounted spot and strike, the forward log-moneyness
+/// and `√T`, validated and computed once.
+///
+/// This is the half an implied-volatility search holds fixed while it varies
+/// the other: built once per solve, it makes each step of the search the
+/// volatility's half of the arithmetic and nothing more.
+class ClosedFormQuote {
+public:
+    /// Throws `std::invalid_argument` for the part of `require_valid`'s domain
+    /// that does not involve the volatility.
+    ClosedFormQuote(const EuropeanVanilla& option, const QuotedMarket& market);
+
+    /// Throws `std::invalid_argument` for the volatility's half of the domain:
+    /// a volatility that is negative, not finite, or large enough that `½σ²T`
+    /// or `σ√T` overflows.
+    void require_valid(double vol) const;
+
+    /// The closed form at one volatility, which `require_valid` checks first.
+    [[nodiscard]] ClosedForm at(double vol) const;
+
+    [[nodiscard]] OptionType type() const noexcept { return type_; }
+
+    /// `e^{-rT}`.
+    [[nodiscard]] double discount_factor() const noexcept { return strike_discount_; }
+
+    /// `S e^{-qT}`.
+    [[nodiscard]] double discounted_spot() const noexcept { return discounted_spot_; }
+
+    /// `K e^{-rT}`.
+    [[nodiscard]] double discounted_strike() const noexcept { return discounted_strike_; }
+
+    /// `ln(S/K) + (r - q)T`: positive when the forward is above the strike. Zero
+    /// when the spot and the strike are both zero, where the ratio has no value
+    /// and every output is zero by inspection.
+    [[nodiscard]] double forward_log_moneyness() const noexcept { return log_moneyness_; }
+
+    /// `√T`.
+    [[nodiscard]] double sqrt_expiry() const noexcept { return sqrt_expiry_; }
+
+private:
+    friend class ClosedForm;
+
+    OptionType type_{};
+    double sign_{};             ///< w: +1 for a call, -1 for a put.
+    double spot_{};
+    double rate_{};
+    double dividend_yield_{};
+    double expiry_{};
+    double sqrt_expiry_{};
+    double strike_discount_{};  ///< e^{-rT}.
+    double spot_discount_{};    ///< e^{-qT}.
+    double discounted_spot_{};
+    double discounted_strike_{};
+    double log_moneyness_{};
+    bool nothing_against_nothing_{};  ///< S == 0 and K == 0.
+};
+
+/// The closed form at one point: validated once, computed once, and read by
+/// as many of the seven outputs as the caller wants.
+class ClosedForm {
+public:
+    /// Throws `std::invalid_argument` exactly where `require_valid` does.
+    ClosedForm(const EuropeanVanilla& option, const BlackScholesMarket& market);
+
+    [[nodiscard]] double price() const noexcept;
+    [[nodiscard]] double delta() const noexcept;
+    [[nodiscard]] double gamma() const noexcept;
+    [[nodiscard]] double vega() const noexcept;
+    [[nodiscard]] double theta() const noexcept;
+    [[nodiscard]] double rho() const noexcept;
+    [[nodiscard]] double dividend_rho() const noexcept;
+
+    /// All seven.
+    [[nodiscard]] PriceAndGreeks price_and_greeks() const noexcept;
+
+    /// The volatility-free half it was built on.
+    [[nodiscard]] const ClosedFormQuote& quote() const noexcept { return quote_; }
+
+private:
+    friend class ClosedFormQuote;
+
+    ClosedForm(const ClosedFormQuote& quote, double vol);
+
+    ClosedFormQuote quote_;
+
+    // The volatility's half. Two of the seven outputs are unbounded somewhere on
+    // the closed domain, and both singularities live here rather than in the
+    // formulas that read them: `gamma_` divides by S and by the total
+    // volatility, and `decay_` — theta's diffusion term — divides by sqrt(T).
+    // Keeping the limits in the constructor means the seven accessors are the
+    // formulas of `golden/SCHEMA.md` verbatim, with no branch in sight.
+    double n1_{};     ///< N(w d1).
+    double n2_{};     ///< N(w d2).
+    double gamma_{};  ///< d2V/dS2. Type-independent.
+    double vega_{};   ///< dV/dsigma. Type-independent.
+    double decay_{};  ///< -S e^{-qT} phi(d1) sigma / (2 sqrt(T)). Type-independent.
+};
 
 }  // namespace touchstone

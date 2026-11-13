@@ -1,0 +1,249 @@
+T3a · test evidence
+===================
+
+Branch m/T3a, base 6b8a60a. Toolchains and build flags are in build.txt.
+
+1. The runs
+-----------
+
+  The change as it stood before the review (a067ccc, CI on 892e28e). Section 7 has the
+  final tree, after the review's findings were closed; section 8 has both CI runs.
+
+  Where                          Cases   Assertions   Result
+  main, g++ 15.2 (baseline)        93     4,135,768   all passed
+  main, clang 22 (baseline)        93     4,135,768   all passed
+  branch, g++ 15.2                116     4,139,802   all passed
+  branch, clang 22                116     4,139,802   all passed
+  branch, clang 22 ASan+UBSan,
+    sweep scale 16, -O1           116     4,125,502   all passed, 0 sanitizer diagnostics
+  CI 892e28e, g++ 13.3.0          18 ctest entries     all passed, 161 s
+  CI 892e28e, clang 18.1.3        18 ctest entries     all passed, 163 s
+  CI 892e28e, GCC ASan+UBSan      18 ctest entries     all passed, 276 s
+  CI 892e28e, golden file         all five steps       passed, path fixture regenerated
+                                                       byte-for-byte
+
+  The 18 ctest entries are the 17 suites — the 14 there were, plus implied-vol-safeguarded,
+  contract and paths — and ts_all, which runs the binary whole.
+
+2. Behaviour preserved: the suite's own numbers, before and after
+----------------------------------------------------------------
+
+  The test binary prints every number it asserts on: worst errors, convergence ratios,
+  standard-error tables, counts. Both builds of main were run first and their whole output
+  kept. The branch's output was then compared with it line by line, after removing file
+  paths and line numbers, which moved.
+
+  g++ 15.2, main against branch, lines that differ (new tests' output aside):
+
+    test_american.cpp, "where early exercise is worthless, the grid says so exactly":
+      worst |american grid - european grid|    2.492e-13  ->  2.784e-13    (bound 1e-11)
+    test_tridiagonal.cpp, projected sweep against projected SOR, lower region:
+      worst |sweep - PSOR|                     3.109e-15  ->  2.665e-15    (bound 1e-9)
+
+  clang 22, main against branch: the same two lines, the same numbers.
+
+  g++ 15.2 branch against clang 22 branch: no line differs.
+
+  Why those two and no others. The plain Thomas solve and the two directions of the
+  projected one are now one sweep (R7), and that sweep keeps the plain solve's arithmetic —
+  the eliminated superdiagonal, divided as it goes — so every European solve, and through
+  them every finite-difference, three-way and bump-on-grid number, is bit-identical. The
+  projected solves previously kept the pivots and divided at substitution: the same
+  algorithm, factored differently, so they now round differently. Both numbers above are
+  measures of round-off between two factorisations of one matrix, and both stay orders
+  inside their bounds. The comment in test_american.cpp already said why the American and
+  European grids agree "to round-off rather than exactly" for a put and exactly for a call,
+  and that is still what they do.
+
+  Everything else that moved in the library — the closed form behind one class, the
+  implied-vol solvers on its volatility-free half, Monte Carlo on the path generator, the
+  bump list, the grid's matrices built once — reproduces the old numbers to the last digit
+  printed. Newton-Brent's seed now reads the forward log-moneyness as the closed form forms
+  it; its reported worst residual, iteration counts and method counts did not move:
+
+    price round trip over 7234 rows: worst scaled |repriced - golden| 1.476e-12;
+      Newton 6910, Brent 0, exact at zero 324, not converged 0; worst iteration count 27
+    with one Newton step allowed: 982 of 1029 rows finished in Brent; worst 1.07e-12
+
+3. The new tests' numbers
+-------------------------
+
+  paths — the known-answer fixture
+    672 values over 3 Brownian and 10 GBM paths; 636 agree to the bit
+    worst scaled difference 1.700e-16 (tolerance 1e-12), at gbm exact seed 42, step 95
+    (the Euler path the fixture holds that goes negative is negative here too)
+
+  paths — the exact scheme against S_0 exp((mu - sigma^2/2) t + sigma W_t), the same
+  Brownian path, 1, 2, 16 and 365 steps: worst relative difference 8.64e-16 (bound 1e-13)
+
+  paths — one-step exact path with drift r - q against terminal_spot_exact from the same
+  normal: equal to the bit, three seeds; 64-step Euler against terminal_spot_euler on the
+  same normals: within 1e-14 relative (the path multiplies the spot in first, the per-path
+  function last)
+
+  implied-vol-safeguarded — page 2.11's base case, C = 18.022951450216667
+    it   vol here              vol committed         price error here
+    1    0.20000000000000001   0.20000000000000001   -7.572e+00
+    2    0.40180047109132694   0.40180047109132733    6.813e-02
+    3    0.39999990017335024   0.39999990017335046   -3.778e-06
+    4    0.39999999999999947   0.39999999999999969   -1.421e-14
+    worst difference from the committed trace 7.105e-15 (bound 1e-12)
+    iterations 4, bisections 0, status converged — each as committed
+  The difference is the experiment's own normal CDF, a Hart/West polynomial, against
+  std::erfc here; both are good to about 2e-16 and their prices differ in the last digits.
+
+  implied-vol-safeguarded — the experiment's five other targets at the base case
+    price_4.0    below_lower_bound   0 iterations   here: vol 0, residual lower - target
+    price_101.0  above_upper_bound   0 iterations   here: vol +inf, residual upper - target
+    price_99.5   above_sigma_hi      0 iterations   vol 5, residual -0.71122 as committed
+    price_4.9    converged           8 iterations   sigma 0.0254119715672 as committed
+    price_60.0   converged           5 iterations   sigma 1.64703578941358 as committed
+  Status, iteration count and bisection count equal the committed values in all five; vol
+  and residual within 1e-12 wherever the experiment records a number.
+
+  implied-vol-safeguarded — price round trip over all 7234 golden rows
+    worst scaled |repriced - golden| 9.99e-13 (criterion 1e-8); not converged 0;
+    524 rows bisected at least once; worst iteration count 27
+
+  closed-form — the volatility-free half reused at each row's volatility, against the
+  one-shot evaluation: 7234 rows x 7 values, 0 not identical to the bit
+
+  closed-form — eleven bad inputs, each refused by require_valid, by ClosedForm, and by
+  whichever half owns the fault: ClosedFormQuote for the seven volatility-free ones,
+  ClosedFormQuote::at for the three volatility ones, and the quote again for the input
+  that once escaped as a NaN, now refused by its carry
+
+  pde — the grid solver stepped level by level: 256 levels, time to expiry strictly
+  increasing, the result equal to crank_nicolson's to the bit; before the first step every
+  node equals the payoff exactly; today's solution against the closed form at 509 nodes
+  within three total volatilities of the spot, worst 8.81e-7 of max(V, S) (bound 3e-6);
+  an American put's solution at or above the payoff at every node of every level
+
+  contract — compile-time: the file builds only while every refusal holds
+
+4. The site's paths.ts against the fixture
+------------------------------------------
+
+  The site's own src/demos/paths.ts, rng.ts and types.ts were copied out of
+  touchstone-learn (read only; I18) into a scratch directory, the two relative imports given
+  their .ts extensions, and run under Node v24.13.1 against golden/paths-known-answers.json:
+
+    {"node":"v24.13.1","values":672,"exactMatches":584,"worstScaled":1.722997080616887e-16}
+
+  touchstone-learn at f8e2916 for both files. So the library, the Python transcription and
+  the TypeScript the demos run today agree on every value to 1.7e-16. This is the agreement
+  L5 needs before it swaps the TypeScript paths for the library's, measured now rather than
+  then.
+
+5. The fixture on two platforms
+-------------------------------
+
+  generate_paths.py on Windows (Python 3.12.2) and on Linux (WSL Ubuntu 20.04, Python
+  3.8.10, glibc 2.31): 36 of 672 values differ, worst scaled difference 1.70e-16 — one exp()
+  rounding the other way at step 95 of the 252-step exact path, and the product after it.
+  The committed bytes are Linux's; CI's ubuntu-24.04 reproduced them exactly.
+
+6. What each new suite would catch
+----------------------------------
+
+  ts_paths                  a path API that draws a different stream, steps a different
+                            scheme, clips Euler, or saturates to a NaN
+  ts_implied-vol-safeguarded a solver that takes a different step from page 2.11's, counts
+                            its bisections differently, words a status differently, or
+                            loses a golden price
+  ts_contract               an American contract reaching the closed form, Monte Carlo,
+                            implied vol or bump Greeks — by failing to compile
+  additions to ts_pde       a grid solver whose stepped surface is not crank_nicolson's, or
+                            whose solution is wrong away from the spot node
+  additions to ts_closed-form a quote and a one-shot evaluation that compute differently, or
+                            two halves that between them guard a different domain
+
+7. The review, and what came after it
+-------------------------------------
+
+  The review: a fresh agent session, editing nothing, read every file under include/, src/
+  and tests/ at a067ccc. Its findings and how each was closed are in review.md.
+
+  Closing them took one commit, 47c8108. What it did to the suite's output, g++ 15.2, the
+  run before it against the run after it, paths and line numbers removed:
+
+    test_contract.cpp's message, shortened: the entry points it listed are the concepts'
+    assertions: 4,139,802 -> 4,140,435
+
+  and nothing else. The library's half of the commit, run on its own first, changed no line
+  at all — including the grid's forward, now formed through log_drift_time in the exact
+  step's association, which moves the grid's domain by round-off and moves no printed digit.
+  The 633 assertions: the collapsed-option check now compares all seven fields in a loop and
+  then asserts gamma and vega exactly zero, two more per call over about 320 calls; and the
+  payoff checks test_monte_carlo shared with test_contract are gone from test_monte_carlo,
+  seven fewer.
+
+  After it, on the final tree:
+
+  Where                          Cases   Assertions   Result
+  g++ 15.2, -Werror              116     4,140,435    all passed; 0 warnings
+  clang 22                       116     4,140,435    all passed; output identical to
+                                                      g++'s line for line; 0 warnings
+                                                      outside tests/
+  clang 22 ASan+UBSan, scale 16  116     4,126,135    all passed, 0 sanitizer diagnostics
+                                                      (the earlier count plus the same 633)
+  MSVC cl.exe 19.44.35230, /W4  116     4,140,435    all passed; one warning, C4996
+    /permissive-, RelWithDebInfo                      std::getenv in tests/json_file.cpp
+  CI 47c8108                     see section 8
+
+8. CI
+-----
+
+  Run 43288229002 on 892e28e (the change before the review):
+    gcc 13.3.0       18/18 ctest entries passed, 161 s           job 3m10s
+    clang 18.1.3     18/18 passed, 163 s                         job 3m55s
+    asan + ubsan     18/18 passed, 276 s                         job 5m11s
+    golden file      every step passed, including the new one: generate_paths.py
+                     regenerated golden/paths-known-answers.json and git diff was clean
+
+  Run 43293908547 on 47c8108 (the review closed):
+    gcc 13.3.0       18/18 passed, 190 s, 0 warnings             job 3m45s
+    clang 18.1.3     18/18 passed, 163 s, 0 warnings             job 3m18s
+    asan + ubsan     18/18 passed, 374 s, 0 warnings             job 6m43s
+    golden file      every step passed; the path fixture regenerated byte-for-byte
+
+  The commit after 47c8108 changes only docs/evidence/T3a/.
+
+  Run 43322679034 on 94217ec (the Monte Carlo timing follow-up, section 9; its code is
+  12243b7's, and 94217ec adds only this pack's evidence):
+    gcc 13.3.0       18/18 passed, 159 s, 0 warnings             job 3m06s
+    clang 18.1.3     18/18 passed, 109 s, 0 warnings             job 2m11s
+    asan + ubsan     18/18 passed, 269 s, 0 warnings             job 4m52s
+    golden file      every step passed; the path fixture regenerated byte-for-byte
+
+  The commit after 94217ec changes only docs/evidence/T3a/.
+
+9. The Monte Carlo timing follow-up
+-----------------------------------
+
+  After an independent timing showed Monte Carlo slower on the branch than on main, the Euler
+  path's two walks became one walk carrying both values, and GbmStep and
+  PathGenerator::draw moved into their header (summary.md, the entry of the same date;
+  timing.txt). The suite was re-run on both local compilers, from the same build directories
+  as section 7, and its output compared with section 7's runs, paths and line numbers removed
+  as in section 2:
+
+  Where                          Cases   Assertions   Result
+  g++ 15.2, -Werror              116     4,140,435    all passed; 0 warnings; output
+                                                      identical to section 7's, 688 lines
+  clang 22                       116     4,140,435    all passed; 0 warnings outside tests/;
+                                                      output identical to section 7's byte
+                                                      for byte, paths and line numbers
+                                                      included
+  g++ against clang                                   identical line for line
+
+  g++'s raw output differs from its section 7 run only in five line numbers of
+  test_monte_carlo.cpp, each one greater: that run was taken before 47c8108 added
+  #include <utility> to the file, and the clang run after. Every number the suite prints is
+  unchanged on both compilers.
+
+  Why nothing moved: the factor is the same expression, formed once a step for both carried
+  values rather than once a step in each of two walks, and each carried value is multiplied
+  by it in the order main's loop multiplied them, growth first, then the discounted growth.
+  The exact scheme's path is unchanged: one step from one, then one multiplication by the
+  discount, with the exponential recovery where that is not finite.

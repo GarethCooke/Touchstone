@@ -61,8 +61,19 @@
 #pragma once
 
 #include <touchstone/black_scholes.hpp>
+#include <touchstone/detail/callable.hpp>
+#include <touchstone/detail/differences.hpp>
+
+#include <array>
+#include <cstddef>
 
 namespace touchstone {
+
+/// Anything that prices a European vanilla in a market: callable as
+/// `double(const EuropeanVanilla&, const BlackScholesMarket&)`, or as anything
+/// whose result converts to `double`.
+template <class P>
+concept VanillaPricer = detail::returns_double<P, const EuropeanVanilla&, const BlackScholesMarket&>;
 
 /// How far to move each input. Relative for the spot, which ranges over orders
 /// of magnitude; absolute for the rest, which are rates and times of order one
@@ -81,6 +92,47 @@ struct BumpSizes {
     double expiry_absolute{1e-5};          ///< For theta, in years — about five minutes.
 };
 
+namespace detail {
+
+/// The twelve points besides the base that a set of bump Greeks prices, in up-
+/// and-down pairs. Delta and gamma each have their own pair, because they want
+/// different spot bumps — see the note at the top of this file.
+enum Bumped : std::size_t {
+    DeltaUp,
+    DeltaDown,
+    GammaUp,
+    GammaDown,
+    VolUp,
+    VolDown,
+    RateUp,
+    RateDown,
+    YieldUp,
+    YieldDown,
+    Longer,
+    Shorter,
+    bumped_count,
+};
+
+struct BumpedPoint {
+    EuropeanVanilla option;
+    BlackScholesMarket market;
+};
+
+/// The bumped points, written once: `require_valid` checks every one of them
+/// and `bump_greeks` prices every one of them, so the two cannot disagree about
+/// which points those are.
+struct Bumps {
+    double delta_spot{};  ///< The absolute spot bump for delta.
+    double gamma_spot{};  ///< The absolute spot bump for gamma.
+    std::array<BumpedPoint, bumped_count> points{};
+};
+
+[[nodiscard]] Bumps bumps(const EuropeanVanilla& option,
+                          const BlackScholesMarket& market,
+                          const BumpSizes& sizes) noexcept;
+
+}  // namespace detail
+
 /// Throws `std::invalid_argument` if these bumps cannot be taken here.
 ///
 /// Every bump is two-sided, so every bumped point has to be inside the closed
@@ -96,9 +148,8 @@ void require_valid(const EuropeanVanilla& option,
 
 /// Price and all six Greeks, by central differences of `pricer`.
 ///
-/// `pricer` is anything callable as `double(const EuropeanVanilla&, const
-/// BlackScholesMarket&)`. Thirteen calls: the base price, two for each of the
-/// six sensitivities, and one extra pair for gamma's wider bump.
+/// Thirteen calls: the base price, two for each of the six sensitivities, and
+/// one extra pair for gamma's wider bump.
 ///
 /// The domain checked is the closed form's. A `pricer` with a narrower one — the
 /// finite-difference grid, which needs a positive spot and a positive total
@@ -108,7 +159,7 @@ void require_valid(const EuropeanVanilla& option,
 /// `theta` is `dV/dt`, so it is minus the derivative with respect to the time
 /// remaining: an option with more time left is worth more, and theta is
 /// negative for the long position that watches it run out.
-template <class Pricer>
+template <VanillaPricer Pricer>
 [[nodiscard]] PriceAndGreeks bump_greeks(const EuropeanVanilla& option,
                                          const BlackScholesMarket& market,
                                          const BumpSizes& sizes,
@@ -120,59 +171,30 @@ template <class Pricer>
         return static_cast<double>(pricer(contract, state));
     };
 
-    const auto shift_vol = [&](double by) {
-        BlackScholesMarket moved = market;
-        moved.vol += by;
-        return moved;
-    };
-    const auto shift_spot = [&](double by) {
-        BlackScholesMarket moved = market;
-        moved.spot += by;
-        return moved;
-    };
-
     const double base = at(option, market);
+    const detail::Bumps bumped = detail::bumps(option, market, sizes);
+    std::array<double, detail::bumped_count> value{};
+    for (std::size_t i = 0; i < value.size(); ++i) {
+        value[i] = at(bumped.points[i].option, bumped.points[i].market);
+    }
 
-    // Delta and gamma, from two bumps of different sizes. The wider one is
-    // gamma's; the narrower one is delta's. Sharing a bump would cost an order
-    // of magnitude on one of them — see the note at the top of this file.
-    const double delta_bump = sizes.spot_relative * market.spot;
-    const double gamma_bump = sizes.spot_relative_for_gamma * market.spot;
-
-    const double up_delta = at(option, shift_spot(delta_bump));
-    const double down_delta = at(option, shift_spot(-delta_bump));
-    const double up_gamma = at(option, shift_spot(gamma_bump));
-    const double down_gamma = at(option, shift_spot(-gamma_bump));
-
-    const double up_vol = at(option, shift_vol(sizes.vol_absolute));
-    const double down_vol = at(option, shift_vol(-sizes.vol_absolute));
-
-    BlackScholesMarket rate_up = market;
-    rate_up.rate += sizes.rate_absolute;
-    BlackScholesMarket rate_down = market;
-    rate_down.rate -= sizes.rate_absolute;
-
-    BlackScholesMarket yield_up = market;
-    yield_up.dividend_yield += sizes.dividend_yield_absolute;
-    BlackScholesMarket yield_down = market;
-    yield_down.dividend_yield -= sizes.dividend_yield_absolute;
-
-    EuropeanVanilla longer = option;
-    longer.expiry_years += sizes.expiry_absolute;
-    EuropeanVanilla shorter = option;
-    shorter.expiry_years -= sizes.expiry_absolute;
+    const auto central = [&](detail::Bumped up, detail::Bumped down, double width) {
+        return detail::central_first(value[up], value[down], width);
+    };
 
     PriceAndGreeks out{};
     out.price = base;
-    out.delta = (up_delta - down_delta) / (2.0 * delta_bump);
-    out.gamma = (up_gamma - 2.0 * base + down_gamma) / (gamma_bump * gamma_bump);
-    out.vega = (up_vol - down_vol) / (2.0 * sizes.vol_absolute);
-    out.rho = (at(option, rate_up) - at(option, rate_down)) / (2.0 * sizes.rate_absolute);
-    out.dividend_rho =
-        (at(option, yield_up) - at(option, yield_down)) / (2.0 * sizes.dividend_yield_absolute);
+    // Delta and gamma, from two bumps of different sizes. Sharing a bump would
+    // cost an order of magnitude on one of them.
+    out.delta = central(detail::DeltaUp, detail::DeltaDown, bumped.delta_spot);
+    out.gamma = detail::central_second(value[detail::GammaUp], base, value[detail::GammaDown],
+                                       bumped.gamma_spot);
+    out.vega = central(detail::VolUp, detail::VolDown, sizes.vol_absolute);
+    out.rho = central(detail::RateUp, detail::RateDown, sizes.rate_absolute);
+    out.dividend_rho = central(detail::YieldUp, detail::YieldDown, sizes.dividend_yield_absolute);
     // Minus, because theta is the derivative with respect to time passing and
     // the bump is on time remaining.
-    out.theta = -(at(longer, market) - at(shorter, market)) / (2.0 * sizes.expiry_absolute);
+    out.theta = -central(detail::Longer, detail::Shorter, sizes.expiry_absolute);
     return out;
 }
 

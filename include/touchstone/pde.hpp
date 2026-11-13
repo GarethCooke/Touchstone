@@ -7,7 +7,7 @@
 // samples the terminal distribution. This solves the equation the option's value
 // satisfies, on a grid, from expiry backwards — so it never uses `N(d)`, never
 // draws a random number, and shares no arithmetic with either of them beyond the
-// scale functions of `touchstone/scales.hpp`. Three methods that agree here have
+// scale functions of `touchstone/detail/scales.hpp`. Three methods that agree here have
 // agreed about the model rather than about one implementation of it.
 //
 // It is also the only one of the three that can price an option the holder may
@@ -46,28 +46,6 @@
 #include <cstddef>
 
 namespace touchstone {
-
-/// When the holder may exercise.
-enum class Exercise {
-    /// At expiry only. The closed form prices the same contract, which is what
-    /// makes this the leg of I20's three-way agreement that can be checked
-    /// against an exact answer.
-    European,
-
-    /// At any time up to expiry. The value function is then the solution of a
-    /// linear complementarity problem — the equation above holds where holding
-    /// is optimal, the value equals the payoff where exercising is, and the two
-    /// regions are separated by a free boundary the solution finds for itself.
-    ///
-    /// v1 has no closed form for this and QuantLib is the oracle for it, as for
-    /// everything else: `golden/american_vanilla.json` carries reference values
-    /// from an independent lattice, and `golden/AMERICAN-SCHEMA.md` says what
-    /// they are worth. Two exact statements hold it down besides — an American
-    /// call on an underlying with no dividend yield is worth exactly its
-    /// European counterpart, and every American value is at least its European
-    /// one and at least its intrinsic value.
-    American,
-};
 
 /// The grid, and how it is stepped.
 ///
@@ -122,8 +100,6 @@ struct PdeSettings {
     /// constants, which is the only reason this is a setting rather than simply
     /// what the solver does.
     bool smooth_payoff{true};
-
-    Exercise exercise{Exercise::European};
 };
 
 /// The value at the spot, and what the grid says about its first two spot
@@ -205,7 +181,13 @@ struct PdeResult {
 ///
 /// Settings are checked too: at least two space intervals and one time step, a
 /// positive half-width, and no more Rannacher steps than there are steps.
+///
+/// The exercise style changes none of this: an American contract is checked
+/// against the same domain as its European counterpart.
 void require_valid(const EuropeanVanilla& option,
+                   const BlackScholesMarket& market,
+                   const PdeSettings& settings);
+void require_valid(const AmericanVanilla& option,
                    const BlackScholesMarket& market,
                    const PdeSettings& settings);
 
@@ -219,6 +201,14 @@ void require_valid(const EuropeanVanilla& option,
 /// which `PdeResult::space_intervals` reports.
 [[nodiscard]] PdeResult crank_nicolson(const EuropeanVanilla& option,
                                        const BlackScholesMarket& market,
-                                       const PdeSettings& settings);
+                                       const PdeSettings& settings = {});
+
+/// The same grid with early exercise: the projected sweep of
+/// `touchstone/tridiagonal.hpp` in place of the plain one, and the boundary
+/// values raised to immediate exercise where that is worth more. Every other
+/// line of the solve is the European one.
+[[nodiscard]] PdeResult crank_nicolson(const AmericanVanilla& option,
+                                       const BlackScholesMarket& market,
+                                       const PdeSettings& settings = {});
 
 }  // namespace touchstone

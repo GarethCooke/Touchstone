@@ -13,11 +13,15 @@
 
 #include "golden_file.hpp"
 
+#include "greek_fields.hpp"
+
 #include <touchstone/black_scholes.hpp>
 #include <touchstone/monte_carlo.hpp>
-#include <touchstone/scales.hpp>
+#include <touchstone/detail/scales.hpp>
 
 #include <doctest/doctest.h>
+
+#include <algorithm>
 
 #include <cmath>
 #include <limits>
@@ -35,9 +39,9 @@ using touchstone::PriceAndGreeks;
 [[nodiscard]] bool prices_cleanly(const EuropeanVanilla& option, const BlackScholesMarket& market)
 {
     const PriceAndGreeks out = touchstone::price_and_greeks(option, market);
-    return !std::isnan(out.price) && !std::isnan(out.delta) && !std::isnan(out.gamma)
-           && !std::isnan(out.vega) && !std::isnan(out.theta) && !std::isnan(out.rho)
-           && !std::isnan(out.dividend_rho);
+    return std::none_of(touchstone::testing::greek_fields.begin(),
+                        touchstone::testing::greek_fields.end(),
+                        [&](const auto& field) { return std::isnan(out.*(field.value)); });
 }
 
 }  // namespace

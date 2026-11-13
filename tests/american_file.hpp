@@ -11,6 +11,8 @@
 
 #pragma once
 
+#include "row_inputs.hpp"
+
 #include <touchstone/black_scholes.hpp>
 
 #include <cstddef>
@@ -20,10 +22,7 @@
 namespace touchstone::testing {
 
 /// One row: the inputs, the lattice's answer, and its uncertainty about it.
-struct AmericanCase {
-    EuropeanVanilla option{};
-    BlackScholesMarket market{};
-    int expiry_days{};
+struct AmericanCase : RowInputs<Exercise::American> {
 
     double price{};
     double delta{};
@@ -50,6 +49,13 @@ struct AmericanCase {
     /// fifteen digits rather than against another lattice's four, which is the
     /// strongest statement available about an American price.
     [[nodiscard]] bool equals_european() const noexcept;
+
+    /// The same contract without early exercise: what the closed form prices,
+    /// and what this row's American value can never be worth less than.
+    [[nodiscard]] EuropeanVanilla european() const noexcept
+    {
+        return with_exercise<Exercise::European>(option);
+    }
 };
 
 struct AmericanFile {

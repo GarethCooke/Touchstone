@@ -7,6 +7,8 @@
 // the discounted forward rather than borrowed from the implementation, and then
 // checks that the limits are approached as well as returned.
 
+#include "forward_contract.hpp"
+#include "greek_fields.hpp"
 #include "golden_file.hpp"
 
 #include <touchstone/black_scholes.hpp>
@@ -43,20 +45,13 @@ constexpr double infinity = std::numeric_limits<double>::infinity();
 PriceAndGreeks collapsed(const EuropeanVanilla& option, const BlackScholesMarket& market)
 {
     const double w = touchstone::option_sign(option.type);
-    const double t = option.expiry_years;
-    const double discounted_spot = market.spot * std::exp(-market.dividend_yield * t);
-    const double discounted_strike = option.strike * std::exp(-market.rate * t);
-    const double exercised = (w * (discounted_spot - discounted_strike) > 0.0) ? 1.0 : 0.0;
+    const PriceAndGreeks forward = touchstone::testing::forward_contract(option, market);
+    const double held = (w * forward.price > 0.0) ? w : 0.0;
 
     PriceAndGreeks expected{};
-    expected.price = exercised * w * (discounted_spot - discounted_strike);
-    expected.delta = exercised * w * std::exp(-market.dividend_yield * t);
-    expected.gamma = 0.0;
-    expected.vega = 0.0;
-    expected.theta = exercised * w
-                     * (market.dividend_yield * discounted_spot - market.rate * discounted_strike);
-    expected.rho = exercised * w * t * discounted_strike;
-    expected.dividend_rho = -exercised * w * t * discounted_spot;
+    for (const auto& field : touchstone::testing::greek_fields) {
+        expected.*(field.value) = held * forward.*(field.value);
+    }
     return expected;
 }
 
@@ -71,13 +66,13 @@ void check_collapsed(const EuropeanVanilla& option, const BlackScholesMarket& ma
     CAPTURE(option.expiry_years);
     CAPTURE(option.type == OptionType::Call);
 
-    CHECK(scaled_error(actual.price, expected.price) <= 1e-15);
-    CHECK(scaled_error(actual.delta, expected.delta) <= 1e-15);
-    CHECK(actual.gamma == expected.gamma);
-    CHECK(actual.vega == expected.vega);
-    CHECK(scaled_error(actual.theta, expected.theta) <= 1e-15);
-    CHECK(scaled_error(actual.rho, expected.rho) <= 1e-15);
-    CHECK(scaled_error(actual.dividend_rho, expected.dividend_rho) <= 1e-15);
+    for (const auto& field : touchstone::testing::greek_fields) {
+        CAPTURE(field.name);
+        CHECK(scaled_error(actual.*(field.value), expected.*(field.value)) <= 1e-15);
+    }
+    // And the two that vanish do so exactly, not to within a tolerance.
+    CHECK(actual.gamma == 0.0);
+    CHECK(actual.vega == 0.0);
 }
 
 }  // namespace
@@ -389,13 +384,10 @@ TEST_SUITE("limits")
                                 CAPTURE(rate);
                                 CAPTURE(expiry);
 
-                                CHECK_FALSE(std::isnan(out.price));
-                                CHECK_FALSE(std::isnan(out.delta));
-                                CHECK_FALSE(std::isnan(out.gamma));
-                                CHECK_FALSE(std::isnan(out.vega));
-                                CHECK_FALSE(std::isnan(out.theta));
-                                CHECK_FALSE(std::isnan(out.rho));
-                                CHECK_FALSE(std::isnan(out.dividend_rho));
+                                for (const auto& field : touchstone::testing::greek_fields) {
+                                    CAPTURE(field.name);
+                                    CHECK_FALSE(std::isnan(out.*(field.value)));
+                                }
 
                                 CHECK(std::isfinite(out.price));
                                 CHECK(std::isfinite(out.delta));

@@ -3,6 +3,9 @@
 
 #pragma once
 
+#include "errors.hpp"
+#include "row_inputs.hpp"
+
 #include <touchstone/black_scholes.hpp>
 
 #include <cstddef>
@@ -12,11 +15,8 @@
 namespace touchstone::testing {
 
 /// One row of the golden file: the inputs, and what QuantLib returned for them.
-struct GoldenCase {
-    EuropeanVanilla option{};
-    BlackScholesMarket market{};
+struct GoldenCase : RowInputs<Exercise::European> {
     PriceAndGreeks reference{};
-    int expiry_days{};
     std::string label{};  ///< Non-empty only in the edge block.
 };
 
@@ -38,34 +38,26 @@ struct GoldenFile {
 /// tests rather than be compared against as though it had not.
 const GoldenFile& golden_file();
 
-/// `golden/SCHEMA.md`'s comparison rule: relative above 1.0, absolute below it.
+/// The worst scaled error over a sweep against the golden file, the row that
+/// produced it, and the two numbers it was measured between.
 ///
-///     scale = max(|reference|, 1.0)
-///     error = |actual - reference| / scale
-///
-/// A deep out-of-the-money price is the residue of cancelling two numbers of
-/// order S, so its absolute accuracy is a few ulps of S however small the true
-/// value is; 106 rows of the file are in fact slightly negative. A relative
-/// comparison there would measure the noise floor and nothing else.
-///
-/// A NaN, or an infinity where the reference is finite, returns infinity rather
-/// than a comparison that quietly succeeds.
-[[nodiscard]] double scaled_error(double actual, double reference) noexcept;
-
-/// The worst scaled error over a sweep, and the row that produced it.
+/// `scaled_error` is `golden/SCHEMA.md`'s comparison rule: relative above 1.0,
+/// absolute below it. A deep out-of-the-money price is the residue of
+/// cancelling two numbers of order S, so its absolute accuracy is a few ulps of
+/// S however small the true value is; 106 rows of the file are in fact slightly
+/// negative. A relative comparison there would measure the noise floor and
+/// nothing else.
 class Worst {
 public:
     void observe(double actual, double reference, const GoldenCase& source);
 
-    [[nodiscard]] double error() const noexcept { return error_; }
+    [[nodiscard]] double error() const noexcept { return largest_.value(); }
     [[nodiscard]] std::string describe(const char* field) const;
 
 private:
-    double error_{0.0};
+    Largest<GoldenCase> largest_;
     double actual_{0.0};
     double reference_{0.0};
-    GoldenCase source_{};
-    bool seen_{false};
 };
 
 /// The inputs of a row, on one line, at full precision.
