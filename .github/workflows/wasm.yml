@@ -1,0 +1,51 @@
+# The WebAssembly artifact the tutorial's demos run on: built as it ships and
+# without exception catching, both sizes reported, the shipped one held to its
+# budget, loaded in Node — the site's Node — and held to the fixtures, then
+# uploaded. Called by ci.yml on every push and by release.yml on a version tag,
+# so a release attaches exactly what this tested.
+
+name: wasm
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  # One exact Emscripten release, from the first-party emsdk repository.
+  EMSDK_VERSION: "6.0.13"
+
+jobs:
+  wasm:
+    name: build and smoke test
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Emscripten
+        run: |
+          git clone --depth 1 --branch "$EMSDK_VERSION" https://github.com/emscripten-core/emsdk.git "$RUNNER_TEMP/emsdk"
+          "$RUNNER_TEMP/emsdk/emsdk" install "$EMSDK_VERSION"
+          "$RUNNER_TEMP/emsdk/emsdk" activate "$EMSDK_VERSION"
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Build, both ways, and check the size
+        run: |
+          source "$RUNNER_TEMP/emsdk/emsdk_env.sh"
+          wasm/build.sh
+
+      - name: Smoke test
+        run: node --test wasm/smoke.test.mjs
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: touchstone-wasm
+          path: |
+            build-wasm/wasm/touchstone.mjs
+            build-wasm/wasm/touchstone.wasm
+            build-wasm/size.txt
+          if-no-files-found: error

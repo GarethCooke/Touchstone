@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(touchstone
-    VERSION 0.1.0
+    VERSION 0.4.0
     DESCRIPTION "A C++20 pricing-and-risk library for European vanilla options"
     HOMEPAGE_URL "https://github.com/GarethCooke/Touchstone"
     LANGUAGES CXX)
@@ -14,7 +14,13 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Build type" FORCE)
 endif()
 
-option(TOUCHSTONE_BUILD_TESTS "Build the test suite" ON)
+# The test suite is native: under Emscripten the build is the WebAssembly
+# artifact, and its test is the Node smoke test in wasm/.
+if(EMSCRIPTEN)
+    option(TOUCHSTONE_BUILD_TESTS "Build the test suite" OFF)
+else()
+    option(TOUCHSTONE_BUILD_TESTS "Build the test suite" ON)
+endif()
 
 # How much of the statistical sweeps to run: 1 is all of it, and CI's two
 # compiler jobs use that. The sanitizer job sets it higher, because ASan and
@@ -56,6 +62,20 @@ else()
         -Wunused)
     if(TOUCHSTONE_WARNINGS_AS_ERRORS)
         target_compile_options(touchstone_warnings INTERFACE -Werror)
+    endif()
+endif()
+
+# --- Exceptions under Emscripten ---------------------------------------------
+# The library reports a refused input by throwing, and Emscripten does not catch
+# C++ exceptions unless told to: with catching off, a throw ends the module. On,
+# by WebAssembly's own exception handling, every translation unit is compiled
+# and linked with it, the library's included. Off is built only to measure what
+# catching costs in size.
+if(EMSCRIPTEN)
+    option(TOUCHSTONE_WASM_EXCEPTIONS "Catch C++ exceptions in the WebAssembly build" ON)
+    if(TOUCHSTONE_WASM_EXCEPTIONS)
+        add_compile_options(-fwasm-exceptions)
+        add_link_options(-fwasm-exceptions)
     endif()
 endif()
 
@@ -109,6 +129,11 @@ endforeach()
 
 add_library(touchstone_header_check OBJECT ${touchstone_header_check_sources})
 target_link_libraries(touchstone_header_check PRIVATE touchstone touchstone_warnings)
+
+# --- The WebAssembly artifact -----------------------------------------------
+if(EMSCRIPTEN)
+    add_subdirectory(wasm)
+endif()
 
 # --- Tests ------------------------------------------------------------------
 if(TOUCHSTONE_BUILD_TESTS)
