@@ -150,8 +150,9 @@ order:
   prototype (a class with getters) arrives without them and is refused as missing. Plain
   objects, which is what `types.ts` describes, are unaffected.
 - **WebAssembly exception handling, not Emscripten's JavaScript-based kind.** 31,650 bytes
-  against 79,115, and native unwinding rather than a JavaScript wrapper around every call
-  that might throw. Both pass the smoke test. Emscripten 6.0.13 emits the legacy form of the
+  against 79,115, both measured at `9d64a8c` (catching costs 31,078 now), and native
+  unwinding rather than a JavaScript wrapper around every call that might throw. Both passed
+  the smoke test. Emscripten 6.0.13 emits the legacy form of the
   proposal by default (`WASM_LEGACY_EXCEPTIONS`), the form supported longest; no browser was
   run here (Not done).
 - **An American option is an `exercise: 'american'` field**, which the grid's entry points
