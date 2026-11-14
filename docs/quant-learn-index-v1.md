@@ -79,7 +79,7 @@ experiments while learning; the same invariants become library tests.
   the √dt comes from. Mean reversion (OU) as a second example. *Check:* Gaussian
   log-returns; E[S_T] = S₀e^(μT); Euler error vs dt. Spot-the-bug: σZ·dt instead of σZ·√dt.
 - **2.7 Delta hedging and the Black–Scholes PDE.** Π = V − ΔS; Itô on V; choose Δ = ∂V/∂S
-  to kill dW; riskless must earn r; μ vanishes. *Check:* hedging simulator — P&L spread
+  to kill dW; risk-free must earn r; μ vanishes. *Check:* hedging simulator — P&L spread
   falls as 1/√N with rebalance count N.
 - **2.8 Risk-neutral pricing.** V = e^(−rT)·E^Q[payoff]; drift becomes r; Girsanov as
   reweighting paths, not changing volatility; Feynman–Kac ties the expectation to the PDE.
