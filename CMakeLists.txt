@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(touchstone
-    VERSION 0.4.0
+    VERSION 1.0.0
     DESCRIPTION "A C++20 pricing-and-risk library for European vanilla options"
     HOMEPAGE_URL "https://github.com/GarethCooke/Touchstone"
     LANGUAGES CXX)
@@ -34,8 +34,8 @@ set(TOUCHSTONE_SWEEP_SCALE 1 CACHE STRING "Divide the statistical sweeps by this
 option(TOUCHSTONE_WARNINGS_AS_ERRORS "Fail the build on any warning" ON)
 
 # --- Warnings ---------------------------------------------------------------
-# Tech-decision B1: GCC and Clang both green, warnings as errors. Those two are
-# what CI runs and what this project claims. The MSVC branch is here so the
+# GCC and Clang both green, warnings as errors. Those two are what CI runs and
+# what this project claims. The MSVC branch is here so the
 # owner's Windows checkout configures rather than dying on unknown flags; it is
 # not exercised by CI and nothing claims it is.
 add_library(touchstone_warnings INTERFACE)
@@ -135,9 +135,10 @@ if(EMSCRIPTEN)
     add_subdirectory(wasm)
 endif()
 
-# --- Tests ------------------------------------------------------------------
+# --- Tests, and the timing harness ------------------------------------------
 if(TOUCHSTONE_BUILD_TESTS)
     enable_testing()
     add_subdirectory(third_party)
     add_subdirectory(tests)
+    add_subdirectory(bench)
 endif()
