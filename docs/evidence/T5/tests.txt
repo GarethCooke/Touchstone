@@ -1,0 +1,536 @@
+T5 · test evidence
+==================
+
+1. The native suite at the head
+-------------------------------
+
+  g++ 15.2.0 (MinGW-Builds), RelWithDebInfo, -Werror, from PowerShell (build.txt section 2),
+  at 7391234, the last commit to touch code, a test or a build file.
+
+  ctest, all 18 entries:
+
+     1/18 Test  #1: ts_normal ........................   Passed    0.03 sec
+     2/18 Test  #2: ts_rng ...........................   Passed    0.33 sec
+     3/18 Test  #3: ts_closed-form ...................   Passed    0.14 sec
+     4/18 Test  #4: ts_parity ........................   Passed    0.13 sec
+     5/18 Test  #5: ts_limits ........................   Passed    0.09 sec
+     6/18 Test  #6: ts_monte-carlo ...................   Passed   34.22 sec
+     7/18 Test  #7: ts_euler .........................   Passed    5.22 sec
+     8/18 Test  #8: ts_associations ..................   Passed    0.17 sec
+     9/18 Test  #9: ts_tridiagonal ...................   Passed    0.03 sec
+    10/18 Test #10: ts_pde ...........................   Passed   20.86 sec
+    11/18 Test #11: ts_implied-vol ...................   Passed    0.20 sec
+    12/18 Test #12: ts_implied-vol-safeguarded .......   Passed    0.21 sec
+    13/18 Test #13: ts_bump-greeks ...................   Passed    0.33 sec
+    14/18 Test #14: ts_american ......................   Passed   17.71 sec
+    15/18 Test #15: ts_three-way .....................   Passed   10.46 sec
+    16/18 Test #16: ts_contract ......................   Passed    0.02 sec
+    17/18 Test #17: ts_paths .........................   Passed    0.02 sec
+    18/18 Test #18: ts_all ...........................   Passed   86.04 sec
+    100% tests passed, 0 tests failed out of 18
+    Total Test time (real) = 176.28 sec
+
+
+  The whole binary with every assertion printed (touchstone_tests -s), the run section 2
+  compares:
+
+    [doctest] test cases:     120 |     120 passed | 0 failed | 0 skipped
+    [doctest] assertions: 4140490 | 4140490 passed | 0 failed |
+    [doctest] Status: SUCCESS!
+
+
+  Every number the suite reports rather than only asserts: each MESSAGE block of that run,
+  with its continuation lines, as printed (paths made relative). ARCHITECTURE.md and
+  claims.md quote these.
+
+    tests/test_american.cpp:92: MESSAGE: american file golden/american_vanilla.json
+        schema  touchstone/golden/american_vanilla@1
+        oracle  QuantLib 1.43
+        engine  BinomialVanillaEngine, LeisenReimer at 2001 steps, on BlackScholesMertonProcess
+        worst lattice spread  {?}0.0201
+
+    tests/test_american.cpp:106: MESSAGE: 324 rows where American exercise is worth exactly European
+
+    tests/test_american.cpp:151: MESSAGE: identity rows (324): American exercise worth exactly European
+        worst |american grid - closed form| scaled by max(|V|, S)  4.542e-06
+        worst |american grid - european grid|                     2.784e-13
+        worst at put S=100 K=110 vol=0.59999999999999998 r=-0.0050000000000000001 q=0.040000000000000001 days=1826
+
+    tests/test_american.cpp:198: MESSAGE: calls at a negative rate worth more than European: 201 rows; largest premium {?}22.13
+        at call S=120 K=90 vol=0.050000000000000003 r=-0.0050000000000000001 q=0.040000000000000001 days=1826
+
+    tests/test_american.cpp:243: MESSAGE: american golden file by Crank-Nicolson with a projected sweep: 864 rows at 1024 x 512
+        worst |grid - lattice| scaled by max(|V|, K)   3.423e-05
+            at call S=120 K=90 vol=0.59999999999999998 r=-0.0050000000000000001 q=0 days=1826
+        worst as a multiple of the row's lattice spread 1.46
+            at call S=120 K=90 vol=0.29999999999999999 r=0.050000000000000003 q=0.040000000000000001 days=1826
+
+    tests/test_american.cpp:280: MESSAGE: bounds over 864 rows
+        worst shortfall against European   {?}4.54e-06
+        worst shortfall against intrinsic  4.26e-16
+        636 rows carry a material early-exercise premium
+        worst at put S=100 K=110 vol=0.59999999999999998 r=-0.0050000000000000001 q=0.040000000000000001 days=1826
+
+    tests/test_american.cpp:351: MESSAGE: American put-call bounds over 216 grid-priced pairs with r >= 0
+        worst breach of the lower bound {?}2.84e-16
+        worst breach of the upper bound 2.61e-07
+
+    tests/test_american.cpp:439: MESSAGE: American convergence, put  S=90 K=100 vol=0.25 r=0.06
+           256 x   128  12.707733420
+           512 x   256  12.709170067
+          1024 x   512  12.709592669
+          2048 x  1024  12.709727165
+          4096 x  2048  12.709772813
+            move ratio 3.40
+            move ratio 3.14
+            move ratio 2.95
+        worst ratio 2.95 (bound 2.50);  European 11.398399810, early-exercise premium 1.311373004
+
+    tests/test_american.cpp:439: MESSAGE: American convergence, call S=120 K=90 vol=0.30 r=0.05 q=0.04
+           256 x   128  41.573966430
+           512 x   256  41.576037435
+          1024 x   512  41.576561429
+          2048 x  1024  41.576692394
+          4096 x  2048  41.576725165
+            move ratio 3.95
+            move ratio 4.00
+            move ratio 4.00
+        worst ratio 3.95 (bound 3.20);  European 38.799260362, early-exercise premium 2.777464803
+
+    tests/test_associations.cpp:227: MESSAGE: all 7234 golden rows still inside the accepted domain
+
+    tests/test_bump_greeks.cpp:86: MESSAGE: bumped vs analytic over 7200 rows (0 refused: a bump would have left the domain)
+        price         0.000e+00   tolerance 0.000e+00
+        delta         3.992e-10   tolerance 1.000e-09
+        gamma         2.592e-08   tolerance 1.000e-07
+        vega          2.179e-08   tolerance 1.000e-07
+        theta         4.145e-09   tolerance 1.000e-08
+        rho           2.976e-09   tolerance 1.000e-08
+        dividend_rho  2.918e-09   tolerance 1.000e-08
+
+    tests/test_bump_greeks.cpp:182: MESSAGE: worst scaled |bumped - analytic| against bump size
+        axis          1e-09      1e-08      3e-07      1e-06      3e-05      0.001      0.01       
+        spot (delta)     1.06e-07   7.26e-09   3.23e-10   1.04e-10   1.38e-09   1.53e-06   1.53e-04
+        spot (gamma)     2.21e+00   2.47e-02   3.14e-05   2.78e-06   2.84e-09   1.39e-08   1.39e-06
+        vol (vega)       5.90e-07   1.27e-08   1.96e-09   2.07e-10   5.81e-08   6.45e-05   6.44e-03
+        rate (rho)       3.16e-07   2.74e-08   7.78e-10   3.92e-10   2.67e-08   2.97e-05   2.96e-03
+
+    tests/test_bump_greeks.cpp:220: MESSAGE: Greeks by bumping the Crank-Nicolson grid, against the closed form
+        delta               0.58685126 vs       0.58685115   scaled error 1.122e-07
+        gamma               0.01263345 vs       0.01263372   scaled error 2.708e-07
+        vega               37.90130832 vs      37.90115751   scaled error 3.979e-06
+        theta              -6.79474853 vs      -6.79471300   scaled error 5.228e-06
+        rho                45.66522285 vs      45.66483334   scaled error 8.530e-06
+        dividend_rho      -58.68562107 vs     -58.68511461   scaled error 8.630e-06
+
+    tests/test_bump_greeks.cpp:240: MESSAGE: off the grid, default bumps vs wide bumps
+        gamma  {?}0.00489 vs 2.14e-05
+        delta  9.48e-07 vs 1.91e-07
+
+    tests/test_closed_form.cpp:55: MESSAGE: golden file golden/bs_vanilla.json
+        schema  touchstone/golden/bs_vanilla@1
+        oracle  QuantLib 1.43
+
+    tests/test_closed_form.cpp:44: MESSAGE: main grid: 7200 rows at tolerance 1e-10; worst scaled error per field
+        price         1.197e-13
+        delta         4.163e-15
+        gamma         1.443e-15
+        vega          4.472e-14
+        theta         9.803e-14
+        rho           2.503e-13
+        dividend_rho  2.841e-13
+
+    tests/test_closed_form.cpp:44: MESSAGE: edge block: 34 rows at tolerance 1e-08; worst scaled error per field
+        price         1.665e-14
+        delta         1.010e-14
+        gamma         6.176e-16
+        vega          2.081e-14
+        theta         1.619e-11
+        rho           1.308e-14
+        dividend_rho  1.319e-14
+
+    tests/test_closed_form.cpp:108: MESSAGE: accessors vs price_and_greeks: worst scaled difference over 7200 rows x 7 values: 0.000e+00
+
+    tests/test_closed_form.cpp:136: MESSAGE: quote reused at the row's volatility against the one-shot evaluation: 7234 rows, 0 values not identical to the bit
+
+    tests/test_contract.cpp:131: MESSAGE: American contracts: refused at compile time by every entry point the concepts in this file name, accepted by the grid and by payoff
+
+    tests/test_euler.cpp:245: MESSAGE: strong error: mean |S_T Euler - S_T exact| on shared Brownian paths
+        steps        dt      mean error        SE     ratio   fitted
+            1   1.000000      4.396988   0.036459         -       no
+            2   0.500000      3.376613   0.023409     1.302       no
+            4   0.250000      2.513907   0.016537     1.343       no
+            8   0.125000      1.818615   0.011623     1.382      yes
+           16   0.062500      1.284463   0.007765     1.416      yes
+           32   0.031250      0.921620   0.005620     1.394      yes
+           64   0.015625      0.655078   0.003962     1.407      yes
+          128   0.007812      0.466709   0.002792     1.404      yes
+          256   0.003906      0.326473   0.001950     1.430      yes
+        slope over dt < 0.13: 0.4932 +/- 0.0021 (0.5 expected), worst residual 0.0084
+
+    tests/test_euler.cpp:351: MESSAGE: weak error: E[discounted payoff, Euler] - E[same, exact], common random numbers
+        closed form 13.020281
+        steps        dt          bias         SE   bias/SE   bias/dt
+            2   0.500000     0.036115   0.003638       9.9    0.0722
+            4   0.250000     0.050836   0.002617      19.4    0.2033
+            8   0.125000     0.033433   0.001887      17.7    0.2675
+           16   0.062500     0.017557   0.001353      13.0    0.2809
+           32   0.031250     0.008636   0.000965       9.0    0.2764
+           64   0.015625     0.005505   0.000682       8.1    0.3523
+        slope over dt < 0.13: 0.8831 +/- 0.0621 (1.0 expected)
+
+    tests/test_euler.cpp:385: MESSAGE: Euler at 512 steps: 13.04013 +/- 0.02717 against closed form 13.02028
+
+    tests/test_implied_vol.cpp:171: MESSAGE: Brent on roots known independently
+        x^3 - 2x - 5, Wallis's cubic    root 2.094551481542327  in 8 calls
+        cos x - x                       root 0.73908513321516056  in 9 calls
+        exp(x) - 3                      root 1.0986122886681098  in 12 calls
+        x^25, flat then vertical        root -8.0888609488704191e-14  in 128 calls
+        cbrt(x - 0.3) shape             root 0.30000000000000021  in 41 calls
+
+    tests/test_implied_vol.cpp:249: MESSAGE: price round trip over 7234 rows (0 refused as below the zero-volatility price)
+        worst scaled |repriced - golden|  1.476e-12   (criterion 1e-8)
+        Newton 6910, Brent 0, exact at zero 324, not converged 0
+        worst iteration count 27
+        worst at put S=150 K=90 vol=0.14999999999999999 r=0.050000000000000003 q=0.050000000000000003 days=91 T=0.24931506849315069
+
+    tests/test_implied_vol.cpp:331: MESSAGE: volatility round trip over 7200 rows
+        6434 with vega above 1e-6: worst |sigma - sigma| 3.316e-07
+        766 with vega at or below 1e-6, where the price carries no volatility
+        worst over all rows               1.505e-01
+            at put S=60 K=120 vol=0.050000000000000003 r=-0.0050000000000000001 q=0.050000000000000003 days=91 T=0.24931506849315069
+        worst as a multiple of what the price affords  1.002
+            at put S=80 K=110 vol=0.29999999999999999 r=0.050000000000000003 q=0.050000000000000003 days=91 T=0.24931506849315069
+
+    tests/test_implied_vol.cpp:384: MESSAGE: with one Newton step allowed: 982 of 1029 rows finished in Brent; worst scaled reprice {?}1.07e-12
+        at put S=150 K=90 vol=0.14999999999999999 r=0.050000000000000003 q=0.050000000000000003 days=91 T=0.24931506849315069
+
+    tests/test_implied_vol.cpp:523: MESSAGE: 2.11's base case, C = 18.022951450216667
+        it   vol here              vol committed         price error here
+        1     0.20000000000000001   0.20000000000000001  -7.572e+00
+        2     0.40180047109132694   0.40180047109132733  6.813e-02
+        3     0.39999990017335024   0.39999990017335046  -3.778e-06
+        4     0.39999999999999947   0.39999999999999969  -1.421e-14
+        worst difference from the committed trace 7.105e-15
+
+    tests/test_implied_vol.cpp:613: MESSAGE: safeguarded price round trip over 7234 rows
+        worst scaled |repriced - golden|  {?}9.99e-13   (criterion 1e-8)
+        not converged 0, rows that bisected 524, worst iteration count 27
+        worst at put S=150 K=80 vol=0.050000000000000003 r=0.01 q=0 days=365 T=1, status converged
+
+    tests/test_limits.cpp:429: MESSAGE: domain sweep: 16570 priced, 9350 rejected as unrepresentable, 550 with an infinite gamma
+
+    tests/test_monte_carlo.cpp:387: MESSAGE: crude, 400 runs of 4096 paths
+        price    mean 13.1504 vs closed form 13.1511
+                 observed spread 0.3462, reported SE 0.3392
+        delta    observed spread 0.0104, reported SE 0.0100
+
+    tests/test_monte_carlo.cpp:387: MESSAGE: antithetic, 400 runs of 4096 paths
+        price    mean 13.1424 vs closed form 13.1511
+                 observed spread 0.2753, reported SE 0.2697
+        delta    observed spread 0.0039, reported SE 0.0038
+
+    tests/test_monte_carlo.cpp:441: MESSAGE: standard error at 8192 paths
+        K = 80.0000   crude 0.2550   antithetic 0.1177   ratio 0.4615
+        K = 100.0000   crude 0.1975   antithetic 0.1519   ratio 0.7692
+        K = 120.0000   crude 0.1299   antithetic 0.1198   ratio 0.9225
+
+    tests/test_monte_carlo.cpp:479: MESSAGE: E[S_T] = 106.1769 vs forward 106.1837 (SE 0.0333); E[S_T^2] within 0.0001 relative
+
+    tests/test_monte_carlo.cpp:628: MESSAGE: discounted growth against growth times the discount, over 540 parameter sets: worst difference is 0.508 of its bound
+
+    tests/test_monte_carlo.cpp:749: MESSAGE: domain sweep, four scheme and pairing combinations: 17032 priced, 13688 refused as unrepresentable, 744 saturated at an infinity, none a NaN
+
+    tests/test_monte_carlo.cpp:772: MESSAGE: the payoff that overflows but the discounted payoff that does not: closed form 2.157404e-199, Monte Carlo 2.155409e-199
+
+    tests/test_monte_carlo.cpp:933: MESSAGE: grid sweep: 7234 rows at 32768 paths (stride 1)
+        6147 expecting at least 450.00 paths in the money
+        323 more once re-run at 1048576 paths
+        764 too rare to price at either count, of which 630 saw no path in the money at all and are priced at exactly zero
+            worst |z| among the rest, which nothing asserts: 440.84 at put S=150 K=80 vol=0.14999999999999999 r=0.01 q=0.02 days=365 T=1
+        0 with no randomness at all, compared exactly
+
+    tests/test_monte_carlo.cpp:157: MESSAGE: price vs closed form: 6147 rows in standard-error units
+        mean          -0.020   (0 +/- 0.013 expected)
+        sd            0.986   (1 +/- 0.009 expected)
+        beyond 3 SE   19   (16.596 +/- 4.074 expected)
+        worst |z|     3.559   (bound 5.648)
+        worst row     put S=60 K=100 vol=0.59999999999999998 r=-0.0050000000000000001 q=0.02 days=1826 T=5.0027397260273974
+
+    tests/test_monte_carlo.cpp:157: MESSAGE: pathwise delta vs analytic delta: 6147 rows in standard-error units
+        mean          -0.004   (0 +/- 0.013 expected)
+        sd            0.999   (1 +/- 0.009 expected)
+        beyond 3 SE   21   (16.596 +/- 4.074 expected)
+        worst |z|     3.829   (bound 5.648)
+        worst row     call S=80 K=80 vol=0.29999999999999999 r=-0.0050000000000000001 q=0.02 days=91 T=0.24931506849315069
+
+    tests/test_monte_carlo.cpp:157: MESSAGE: paths finishing in the money vs N(w d2): 5752 rows in standard-error units
+        mean          -0.004   (0 +/- 0.013 expected)
+        sd            0.994   (1 +/- 0.009 expected)
+        beyond 3 SE   14   (15.529 +/- 3.941 expected)
+        worst |z|     4.148   (bound 5.636)
+        worst row     put S=80 K=80 vol=0.29999999999999999 r=-0.0050000000000000001 q=0.050000000000000003 days=1826 T=5.0027397260273974
+
+    tests/test_monte_carlo.cpp:157: MESSAGE: rare rows re-run with more paths: 323 rows in standard-error units
+        mean          -0.051   (0 +/- 0.056 expected)
+        sd            1.031   (1 +/- 0.039 expected)
+        beyond 3 SE   3   (0.872 +/- 0.934 expected)
+        worst |z|     4.055   (bound 5.118)
+        worst row     [very-high-vol-long] call S=100 K=100 vol=1.5 r=0.029999999999999999 q=0.01 days=3652 T=10.005479452054795
+
+    tests/test_monte_carlo.cpp:965: MESSAGE: the tails of the grid, summed
+        in the money on rows too rare to standardise: 387.0 against 413.2 expected (+/- 20.3)
+        out of the money on rows where that is the rare event: 414.0 against 413.2 expected (+/- 20.3)
+
+    tests/test_monte_carlo.cpp:157: MESSAGE: antithetic price vs closed form: 1343 rows in standard-error units
+        mean          0.031   (0 +/- 0.027 expected)
+        sd            1.005   (1 +/- 0.019 expected)
+        beyond 3 SE   3   (3.626 +/- 1.904 expected)
+        worst |z|     3.915   (bound 5.380)
+        worst row     call S=150 K=80 vol=0.29999999999999999 r=-0.0050000000000000001 q=0 days=91 T=0.24931506849315069
+
+    tests/test_parity.cpp:77: MESSAGE: main grid: 3600 call/put pairs at tolerance 1e-13; worst scaled departure from the identity
+        price         2.132e-14
+        delta         2.220e-16
+        gamma         0.000e+00
+        vega          0.000e+00
+        theta         3.997e-15
+        rho           3.175e-16
+        dividend_rho  2.368e-16
+
+    tests/test_parity.cpp:77: MESSAGE: edge block: 17 call/put pairs at tolerance 1e-13; worst scaled departure from the identity
+        price         7.105e-15
+        delta         1.110e-16
+        gamma         0.000e+00
+        vega          0.000e+00
+        theta         5.219e-15
+        rho           0.000e+00
+        dividend_rho  0.000e+00
+
+    tests/test_paths.cpp:146: MESSAGE: paths fixture golden/paths-known-answers.json
+        672 values over 3 Brownian and 10 GBM paths; 636 agree to the bit
+        worst scaled difference 1.700e-16 (tolerance 1.000e-12)
+            at gbm exact seed 42 at step 95
+
+    tests/test_paths.cpp:179: MESSAGE: exact scheme against S_0 exp((mu - sigma^2/2) t + sigma W_t) on the same path: worst relative difference {?}8.64e-16
+
+    tests/test_pde.cpp:180: MESSAGE: space refinement, time step held fine
+           129  2.159e-03
+           257  5.411e-04   ratio 3.99
+           513  1.353e-04   ratio 4.00
+          1025  3.377e-05   ratio 4.01
+
+    tests/test_pde.cpp:208: MESSAGE: time refinement, space held fine (space error removed)
+            32  1.265e-03
+            64  3.162e-04   ratio 4.00
+           128  7.904e-05   ratio 4.00
+           256  1.974e-05   ratio 4.00
+
+    tests/test_pde.cpp:275: MESSAGE: domain width at a fixed dx of about 0.0018
+        alpha     2  dx 0.001085  error -3.228e-04
+        alpha     3  dx 0.001080  error 2.828e-06
+        alpha     4  dx 0.001078  error 2.847e-06
+        alpha     6  dx 0.001076  error 2.835e-06
+        alpha     8  dx 0.001075  error 2.828e-06
+        alpha    12  dx 0.001074  error 2.822e-06
+        worst spread over alpha in [3, 12]: 1.304e-08; the discretisation error beside it is 2.835e-06
+
+    tests/test_pde.cpp:310: MESSAGE: error constant C in |error| = C dx^2, at 512 intervals
+        nodal value    error -7.739e-04  C 15.52
+        cell average  error 1.353e-04  C 2.71
+
+    tests/test_pde.cpp:353: MESSAGE: gamma at the strike, 2048 intervals and 12 time steps (exact 3.928800e-02)
+        rannacher 0  gamma 1.092931e+01  relative error 2.772e+02
+        rannacher 1  gamma 3.846657e-02  relative error 2.091e-02
+        rannacher 2  gamma 3.935483e-02  relative error 1.701e-03
+        rannacher 4  gamma 3.945713e-02  relative error 4.305e-03
+
+    tests/test_pde.cpp:388: MESSAGE: grid diagnostics over 7200 rows at 512 x 256
+        worst mesh Peclet      1.018e-01  (bound 2, at call S=60 K=120 vol=0.050000000000000003 r=-0.0050000000000000001 q=0.050000000000000003 days=1826 T=5.0027397260273974)
+        coarsest resolution    7.876e-02 of one total volatility per step
+        smallest dominance     1.000e+00
+
+    tests/test_pde.cpp:448: MESSAGE: golden grid by Crank-Nicolson: 7200 rows at 512 x 256, alpha 6
+        price   scaled by max(|ref|, S) 8.928e-05   by SCHEMA.md's max(|ref|, 1) 1.276e-03
+                at call S=100 K=120 vol=0.59999999999999998 r=-0.0050000000000000001 q=0.050000000000000003 days=1826 T=5.0027397260273974
+        delta   scaled by max(|ref|, S) 3.441e-06   by SCHEMA.md's max(|ref|, 1) 2.065e-04
+                at call S=60 K=120 vol=0.59999999999999998 r=0.050000000000000003 q=0 days=1826 T=5.0027397260273974
+        gamma   scaled by max(|ref|, S) 3.563e-07   by SCHEMA.md's max(|ref|, 1) 2.348e-05
+                at call S=60 K=80 vol=0.050000000000000003 r=0.050000000000000003 q=0 days=1826 T=5.0027397260273974
+
+    tests/test_pde.cpp:503: MESSAGE: edge block: 34 priced, 0 refused as outside the grid's domain
+        worst price error scaled by max(|ref|, S): 1.366e-02
+        at [very-high-vol-long] call S=100 K=100 vol=1.5 r=0.029999999999999999 q=0.01 days=3652 T=10.005479452054795
+        dx there 1.328e-01, 2.799e-02 of one total volatility per step
+
+    tests/test_pde.cpp:582: MESSAGE: two unrelated grids over 195 rows: worst difference scaled by max(|other|, S) is {?}6.54e-05
+        at call S=60 K=100 vol=0.59999999999999998 r=-0.0050000000000000001 q=0.050000000000000003 days=1826 T=5.0027397260273974
+
+    tests/test_pde.cpp:667: MESSAGE: grid solution against the closed form at 509 nodes within three total volatilities of the spot: worst scaled by max(V, S) {?}8.81e-07
+
+    tests/test_rng.cpp:131: MESSAGE: fixture golden/rng-known-answers.json: 3 seeds x 10 values, spec docs/rng.md
+
+    tests/test_rng.cpp:181: MESSAGE: normals: worst absolute error 0.000e+00 against a tolerance of 1.000e-12; 30 of 30 agree bit for bit with the TypeScript
+
+    tests/test_rng.cpp:229: MESSAGE: 200000 uniforms in [1.26e-05, 1]
+
+    tests/test_rng.cpp:274: MESSAGE: {?}AS241 worst relative error 3.47e-16 over 12 reference values
+
+    tests/test_rng.cpp:314: MESSAGE: {?}round trip over 1199 values of p from 1e-300 to 0.5: worst error is 0.778 of its bound, at p = 1e-179
+
+    tests/test_rng.cpp:377: MESSAGE: closest pair among 8000 sweep seeds: 341411 apart
+
+    tests/test_rng.cpp:405: MESSAGE: {?}worst |correlation| over 2016 stream pairs: 0.0506, bound 0.0972
+
+    tests/test_three_way.cpp:169: MESSAGE: three-way agreement on 136 rows of the golden grid (17 with too little Monte Carlo signal to score)
+      finite differences vs closed form, scaled by max(|V|, S):
+        worst 2.160e-05
+        at    call S=120 K=80 vol=0.59999999999999998 r=-0.0050000000000000001 q=0.050000000000000003 days=1826 T=5.0027397260273974
+      Monte Carlo vs closed form, in standard errors:
+        scored rows: 119 rows in standard-error units
+        mean          -0.218   (0 +/- 0.092 expected)
+        sd            0.977   (1 +/- 0.065 expected)
+        beyond 3 SE   1   (0.321 +/- 0.567 expected)
+        worst |z|     3.167   (bound 4.926)
+        worst row     call S=150 K=80 vol=0.59999999999999998 r=0.050000000000000003 q=0.050000000000000003 days=365 T=1
+        standard error as a fraction of the price: 5.01e-06 to 5.78e-02
+      and the two numerical methods, against each other, are therefore within
+        the sum of what each is within of the closed form.
+
+    tests/test_three_way.cpp:271: MESSAGE: Greeks three ways over 122 rows
+        bumped closed form vs analytic, worst scaled   2.024e-08
+            at call S=150 K=100 vol=0.14999999999999999 r=0.050000000000000003 q=0.02 days=365 T=1
+        grid delta vs analytic, worst scaled           5.085e-05
+        grid gamma vs analytic, worst scaled           3.264e-06
+        bumped grid vega and rho vs analytic, worst    2.548e-03
+        pathwise Monte Carlo delta, in standard errors:
+        scored rows: 119 rows in standard-error units
+        mean          -0.038   (0 +/- 0.092 expected)
+        sd            1.048   (1 +/- 0.065 expected)
+        beyond 3 SE   0   (0.321 +/- 0.567 expected)
+        worst |z|     2.736   (bound 4.926)
+        worst row     call S=80 K=120 vol=0.29999999999999999 r=-0.0050000000000000001 q=0.050000000000000003 days=730 T=2
+
+    tests/test_tridiagonal.cpp:190: MESSAGE: Poisson on 255 interior nodes: worst |u - sin(pi x)| = 1.25e-05
+
+    tests/test_tridiagonal.cpp:232: MESSAGE: round trip on dominant systems, worst |u - u| per margin
+        margin      1  (measured 1)  worst error 2.842e-14
+        margin    0.1  (measured 0.1)  worst error 8.527e-14
+        margin   0.01  (measured 0.01)  worst error 3.126e-13
+        margin  0.001  (measured 0.001)  worst error 2.274e-13
+
+    tests/test_tridiagonal.cpp:467: MESSAGE: projected sweep vs PSOR
+        lower region: 1808 of 5784 nodes binding, in one run each time; worst |sweep - PSOR| 2.665e-15, worst residual off the constraint 1.332e-15; PSOR needed up to 72 sweeps; 0 of 36 trials skipped as not one-sided
+        upper region: 1753 of 5784 nodes binding, in one run each time; worst |sweep - PSOR| 3.997e-15, worst residual off the constraint 1.332e-15; PSOR needed up to 72 sweeps; 0 of 36 trials skipped as not one-sided
+
+    tests/test_tridiagonal.cpp:506: MESSAGE: two-sided exercise region: the direct sweep differs from PSOR by {?}0.0198 — the documented precondition, priced
+
+2. Every number unchanged
+-------------------------
+
+  The brief: every number the native suite, the golden file and the smoke test hold must be
+  unchanged. Four checks, each against the same machine's build of main (74987c7) taken
+  before any file was edited.
+
+  (a) The library's object code. Release (-O3 -DNDEBUG), g++ 15.2.0, the seven library
+      translation units built at 74987c7 and at 7391234: every object file byte-identical,
+      SHA-256 for SHA-256 (first 16 hex digits shown). The comments changed and the code
+      did not, so the library's arithmetic cannot have moved.
+
+        black_scholes.cpp.obj  identical  42219C9F4D363169
+        bump_greeks.cpp.obj    identical  7546063459FE1207
+        implied_vol.cpp.obj    identical  96D5AE2A808B4A3A
+        monte_carlo.cpp.obj    identical  7420355A633CFA31
+        paths.cpp.obj          identical  C1107B532E0790EE
+        pde.cpp.obj            identical  FBC1402697AF9C1E
+        tridiagonal.cpp.obj    identical  178FDE177B732A00
+
+      The timing (timing.txt) used a Release build of the branch whose library objects were
+      compared the same way, with the same result, before the tests' comments were reflowed.
+
+  (b) Every assertion's values. touchstone_tests -s at 74987c7 and at 7391234: 120 test
+      cases, 4,140,490 assertions each, every assertion printed with its expanded values,
+      14,407,953 lines each. Normalised with
+
+        sed -E 's/(\.(cpp|hpp)):[0-9]+:/\1:/g; s/(\.(cpp|hpp))\([0-9]+\)/\1:/g;
+                s/0x[0-9a-f]{6,}/0x…/g'
+
+      — line numbers removed, because comments moved them; 196,798 pointer addresses
+      masked, because CAPTURE of a const char* prints an address that ASLR moves on every
+      run — and compared with diff. The whole difference:
+
+        988c988
+        < TEST CASE:  the input T1 accepted and returned a NaN for
+        ---
+        > TEST CASE:  the input a check on the summed drift accepts and the formulas turn into a NaN
+        1012c1012
+        < TEST CASE:  the volatility band T2 relies on is still priced
+        ---
+        > TEST CASE:  the volatility band the Monte Carlo prices is still priced
+        14325649c14325649
+        < C:/Development/Projects/Touchstone/tests/test_three_way.cpp: MESSAGE: I20 on 136 rows of the golden grid (17 with too little Monte Carlo signal to score)
+        ---
+        > C:/Development/Projects/Touchstone/tests/test_three_way.cpp: MESSAGE: three-way agreement on 136 rows of the golden grid (17 with too little Monte Carlo signal to score)
+
+      Those are the three deliberate renames (build.txt section 3; ARCHITECTURE.md section
+      10.3). No value differs. doctest prints doubles to its default precision in this
+      view; the MESSAGE blocks, which print the reported figures at the precision shown in
+      section 1, are identical too.
+
+  (c) The smoke test. node --test wasm/smoke.test.mjs against the artifact built at
+      74987c7 and the one built at the branch: the 32 lines of output, durations masked,
+      identical. The 17 tests and their figures are in section 3. The smoke test's one
+      change on this branch adds the fifth key of defaults() and checks its value; it
+      changes no number another test reads.
+
+  (d) The golden files and the experiments. git diff --stat 74987c7 -- golden experiments
+      docs/rng.md: empty. CI's golden job regenerates both reference files and the path
+      fixture and requires the tree to stay clean (section 5).
+
+3. The smoke test, on the artifact built at the branch
+------------------------------------------------------
+
+  Emscripten 6.0.13, wasm/build.sh; Node v24.13.1:
+
+    # rng: 3 seeds x 10; uniforms exact; worst normal difference 0
+    # golden 'one-day-atm': price 0.4203523730423484 against 0.4203523730423497; worst of seven 6.166047049073064e-14
+    # golden cases: 7200 rows, worst scaled error 2.8411776910306267e-13 (tolerance 1e-10)
+    # golden edge_cases: 34 rows, worst scaled error 1.6188939078176645e-11 (tolerance 1e-8)
+    # paths: 3 Brownian, 10 GBM; worst scaled difference 0
+    # 2.11 trace: 4 iterates, worst difference 7.105427357601002e-15
+    # survived 3 x 100000 refusals; the named golden row and the RNG fixture unchanged; then a 513 x 1026 surface
+    ✔ the module says which version of the library it is: the project's (1.8449ms)
+    ✔ the RNG fixture: uniforms to the bit, normals to 1e-12 (3.731ms)
+    ✔ one golden price, and its Greeks, to the file's own tolerance (2.8849ms)
+    ✔ every golden row, to the file's own tolerances (148.305ms)
+    ✔ the path fixture, Brownian and GBM, to its own tolerance (2.7951ms)
+    ✔ page 2.11's committed trace, iterate by iterate (2.9558ms)
+    ✔ page 2.11's refusals come back with their status and no NaN (0.8022ms)
+    ✔ no-arbitrage bounds are the price at zero volatility and its limit at infinity (1.035ms)
+    ✔ Monte Carlo: within three standard errors of the closed form, and the same from the same seed (29.4582ms)
+    ✔ the grid: European at the closed form, American above it, both at the payoff's floor (16.0961ms)
+    ✔ the grid's surface: every level read, today's the price (1.6431ms)
+    ✔ bump Greeks over each pricer (37.892ms)
+    ✔ the library's defaults are the module's (0.7192ms)
+    ✔ an input the library rejects is a RangeError with the library's reason (2.1716ms)
+    ✔ an argument of the wrong shape is a TypeError naming the field (0.5147ms)
+    ✔ a thrown getter on an argument reaches the caller as itself (0.1722ms)
+    ✔ the module survives a hundred thousand refusals of each kind, and then still agrees with the fixtures (8016.8251ms)
+    ℹ tests 17
+    ℹ suites 0
+    ℹ pass 17
+    ℹ fail 0
+    ℹ cancelled 0
+    ℹ skipped 0
+    ℹ todo 0
+    ℹ duration_ms 8430.6108
+
+4. The claims check
+-------------------
+
+  Recorded in claims.md, last section.
+
+5. CI
+-----
+
+  Pending: filled in from the Actions run on the final commit.

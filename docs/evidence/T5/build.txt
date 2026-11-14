@@ -1,0 +1,476 @@
+T5 · build evidence
+===================
+
+Branch m/T5 from 74987c7 (main: "ticked milestone: T4 — WASM artifact"). Local builds on one
+machine; CI (tests.txt section 5) is the authoritative run.
+
+1. The machine and the toolchains
+---------------------------------
+
+  Machine     AMD Ryzen 7 3800X 8-Core Processor, 16 logical processors, 32 GB;
+              Windows 11 Pro 10.0.26200
+  g++         15.2.0 (x86_64-posix-seh-rev0, MinGW-Builds), from PowerShell 7: the native
+              suite, the object-code comparison and the timing
+  clang++     22.1.7 (LLVM for Windows), for the overload probe (section 4) only
+  clang-format 22.1.7, for section 6
+  CMake       3.31.6 (Visual Studio 2022's), Ninja 1.12.1
+  Emscripten  6.0.13 (e13ee988), C:\local\emsdk, the version CI pins
+  Node        v24.13.1 locally; CI runs the smoke test on Node 22
+
+  g++ fails without a diagnostic when run from Git Bash's environment on this machine, as
+  T4 found; every native build here was run from PowerShell.
+
+2. The builds
+-------------
+
+  Native, RelWithDebInfo (-O2 -g -DNDEBUG), the project's warnings and -Werror, at the
+  branch's head:
+
+    cmake -S . -B <build> -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_COMPILER=g++
+    cmake --build <build> -j 16
+
+    [50/50] Linking CXX executable tests\touchstone_tests.exe
+    warnings and errors: 0
+
+  It now builds bench/touchstone_timing beside the tests (bench/CMakeLists.txt, under the
+  same warning flags). Its first build failed on -Wmissing-field-initializers in the harness
+  itself; fixed before the first commit of the file.
+
+  Native, Release (-O3 -DNDEBUG), for the object-code comparison (tests.txt section 2) and
+  the timing (timing.txt section 3): 0 warnings.
+
+  WebAssembly, wasm/build.sh, both ways: 0 warnings. size.txt:
+
+    emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.13 (e13ee988ce3d87a738dd8f3661d02223308c412a), -O3; bytes
+
+                                   .wasm      .mjs     total gzip -9 total
+    catching on (shipped)         144256     28786    173042         56194
+    catching off                  112401     29389    141790         49754
+
+    budget                                            500000
+
+  At 74987c7, built the same way here, the shipped artifact was 172,656 bytes (56,119
+  gzipped). The 386 bytes more are the fifth key of defaults() and the version string
+  "1.0.0" in place of "0.4.0". 34.6% of the 500,000-byte budget.
+
+3. History out of the comments (ruling 8)
+-----------------------------------------
+
+  Pattern (extended regular expression, over include/, src/, tests/, wasm/, bench/,
+  CMakeLists.txt and .github/; third_party/ excluded; two false positives, the JSON key
+  "S0" in tests/test_implied_vol.cpp and wasm/smoke.test.mjs, filtered):
+
+    \b(T[0-5]a?|L[0-6]|L4[ab]|S1?[0-9]|P[1-8]|I[0-9]{1,2}|A[1-6]|F[0-9]{1,2}|R[1-9]|B[0-9])\b|[Tt]ollgate|ruling|[Mm]ilestone|\breview|audit|constitution|[Rr]oadmap|[Tt]ech-decision
+
+  Milestone ids (T0–T5, T3a, L0–L6, S1–S11, P1–P2), tollgate, review and audit,
+  constitution ids (I1–I22, P1–P8, A1–A6) and the word constitution, the rulings' ids
+  (F1–F11, R1–R9), tech-decision ids (B1–B7), and the roadmap named as an authority.
+
+  On main (74987c7):
+
+    include           16 lines in  8 files
+    src                0 lines in  0 files
+    tests             27 lines in 11 files
+    wasm               1 lines in  1 files
+    bench              0 lines in  0 files
+    CMakeLists.txt     1 lines in  1 files
+    .github            3 lines in  1 files
+
+
+  The owner's grep found 14 lines in 6 files under include/ and src/, 25 in 11 test files,
+  one in CMakeLists.txt and two in ci.yml. This pattern is wider: it also matches the
+  tech-decision B-ids (four lines under include/, one in ci.yml), the roadmap named without
+  an id (include/touchstone/implied_vol.hpp:47, tests/test_implied_vol.cpp:3,
+  wasm/smoke.test.mjs:41) and the word constitution without an id (rng.hpp:10). The owner's
+  pattern was not recorded, so the counts are not reconciled line by line. Every line this
+  pattern finds on main is below, and none remains on the branch:
+
+    .github/workflows/ci.yml:1:# The library's gate. Tech-decision B7: native build and tests on Linux with
+    .github/workflows/ci.yml:97:      # T0 proved the generator reproducible by hand. This is that proof as a
+    .github/workflows/ci.yml:107:      # T3's American reference. Re-derived by an independent lattice written in
+    CMakeLists.txt:37:# Tech-decision B1: GCC and Clang both green, warnings as errors. Those two are
+    include/touchstone/black_scholes.hpp:3:// Scope is the constitution's I21 — European vanillas, one underlying, constant
+    include/touchstone/bump_greeks.hpp:3:// Tech-decision B6 puts analytic and bump-and-revalue Greeks in v1, and this is
+    include/touchstone/implied_vol.hpp:6:// that two strikes can be compared. Tech-decision B3 fixes the method: Newton,
+    include/touchstone/implied_vol.hpp:47:    /// the 1e-8 round trip the roadmap asks for.
+    include/touchstone/monte_carlo.hpp:3:// Constitution I20 wants closed form, Monte Carlo and finite differences to
+    include/touchstone/monte_carlo.hpp:4:// agree. T1 built the first; this is the second, and the point of it is not
+    include/touchstone/monte_carlo.hpp:29:    /// Seed for `Xoshiro128SS`. Same seed, same result, always (I6).
+    include/touchstone/monte_carlo.hpp:78:    double price_standard_error{};   ///< Standard error of that mean. Never hidden (I20).
+    include/touchstone/normal.hpp:3:// Shared by everything that follows: the closed form here at T1, the inverse
+    include/touchstone/normal.hpp:4:// transform the Monte Carlo will need at T2, the implied-vol solver at T3.
+    include/touchstone/normal.hpp:22:/// The route is `std::erfc` by decision B3, and the reason is the left tail.
+    include/touchstone/pde.hpp:4:// Constitution I20 wants closed form, Monte Carlo and finite differences to
+    include/touchstone/pde.hpp:5:// agree. T1 built the first and T2 the second; this is the third, and it is the
+    include/touchstone/rng.hpp:1:// The shared random-number generator, frozen by `docs/rng.md` (constitution I16).
+    include/touchstone/rng.hpp:10:// Nothing here may be changed without amending the constitution: a different
+    include/touchstone/tridiagonal.hpp:3:// Tech-decision B3 puts a Thomas solver at the centre of the Crank-Nicolson
+    tests/rng_fixture.hpp:2:// implementation produced at L0, which this library must reproduce.
+    tests/test_associations.cpp:3:// T1 made the promise: an input this library accepts never produces a NaN,
+    tests/test_associations.cpp:5:// with and so defeats the check that was meant to catch it. T2's review found
+    tests/test_associations.cpp:8:// T3. T3 found it was not merely fragile: one input got through.
+    tests/test_associations.cpp:51:    TEST_CASE("the input T1 accepted and returned a NaN for")
+    tests/test_associations.cpp:55:        // T1's drift check was `(r - q + 0.5 sigma^2) T`. The bracket is exactly
+    tests/test_associations.cpp:85:    TEST_CASE("the volatility band T2 relies on is still priced")
+    tests/test_associations.cpp:91:        // comes first, and `sigma sqrt(T)` is 1.6e74. T2's Monte Carlo prices
+    tests/test_associations.cpp:189:        // and that factor is the whole of T2's accepted band.
+    tests/test_associations.cpp:217:        // file must still be one of them, or T1's evidence describes a library
+    tests/test_bump_greeks.cpp:3:// This is where the two halves of constitution I20's second sentence meet:
+    tests/test_closed_form.cpp:63:        CHECK(file.tolerance_cases == 1e-10);   // the roadmap's stated T1 figure
+    tests/test_euler.cpp:15:// claims are made on the site and both have to be tested here (I1).
+    tests/test_implied_vol.cpp:3:// The roadmap's exit criterion for this is one sentence: "implied vol
+    tests/test_limits.cpp:1:// The two limits the roadmap names for T1: sigma -> 0 and T -> 0.
+    tests/test_limits.cpp:5:// answers, and T1 tests them directly rather than against this file." So this
+    tests/test_limits.cpp:471:        // Each of these came from an adversarial review of this library's first
+    tests/test_monte_carlo.cpp:223:        // Constitution I6. Bit-identical, not close: nothing here is allowed to
+    tests/test_monte_carlo.cpp:633:        // T1 made this a promise for the closed form: accepting an input means
+    tests/test_pde.cpp:412:        // second is what a reader comparing against the golden file the way T1
+    tests/test_rng.cpp:6:// `touchstone-learn`'s TypeScript at L0, and if the numbers below stop matching
+    tests/test_rng.cpp:200:        // Constitution I6, in its simplest form.
+    tests/test_three_way.cpp:1:// Constitution I20, stated as one test.
+    tests/test_three_way.cpp:19://     T2 established, restated here on the same rows the grid sees.
+    tests/test_three_way.cpp:22://   - **Analytic vs bump Greeks:** the second sentence of I20, on the same rows.
+    tests/test_three_way.cpp:70:/// zero and a standard error of zero, and their ratio is not a z-score. T2
+    tests/test_three_way.cpp:159:        report << "I20 on " << (rows + skipped) << " rows of the golden grid (" << skipped
+    wasm/smoke.test.mjs:41:/** The one golden row the roadmap's criterion names, chosen by label so it reads as itself. */
+
+
+  On this branch's head:
+
+    include            0 lines in  0 files
+    src                0 lines in  0 files
+    tests              0 lines in  0 files
+    wasm               0 lines in  0 files
+    bench              0 lines in  0 files
+    CMakeLists.txt     0 lines in  0 files
+    .github            0 lines in  0 files
+
+
+  What was kept, and why it is not history:
+    - References to the tutorial, its pages and its demos (page 2.11, D4, D6, D9, the site's
+      paths.ts), as T3a left them: they say what a function is for, not when it was built.
+    - tests/rng_fixture.hpp: "docs/rng.md section 5 says regenerating it is an amendment
+      rather than maintenance" reports what the specification says about its own fixture,
+      in its own word; it names no id.
+    - golden/SCHEMA.md still says "T1 tests them directly"; it is outside the five places
+      ruling 8 and the brief name, and tests/test_limits.cpp now quotes it only up to the
+      sentence before.
+  Each removed text is recorded in ARCHITECTURE.md section 10.3, with T3a's.
+
+4. The three pairs in pde.hpp: the overload probe
+-------------------------------------------------
+
+  require_valid, crank_nicolson and crank_nicolson_surface are each declared for
+  EuropeanVanilla and AmericanVanilla and forward to one template in src/pde.cpp. The probe
+  mirrors the declarations that matter — bump_greeks.hpp's three-argument require_valid
+  taking BumpSizes, and pde.hpp's pair — and calls require_valid(EuropeanVanilla{},
+  BlackScholesMarket{}, {}) with the pair as it is and with the pair folded into one
+  template:
+
+    // What `require_valid(option, market, {})` resolves to when bump_greeks.hpp's
+    // overload is visible, with pde.hpp's pair as it is (FOLDED undefined) and as
+    // one template (FOLDED defined). Mirrors the declarations only.
+    #include <cstdio>
+    enum class Exercise { European, American };
+    template <Exercise E> struct Vanilla { double strike{}, expiry_years{}; int type{}; };
+    using EuropeanVanilla = Vanilla<Exercise::European>;
+    using AmericanVanilla = Vanilla<Exercise::American>;
+    struct BlackScholesMarket { double spot{}, vol{}, rate{}, dividend_yield{}; };
+    struct PdeSettings { unsigned long space_intervals{1024}; };
+    struct BumpSizes { double spot_relative{1e-6}; };
+
+    // bump_greeks.hpp
+    void require_valid(const EuropeanVanilla&, const BlackScholesMarket&, const BumpSizes&) { std::puts("bump_greeks: BumpSizes"); }
+    // pde.hpp
+    #ifdef FOLDED
+    template <Exercise E>
+    void require_valid(const Vanilla<E>&, const BlackScholesMarket&, const PdeSettings&) { std::puts("pde: PdeSettings"); }
+    #else
+    void require_valid(const EuropeanVanilla&, const BlackScholesMarket&, const PdeSettings&) { std::puts("pde: PdeSettings"); }
+    void require_valid(const AmericanVanilla&, const BlackScholesMarket&, const PdeSettings&) { std::puts("pde: PdeSettings"); }
+    #endif
+
+    int main()
+    {
+        require_valid(EuropeanVanilla{}, BlackScholesMarket{}, {});
+    }
+
+  As the header is (two overloads), g++ 15.2.0 -std=c++20:
+
+    fold.cpp:26:18: error: call of overloaded 'require_valid(EuropeanVanilla,
+    BlackScholesMarket, <brace-enclosed initializer list>)' is ambiguous
+
+  Folded (-DFOLDED), g++ 15.2.0 and clang++ 22.1.7 both compile it and print:
+
+    bump_greeks: BumpSizes
+
+  A non-template beats a template specialisation when their conversion sequences tie, and
+  a braced {} converts to either settings struct by aggregate initialisation. So the fold
+  turns a call that does not compile into one that validates bump sizes where a grid was
+  meant. tests/test_contract.cpp, test_three_way.cpp and wasm/binding.cpp include both
+  headers today. Decision in ARCHITECTURE.md section 8: all three pairs stay; no call site
+  changed. The folded crank_nicolson and crank_nicolson_surface were not built against the
+  suite.
+
+5. Structural facts ARCHITECTURE.md states
+------------------------------------------
+
+  No inheritance or virtual function (grep -rnE '\bvirtual\b|class \w+ *: *(public|private|
+  protected)|struct \w+ *: *(public|private)' include src): no hit.
+
+  Every #include under include/ and src/ that is not <touchstone/...>:
+
+    #include <algorithm>
+    #include <array>
+    #include <cmath>
+    #include <concepts>
+    #include <cstddef>
+    #include <cstdint>
+    #include <limits>
+    #include <span>
+    #include <stdexcept>
+    #include <string>
+    #include <type_traits>
+    #include <utility>
+    #include <vector>
+
+6. No .clang-format (F6)
+------------------------
+
+  The brief's condition: add one only if clang-format then changes nothing in include/,
+  src/, tests/ and wasm/ (bench/ included here too: 59 files). Four configurations, each
+  run with clang-format 22.1.7 -i on a copy of the tree, counting lines rewritten:
+
+    Google-based, ColumnLimit 100, the observed brace and pointer styles   523 in 42 files
+    the same, ColumnLimit 0 (keep the input's line breaks)                 133 in 23 files
+    + AlignTrailingComments: Leave, SortIncludes: Never, and three more     86 in 14 files
+    + AllowShortFunctionsOnASingleLine: All                                  46 in 14 files
+
+  (The commit that added .editorconfig says 135 in 24; that count was taken before the test
+  comments were reflowed and included the harness's first draft. The figures above are at
+  the head.)
+
+  What the last 46 are: hand-aligned columns — the AS241 coefficient tables in normal.hpp,
+  two brace-initialiser rows in tests — and continuation lines aligned one column away from
+  where clang-format puts them; no option found keeps them. Reaching zero would take
+  "// clang-format off" markers or a reformat, and the brief rules out a reformatting
+  commit. So no .clang-format. The best configuration, for the record:
+
+    BasedOnStyle: Google
+    Language: Cpp
+    Standard: c++20
+    ColumnLimit: 0
+    IndentWidth: 4
+    ContinuationIndentWidth: 4
+    AccessModifierOffset: -4
+    BreakBeforeBraces: Custom
+    BraceWrapping:
+      AfterFunction: true
+      AfterClass: false
+      AfterStruct: false
+      AfterEnum: false
+      AfterNamespace: false
+      AfterControlStatement: Never
+      BeforeElse: false
+      BeforeCatch: false
+      BeforeLambdaBody: false
+      SplitEmptyFunction: false
+    AllowShortFunctionsOnASingleLine: All
+    AllowShortIfStatementsOnASingleLine: Never
+    AllowShortLoopsOnASingleLine: false
+    AllowShortBlocksOnASingleLine: Empty
+    AllowShortLambdasOnASingleLine: All
+    BreakBeforeBinaryOperators: NonAssignment
+    BreakConstructorInitializers: BeforeColon
+    PackConstructorInitializers: Never
+    DerivePointerAlignment: false
+    PointerAlignment: Left
+    SpacesBeforeTrailingComments: 2
+    ReflowComments: false
+    SortIncludes: Never
+    IncludeBlocks: Preserve
+    NamespaceIndentation: None
+    FixNamespaceComments: true
+    AlignTrailingComments:
+      Kind: Leave
+    AlignAfterOpenBracket: Align
+    BinPackArguments: true
+    BinPackParameters: true
+    AllowAllParametersOfDeclarationOnNextLine: false
+    AlwaysBreakTemplateDeclarations: Yes
+    IndentCaseLabels: true
+    AlignArrayOfStructures: None
+    AllowShortCaseLabelsOnASingleLine: false
+    BreakStringLiterals: false
+    AlignOperands: Align
+    AllowShortEnumsOnASingleLine: true
+
+  Its whole remaining diff, unified with no context:
+
+    --- include/touchstone/normal.hpp
+    +++ C:/Users/garet/AppData/Local/Temp/claude/196d1aebf155b9ec/43831bbb-64c4-4f32-860a-084ad05befe9/scratchpad/cf/tree/include/touchstone/normal.hpp
+    -        1.0,                      4.2313330701600911252e+1, 6.8718700749205790830e+2,
+    +        1.0, 4.2313330701600911252e+1, 6.8718700749205790830e+2,
+    -        1.0,                       2.05319162663775882187e+0, 1.67638483018380384940e+0,
+    +        1.0, 2.05319162663775882187e+0, 1.67638483018380384940e+0,
+    -        1.0,                       5.99832206555887937690e-1, 1.36929880922735805310e-1,
+    +        1.0, 5.99832206555887937690e-1, 1.36929880922735805310e-1,
+    --- src/implied_vol.cpp
+    +++ C:/Users/garet/AppData/Local/Temp/claude/196d1aebf155b9ec/43831bbb-64c4-4f32-860a-084ad05befe9/scratchpad/cf/tree/src/implied_vol.cpp
+    -                                             : quote.discounted_strike();
+    +                                            : quote.discounted_strike();
+    --- tests/american_file.hpp
+    +++ C:/Users/garet/AppData/Local/Temp/claude/196d1aebf155b9ec/43831bbb-64c4-4f32-860a-084ad05befe9/scratchpad/cf/tree/tests/american_file.hpp
+    -
+    --- tests/rng_fixture.cpp
+    +++ C:/Users/garet/AppData/Local/Temp/claude/196d1aebf155b9ec/43831bbb-64c4-4f32-860a-084ad05befe9/scratchpad/cf/tree/tests/rng_fixture.cpp
+    -                                     + "\" — the fixture describes a different generator than "
+    -                                       "docs/rng.md specifies");
+    +                                     +
+    +                                     "\" — the fixture describes a different generator than "
+    +                                     "docs/rng.md specifies");
+    --- tests/test_american.cpp
+    +++ C:/Users/garet/AppData/Local/Temp/claude/196d1aebf155b9ec/43831bbb-64c4-4f32-860a-084ad05befe9/scratchpad/cf/tree/tests/test_american.cpp
+    -using touchstone::BlackScholesMarket;
+    +using touchstone::BlackScholesMarket;
+    -            const Key key{row.market.spot,  row.option.strike,        row.market.vol,
+    -                          row.market.rate,  row.market.dividend_yield, row.expiry_days};
+    +            const Key key{row.market.spot, row.option.strike, row.market.vol,
+    +                          row.market.rate, row.market.dividend_yield, row.expiry_days};
+    --- tests/test_closed_form.cpp
+    +++ C:/Users/garet/AppData/Local/Temp/claude/196d1aebf155b9ec/43831bbb-64c4-4f32-860a-084ad05befe9/scratchpad/cf/tree/tests/test_closed_form.cpp
+    -            {"the escaped NaN, refused by its carry", {100.0, 1e10, OptionType::Call},
+    -             {100.0, std::sqrt(2e300), 0.0, 1e300}, false},
+    +            {"the escaped NaN, refused by its carry", {100.0, 1e10, OptionType::Call}, {100.0, std::sqrt(2e300), 0.0, 1e300}, false},
+    --- tests/test_contract.cpp
+    +++ C:/Users/garet/AppData/Local/Temp/claude/196d1aebf155b9ec/43831bbb-64c4-4f32-860a-084ad05befe9/scratchpad/cf/tree/tests/test_contract.cpp
+    -        MESSAGE("American contracts: refused at compile time by every entry point the concepts "
+    -                "in this file name, accepted by the grid and by payoff");
+    +        MESSAGE(
+    +            "American contracts: refused at compile time by every entry point the concepts "
+    +            "in this file name, accepted by the grid and by payoff");
+    --- tests/test_implied_vol.cpp
+    +++ C:/Users/garet/AppData/Local/Temp/claude/196d1aebf155b9ec/43831bbb-64c4-4f32-860a-084ad05befe9/scratchpad/cf/tree/tests/test_implied_vol.cpp
+    -                    case ImpliedVolMethod::Newton: ++by_newton; break;
+    -                    case ImpliedVolMethod::Brent: ++by_brent; break;
+    -                    case ImpliedVolMethod::Exact: ++at_zero; break;
+    +                    case ImpliedVolMethod::Newton:
+    +                        ++by_newton;
+    +                        break;
+    +                    case ImpliedVolMethod::Brent:
+    +                        ++by_brent;
+    +                        break;
+    +                    case ImpliedVolMethod::Exact:
+    +                        ++at_zero;
+    +                        break;
+    --- tests/test_limits.cpp
+    +++ C:/Users/garet/AppData/Local/Temp/claude/196d1aebf155b9ec/43831bbb-64c4-4f32-860a-084ad05befe9/scratchpad/cf/tree/tests/test_limits.cpp
+    -
+    -        const std::vector<double> spots{0.0,   1e-300, 1e-8, 0.5,   100.0,
+    -                                        1e12,  1e150,  1e300, 1.7e308};
+    +        const std::vector<double> spots{0.0, 1e-300, 1e-8, 0.5, 100.0,
+    +                                        1e12, 1e150, 1e300, 1.7e308};
+    -                                                         ? spot * std::exp(-market.dividend_yield
+    -                                                                           * expiry)
+    +                                                         ? spot * std::exp(-market.dividend_yield * expiry)
+    -
+    --- tests/test_monte_carlo.cpp
+    +++ C:/Users/garet/AppData/Local/Temp/claude/196d1aebf155b9ec/43831bbb-64c4-4f32-860a-084ad05befe9/scratchpad/cf/tree/tests/test_monte_carlo.cpp
+    -using touchstone::OptionType;
+    -using touchstone::Scheme;
+    -using touchstone::Xoshiro128SS;
+    +using touchstone::OptionType;
+    +using touchstone::Scheme;
+    +using touchstone::Xoshiro128SS;
+    -using touchstone::testing::Standardised;
+    +using touchstone::testing::Standardised;
+    --- tests/test_parity.cpp
+    +++ C:/Users/garet/AppData/Local/Temp/claude/196d1aebf155b9ec/43831bbb-64c4-4f32-860a-084ad05befe9/scratchpad/cf/tree/tests/test_parity.cpp
+    -
+    -
+    --- tests/test_paths.cpp
+    +++ C:/Users/garet/AppData/Local/Temp/claude/196d1aebf155b9ec/43831bbb-64c4-4f32-860a-084ad05befe9/scratchpad/cf/tree/tests/test_paths.cpp
+    -        MESSAGE("exact scheme against S_0 exp((mu - sigma^2/2) t + sigma W_t) on the same path: "
+    -                "worst relative difference "
+    -                << std::scientific << std::setprecision(3) << worst);
+    +        MESSAGE(
+    +            "exact scheme against S_0 exp((mu - sigma^2/2) t + sigma W_t) on the same path: "
+    +            "worst relative difference "
+    +            << std::scientific << std::setprecision(3) << worst);
+    --- tests/test_pde.cpp
+    +++ C:/Users/garet/AppData/Local/Temp/claude/196d1aebf155b9ec/43831bbb-64c4-4f32-860a-084ad05befe9/scratchpad/cf/tree/tests/test_pde.cpp
+    -                << " nodes within three total volatilities of the spot: worst scaled by "
+    -                << "max(V, S) " << std::scientific << std::setprecision(3) << worst);
+    +                                                            << " nodes within three total volatilities of the spot: worst scaled by "
+    +                                                            << "max(V, S) " << std::scientific << std::setprecision(3) << worst);
+    --- tests/test_rng.cpp
+    +++ C:/Users/garet/AppData/Local/Temp/claude/196d1aebf155b9ec/43831bbb-64c4-4f32-860a-084ad05befe9/scratchpad/cf/tree/tests/test_rng.cpp
+    -using touchstone::Xoshiro128SS;
+    +using touchstone::Xoshiro128SS;
+    --- tests/test_tridiagonal.cpp
+    +++ C:/Users/garet/AppData/Local/Temp/claude/196d1aebf155b9ec/43831bbb-64c4-4f32-860a-084ad05befe9/scratchpad/cf/tree/tests/test_tridiagonal.cpp
+    -    explicit Lcg(std::uint32_t seed) noexcept : state_(seed) {}
+    +    explicit Lcg(std::uint32_t seed) noexcept
+    +        : state_(seed)
+    +    {}
+    --- wasm/binding.cpp
+    +++ C:/Users/garet/AppData/Local/Temp/claude/196d1aebf155b9ec/43831bbb-64c4-4f32-860a-084ad05befe9/scratchpad/cf/tree/wasm/binding.cpp
+    -enum class Pricer { ClosedForm, CrankNicolson, MonteCarlo };
+    +enum class Pricer { ClosedForm,
+    +                    CrankNicolson,
+    +                    MonteCarlo };
+    -    M S::*member;
+    +    M S::* member;
+    -enum class Presence { Required, Optional };
+    +enum class Presence { Required,
+    +                      Optional };
+
+7. .editorconfig (F6)
+---------------------
+
+  Measured before it was written: per file type, over every tracked file (third_party/
+  measured separately), encoding, byte-order mark, final newline, CRLF in the working tree,
+  trailing whitespace, tabs, the indent unit, the longest line:
+
+    .cpp             files= 31 indent-unit=None longest= 121 at tests/test_monte_carlo.cpp:734 {}
+    .editorconfig    files=  1 indent-unit=None longest=  79 at .editorconfig:2 {}
+    .gitattributes   files=  1 indent-unit=None longest=  54 at .gitattributes:4 {'crlf-in-worktree': 1}
+    .gitignore       files=  1 indent-unit=None longest=  81 at .gitignore:10 {'crlf-in-worktree': 1}
+    .hpp             files= 28 indent-unit=None longest= 104 at include/touchstone/detail/grid_solver.hpp:54 {}
+    .html            files= 11 indent-unit=None longest=33816 at docs/evidence/S9/teaching-notes.html:426 {'crlf-in-worktree': 1, 'extra-final-blank': 1}
+    .js              files=  1 indent-unit=2 longest=  81 at wasm/errors.post.js:1 {'crlf-in-worktree': 1}
+    .json            files= 15 indent-unit=2 longest= 383 at golden/bs_vanilla.json:7307 {}
+    .lock            files=  1 indent-unit=4 longest= 340 at uv.lock:85 {'crlf-in-worktree': 1}
+    .md              files= 37 indent-unit=None longest= 773 at docs/evidence/T4/summary.md:137 {}
+    .mjs             files=  1 indent-unit=2 longest= 138 at wasm/smoke.test.mjs:197 {}
+    .py              files= 16 indent-unit=None longest= 337 at experiments/2_8_risk_neutral_pricing.py:483 {}
+    .python-version  files=  1 indent-unit=None longest=   4 at .python-version:1 {'crlf-in-worktree': 1}
+    .sh              files=  1 indent-unit=4 longest= 113 at wasm/build.sh:35 {}
+    .toml            files=  1 indent-unit=4 longest= 153 at pyproject.toml:4 {}
+    .txt             files= 25 indent-unit=None longest= 533 at docs/evidence/T2/tests.txt:593 {'trailing-ws-lines': 14}
+    .yml             files=  3 indent-unit=2 longest= 121 at .github/workflows/wasm.yml:28 {}
+    LICENSE          files=  1 indent-unit=None longest=  78 at LICENSE:12 {}
+
+  C++ and Python show no single unit because continuation lines are aligned to what they
+  continue. Of indented lines whose indent is not a multiple of the unit, how many continue
+  the line above or sit inside a comment:
+
+    ('.cpp', '.hpp'): 7900 indented lines; 500 not a multiple of 4; 497 of those continue the line above or sit inside a comment; others: ['src/bump_greeks.cpp:93:                            return price(contract, state);', 'src/bump_greeks.cpp:94:                        });', 'tests/test_monte_carlo.cpp:686:                                          {OptionType::Call, OptionType::Put}) {']
+    ('.py',): 6003 indented lines; 752 not a multiple of 4; 736 of those continue the line above or sit inside a comment; others: ["experiments/2_10_greeks.py:258:       dV_sum      Sum e^(-rt) (V_{i+1} - V_i)                       the option's actual ch", 'experiments/2_1_random_walks.py:5:   C1  Variance adds across independent steps: Var(S_n) = n * Var(step).', 'experiments/2_1_random_walks.py:15:       -> 0 for alpha > 1/2, exactly 1 at alpha = 1/2, -> infinity below.', 'experiments/2_2_brownian_motion.py:7:   C1  Independent Gaussian increments: W_t - W_s ~ N(0, t - s).', 'experiments/2_3_quadratic_variation.py:9:   C1  Sum (dW)^2 -> T. Paths are simulated on the finest grid (n = 10^6) and', "experiments/2_3_quadratic_variation.py:24:       Sum (df)^2 -> 0 like 1/n (it is 2 pi^2 / n: dt * integral of f'^2) while"]
+    ('.yml',): 211 indented lines; 0 not a multiple of 2; 0 of those continue the line above or sit inside a comment; others: []
+    ('.mjs', '.js'): 173 indented lines; 0 not a multiple of 2; 0 of those continue the line above or sit inside a comment; others: []
+    ('CMakeLists.txt', '.cmake'): 123 indented lines; 3 not a multiple of 4; 3 of those continue the line above or sit inside a comment; others: []
+    ('.sh',): 16 indented lines; 0 not a multiple of 4; 0 of those continue the line above or sit inside a comment; others: []
+
+  The three C++ exceptions are lambda bodies inside a call's arguments; the sixteen Python
+  ones are lines inside docstrings. Block indentation is 4 in C++, CMake, Python and shell,
+  2 in YAML, JSON and JavaScript. third_party/doctest/doctest.h has one line with trailing
+  whitespace, so the vendored headers get a section that tells an editor to leave them
+  alone. No max_line_length is stated: C++ lines run to 121 characters.
+
+  Checked after it was written, by applying each section to every tracked file as it is in
+  the index:
+
+    178 tracked files fall under a section; 0 failures
+
+  The property list does not change a file; no file was changed to meet it.
