@@ -226,7 +226,7 @@ module's frames in time kills it; an American option is an `exercise` field that
 grid's entry points accept; a seed or count that is not a non-negative integer is refused.
 `crank_nicolson_surface` joined the library here, so that the binding only translates.
 
-### ☐ T5 — Architecture write-up and going public
+### ☑ T5 — Architecture write-up and going public
 **Entry:** T4.
 **Deliverables:** `ARCHITECTURE.md` as the golden source for the portal page, in the
 DepthCharge style, carrying measured timings for the five entry points with the machine they
@@ -235,6 +235,13 @@ README final; `v1.0.0` tag.
 **Exit:** every claim in `ARCHITECTURE.md` maps to a test or a file; CI green; tag pushed.
 **Tollgate:** F — bounded-claims review, as for Temper's page. **Executor:** Opus.
 **Size:** one session. Unlocks P2.
+**Passed** 2026-11-14 — evidence: `docs/evidence/T5/`, with the verdict in `verdict.md`.
+Released as `v1.0.0`. Fable's verdict was PASS WITH DEFECTS: nine, all wording in the README
+and in header comments, all closed before the merge. The tollgate was the Fable session that
+had audited T3a and T4, not a fresh one as §6 asks; the owner accepted it. The session's
+decisions stand: the three exercise-style pairs in `pde.hpp` stay as overloads, since a
+template would let an untyped `{}` settle silently on the bump sizes; no `.clang-format`; a
+comment that cites the roadmap or the constitution as its authority counts as history.
 
 ## Track P — Portal (portfolio repo)
 
