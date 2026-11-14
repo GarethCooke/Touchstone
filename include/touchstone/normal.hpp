@@ -61,9 +61,12 @@ inline constexpr double uniform_resolution = 0x1p-53;
 /// TypeScript and the Python then land on the same value to within a few ulps.
 /// Inverting `erfc` instead would put a libm function at the centre of the
 /// shared generator, and libm is exactly where V8 and glibc part company.
-/// Accurate to about 1e-16 relative over the whole range, which
-/// `tests/test_rng.cpp` re-establishes here by round-tripping through
-/// `norm_cdf` — the check `docs/rng.md` §7 asks the C++ port to repeat.
+/// `docs/rng.md` §4 gives its accuracy as about 1e-16 relative over the whole
+/// range. `tests/test_rng.cpp` makes the check §7 asks the C++ port to repeat,
+/// round-tripping through `norm_cdf` from p = 1e-300 to 0.5, and asserts p comes
+/// back within (4 + 4x^2) machine epsilons; the error that implies in x reaches
+/// 3.1 ulps in the far tail, where `log`'s own half-ulp arrives through
+/// `sqrt(-log p)`.
 ///
 /// The domain is `[0, 1)`, which is exactly the range of
 /// `Xoshiro128SS::next_uniform`.

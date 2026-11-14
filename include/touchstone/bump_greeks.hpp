@@ -33,27 +33,30 @@
 // property of the arithmetic, not of the option, and they should be visible
 // rather than buried.
 //
-// The defaults are not the theory's numbers but measured ones. Each bump was
-// swept over four decades against the analytic Greek across a grid of 864
-// options — `tests/test_bump_greeks.cpp` reruns a coarser version of that sweep
-// and asserts the shape — and set to the size where the worst scaled error over
-// the grid was smallest. The two errors are visible on either side of each
-// optimum: below it the worst error grows as the bump shrinks, above it as
-// `h^2`. The floors reached are 3e-10 for delta, 2e-8 for gamma and 1e-8 for
-// vega, which is roughly the `eps^(2/3)` and `eps^(1/2)` the analysis predicts.
+// The defaults are not the theory's numbers but measured ones: each is the size
+// at which the worst scaled error against the analytic Greek is smallest.
+// `tests/test_bump_greeks.cpp` holds that for the delta, gamma, vega and rho
+// bumps, sweeping each from 1e-9 to 1e-2 over nine options and asserting that
+// the default is the minimum and that both ends are more than ten times worse.
+// The two errors are visible on either side of each optimum: below it the worst
+// error grows as the bump shrinks, above it as `h^2`. The floors that sweep
+// reports are 1e-10 for delta, 3e-9 for gamma and 2e-10 for vega, each within an
+// order of magnitude of the `eps^(2/3)` (a first difference) or `eps^(1/2)` (the
+// second) the analysis predicts.
 //
 // **These sizes are for a pricer accurate to machine precision.** A pricer whose
-// own error is `d` — a finite-difference grid at around 1e-6 relative, a Monte
-// Carlo at 1e-3 — has that in place of `eps` in the balance above, so its best
-// bump is `d^(1/3)` rather than `eps^(1/3)`: several hundred times larger for the
-// grid, and larger again for the Monte Carlo.
+// own error is `d` — a finite-difference grid, a Monte Carlo — has that in place
+// of `eps` in the balance above, so its best bump is `d^(1/3)` rather than
+// `eps^(1/3)`, larger by `(d / eps)^(1/3)`: already about 360 times at a `d` of
+// 1e-8.
 //
 // Where that bites is the **second** difference, and only there. A first
 // difference divides by `h`, so a pricer whose error varies smoothly with the
 // input — which the grid's does, because it rebuilds itself around each bumped
 // spot — loses almost nothing: the same bias appears in both legs and subtracts
-// out, and `tests/test_bump_greeks.cpp` measures delta off the grid as flat to
-// within a factor of five across four decades of bump size. Gamma divides by
+// out, and `tests/test_bump_greeks.cpp` measures delta off the grid at the
+// default bump and at one a thousand times wider, and asserts the two errors
+// are within a factor of ten of each other. Gamma divides by
 // `h^2`, and there the same measurement shows a relative error of 26,000 at a
 // bump of 1e-9, falling to 2e-5 at 1e-2. Nine orders of magnitude, on the same
 // pricer, from the bump size alone.

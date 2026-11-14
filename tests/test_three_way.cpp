@@ -7,7 +7,9 @@
 // a different question: two methods can each be within tolerance of an oracle
 // and still disagree with each other, and a bug in the oracle's *interpretation*
 // — a discount factor applied twice, a dividend yield read as a rate — is
-// invisible until three implementations that share no arithmetic are compared.
+// invisible until three methods are compared. They are different methods, not
+// wholly separate code: `ARCHITECTURE.md` §1 lists what they share, and a
+// mistake in a shared piece shows only against a method that does not share it.
 //
 // What each leg is compared in:
 //

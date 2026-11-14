@@ -5,10 +5,12 @@
 // is the third of the three and the least like the others. The closed form
 // evaluates a formula. The Monte Carlo samples the terminal distribution. This
 // solves the equation the option's value satisfies, on a grid, from expiry
-// backwards — so it never uses `N(d)`, never draws a random number, and shares
-// no arithmetic with either of them beyond the scale functions of
-// `touchstone/detail/scales.hpp`. Three methods that agree here have agreed
-// about the model rather than about one implementation of it.
+// backwards — so it never uses `N(d)` and never draws a random number. What it
+// does share is named: the scale functions of `touchstone/detail/scales.hpp`,
+// through which all three form their scalars, and the `payoff` of
+// `touchstone/contract.hpp`, which the Monte Carlo uses too. Outside those,
+// three methods that agree here have agreed about the model rather than about
+// one implementation of it.
 //
 // It is also the only one of the three that can price an option the holder may
 // exercise early, because early exercise is a constraint on the value function
@@ -50,16 +52,18 @@ namespace touchstone {
 
 /// The grid, and how it is stepped.
 ///
-/// The defaults are a grid good enough for one option priced once: on the
-/// golden grid they hold every row to 3e-4 of the underlying's own scale and the
-/// typical row to far less, which `tests/test_pde.cpp` measures rather than
-/// claims. What one call at the defaults took, on one machine, is in
-/// `ARCHITECTURE.md` with the machine. They are not a
-/// recommendation for every input — a grid is a resolution, and what resolution
-/// is enough depends on the option — and the sweeps in the tests deliberately
-/// run coarser ones and state what those achieve. `PdeResult` reports the grid
-/// that was actually built, and `PdeResult::resolution_in_sigmas` reports the
-/// only number about it that predicts the error.
+/// The defaults are a grid good enough for one option priced once.
+/// `tests/test_pde.cpp` holds the golden grid's 7,200 rows at a coarser one,
+/// 512 intervals by 256 steps, to 2e-4 of the underlying's own scale in price,
+/// and `tests/test_three_way.cpp` holds 136 of those rows at the defaults' own
+/// 1,024 by 512 to 5e-5. What one call at the defaults took, on one machine, is
+/// in `ARCHITECTURE.md` with the machine.
+/// They are not a recommendation for every input — a grid is a resolution, and
+/// what resolution is enough depends on the option — and the sweeps in the
+/// tests deliberately run coarser ones and state what those achieve.
+/// `PdeResult` reports the grid that was actually built, and
+/// `PdeResult::resolution_in_sigmas` reports the only number about it that
+/// predicts the error.
 struct PdeSettings {
     /// Intervals across the log-spot domain, before it is stretched to put the
     /// spot exactly on a node. `PdeResult::space_intervals` is what was used.

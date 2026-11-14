@@ -4,16 +4,19 @@ A C++20 pricing and risk library for European vanilla options. Version 1.0.0: co
 its v1 scope, and built for the browser as a WebAssembly module.
 
 It prices European calls and puts on one underlying, with a constant rate and volatility and
-a dividend yield, three independent ways:
+a dividend yield, three ways, independent in method though not in every line
+([`ARCHITECTURE.md`](ARCHITECTURE.md) §1 names what they share):
 
 - the Black-Scholes-Merton closed form and its six analytic Greeks, agreeing with QuantLib's
   committed reference values to better than 3e-13 on the 7200-row grid and to 1.7e-11 on the
   34-row edge block (scaled errors; the file's tolerances are 1e-10 and 1e-8);
 - Monte Carlo on the shared random-number generator, exact and Euler-Maruyama, with
   antithetics, a pathwise delta and its standard error, held to the closed form in units of
-  that standard error across the golden file's rows;
-- Crank-Nicolson on a log-spot grid, held to QuantLib's values on the same rows, which also
-  prices the American contract.
+  that standard error on the 6,470 of the golden file's 7,234 rows where enough paths finish
+  in the money to score it (the other 764 are too rare to score);
+- Crank-Nicolson on a log-spot grid, held to QuantLib's values on the 7,200-row grid at 512
+  space intervals by 256 time steps, coarser than its defaults (the 34-row edge block is
+  reported, not held), and also pricing the American contract.
 
 The three are also compared side by side on 136 rows of the grid, and analytic Greeks against
 bumped ones.

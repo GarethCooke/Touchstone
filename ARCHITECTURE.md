@@ -27,13 +27,13 @@ backend; moving them onto the WebAssembly build is the tutorial's milestone L5, 
 
 **What is claimed.** That the closed form agrees with QuantLib's reference values on every
 row of the committed reference file, and the grid on every row of its 7,200-row main block
-at a stated resolution; that the Monte Carlo agrees with the closed form in units of its own
-standard error on the rows where enough paths finish in the money to score it; that the
-three agree side by side on 136 of the rows; all within tolerances the tests state and
-assert. That an input the closed form, the Monte Carlo or the path functions accept never
-produces a NaN. That a seed draws the same numbers here as the tutorial's TypeScript
-generator recorded in the committed fixture. And the timings in §7, for one machine on one
-date.
+at 512 space intervals by 256 time steps, coarser than its defaults; that the Monte Carlo
+agrees with the closed form in units of its own standard error on the rows where enough
+paths finish in the money to score it; that the three agree side by side on 136 of the rows;
+all within tolerances the tests state and assert. That an input the closed form, the Monte
+Carlo or the path functions accept never produces a NaN. That a seed draws the same numbers
+here as the tutorial's TypeScript generator recorded in the committed fixture. And the
+timings in §7, for one machine on one date.
 
 **What is not.** The claim is never that Touchstone is fast, or faster than anything: §7 is
 a measurement on one machine, not a comparison. Nothing is claimed for MSVC, which CI does
@@ -355,6 +355,15 @@ Each has an evidence pack under `docs/evidence/<milestone>/`.
   and that the tutorial's demos already run on the WebAssembly build — and 26 needed a
   narrower wording or a better citation. Each was corrected before 1.0.0;
   `docs/evidence/T5/claims.md` records them.
+- **T5 tollgate.** Fable passed T5 with defects, all of them wording: the claims the check
+  had narrowed here still stood unnarrowed in the README's opening list and in the file
+  comments of `pde.hpp` and `monte_carlo.hpp`, and two settings comments gave figures
+  nothing held. `MonteCarloSettings` promised about a cent of standard error at the
+  defaults, where §7's option measures 0.077; `PdeSettings` said the suite held every golden
+  row to 3e-4 at the defaults, where the suite runs the defaults on 136 rows and the whole
+  grid only at a coarser resolution. A scan for more of both kinds found them in
+  `normal.hpp`, `bump_greeks.hpp` and three test files. All were corrected before 1.0.0;
+  `docs/evidence/T5/tollgate.md` lists each.
 
 ### 10.3 What the comments used to say
 

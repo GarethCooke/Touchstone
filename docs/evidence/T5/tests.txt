@@ -536,7 +536,7 @@ T5 · test evidence
 
     Run 43543357272 on 8f5b77f, the last commit to touch anything the build, the tests or the
     workflows read (the commits after it change only docs/evidence/T5/), ubuntu-24.04: all
-    seven jobs green. Run 43541849034 on a83dfd3, before the claims check, was green as well.
+    six jobs green. Run 43541849034 on a83dfd3, before the claims check, was green as well.
 
       Job                                    Result                                        Time
       gcc                                    g++ 13.3.0, -Werror; 18/18 ctest entries      159 s

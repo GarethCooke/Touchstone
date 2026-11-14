@@ -8,7 +8,9 @@ and the cited file is where it can be read. Paths are from the repository root; 
 are at this branch's head and are given only where a file is long.
 
 The last section records the independent check of every row: who made it, what it found and
-what changed.
+what changed. The section before it maps what changed after the T5 tollgate: the sentences
+added to `ARCHITECTURE.md`, and the README and comment sentences the tollgate's defects and
+the scan that followed them rewrote.
 
 ## §0 Status, §1 What this is
 
@@ -21,7 +23,7 @@ what changed.
 | 5 | Implied volatility by two solvers; Greeks by bumping any pricer; Brownian and GBM paths from a frozen generator. | `include/touchstone/implied_vol.hpp`; `bump_greeks.hpp` (`VanillaPricer`); `paths.hpp`; `rng.hpp`, `docs/rng.md` | Source |
 | 6 | One half of a pair with learn.garethcooke.com, whose demos are to run on this library compiled to WebAssembly; at 1.0.0 they run on a TypeScript backend, and moving them is L5, not yet run. | `ROADMAP.md` (L1 "on the TypeScript backend"; L5 unticked); `CONSTITUTION.md` I15 (A6); `wasm/binding.cpp` file comment | Source (programme documents; the site is not in this repository) |
 | 7 | The closed form agrees with QuantLib's reference values on every row of the committed reference file (7,200 grid rows and 34 edge rows) within the tests' asserted tolerances. | `tests/test_closed_form.cpp` against `golden/bs_vanilla.json` (1e-10 grid, 1e-8 edge block; row counts asserted) | Asserted; worst 2.841e-13 (grid), 1.619e-11 (edge) reported in `tests.txt` §1 |
-| 8 | The grid agrees with QuantLib's reference values on every row of the 7,200-row main block at a stated resolution. | `tests/test_pde.cpp` ("golden grid by Crank-Nicolson", 7,200 rows at 512 × 256; the edge block is only asserted to price more than 20 of 34) | Asserted |
+| 8 | The grid agrees with QuantLib's reference values on every row of the 7,200-row main block at 512 space intervals by 256 time steps, coarser than its defaults. (Reworded after the tollgate: it said "at a stated resolution" and stated none.) | `tests/test_pde.cpp` ("golden grid by Crank-Nicolson", 7,200 rows at 512 × 256; the edge block is only asserted to price more than 20 of 34) | Asserted |
 | 9 | The Monte Carlo agrees with the closed form in units of its own standard error on the rows where enough paths finish in the money to score it. | `tests/test_monte_carlo.cpp` ("the golden grid, priced by Monte Carlo": 6,147 rows scored at 32,768 paths, worst \|z\| 3.559 against a bound of 5.648; 323 more re-run at 1,048,576; 764 too rare to score, 630 of them priced at exactly zero) | Asserted on the scored rows; the rest reported |
 | 10 | The three agree side by side on 136 of the rows within stated, asserted tolerances. | `tests/test_three_way.cpp` (136 rows; grid and Monte Carlo each against the closed form, Monte Carlo scored on 119) | Asserted (each against the closed form; grid against Monte Carlo by implication, as the test states) |
 | 11 | An input the closed form, the Monte Carlo or the path functions accept never produces a NaN. | See 85 | Asserted |
@@ -193,7 +195,7 @@ what changed.
 
 | # | Claim | Held by | How |
 | --- | --- | --- | --- |
-| 130 | Status: every claim is listed, numbered, in this file. | This file, rows 1–138 | Source |
+| 130 | Status: every claim is listed, numbered, in this file. | This file, rows 1–142 | Source |
 | 131 | Touchstone is a C++20 library. | `CMakeLists.txt` (`CMAKE_CXX_STANDARD 20`, required, no extensions) | Source |
 | 132 | The binding is an embind binding. | `wasm/CMakeLists.txt` (`-lembind`); `wasm/binding.cpp` (`emscripten/bind.h`) | Source |
 | 133 | Scaling Greeks for display is the caller's. | `include/touchstone/black_scholes.hpp` (file comment); `PriceAndGreeks` units | Source |
@@ -202,6 +204,35 @@ what changed.
 | 136 | Each milestone has an evidence pack under `docs/evidence/<milestone>/`. | `docs/evidence/T0/` … `T5/` | Source |
 | 137 | §11: first version 2026-11-14, with 1.0.0. | This branch's history | Source |
 | 138 | Each claim corrected after the check is worded as the source holds it. | The section below | Source |
+
+## After the tollgate
+
+The T5 tollgate (Fable, PASS WITH DEFECTS) found five places where a claim the check had
+narrowed here still stood unnarrowed, or a figure stood with nothing holding it. Rows
+139–142 are the sentences this added to `ARCHITECTURE.md`; row 8 above was reworded.
+Rows 143–155 are the sentences rewritten outside it, in the README and in comments, by the
+five defects and by the scan for more of the kind (`tollgate.md` §2 lists each with its old
+text). Line references are at this branch's head.
+
+| # | Claim | Held by | How |
+| --- | --- | --- | --- |
+| 139 | §10.2: Fable passed T5 with defects, all of them wording; claims the check had narrowed still stood unnarrowed in the README's opening list and the file comments of `pde.hpp` and `monte_carlo.hpp`, and two settings comments gave figures nothing held. | The tollgate's verdict (the owner's message of 2026-11-14, quoted in `tollgate.md` §1); `git show 7110c84:README.md`, `7110c84:include/touchstone/pde.hpp`, `7110c84:include/touchstone/monte_carlo.hpp` | Source |
+| 140 | §10.2: `MonteCarloSettings` promised about a cent of standard error at the defaults; §7's option measures 0.077. | `git show 7110c84:include/touchstone/monte_carlo.hpp`; `tollgate.md` §3 (0.076610 at `MonteCarloSettings{}` on `bench/timing.cpp`'s base case) | Reported (pack) |
+| 141 | §10.2: `PdeSettings` said the suite held every golden row to 3e-4 at the defaults; the suite runs the defaults on 136 rows and the whole grid only at a coarser resolution. | `git show 7110c84:include/touchstone/pde.hpp`; `tests/test_pde.cpp` (`sweep_settings`, 512 × 256); `tests/test_three_way.cpp` (`grid_settings`, 1,024 × 512, 136 rows) | Source |
+| 142 | §10.2: a scan for more of both kinds found them in `normal.hpp`, `bump_greeks.hpp` and three test files; all were corrected before 1.0.0; `tollgate.md` lists each. | `tollgate.md` §2; `git diff 7110c84 -- include tests` | Source |
+| 143 | README: three ways, independent in method though not in every line; `ARCHITECTURE.md` §1 names what they share. | As row 3 | Source |
+| 144 | README: the Monte Carlo is held to the closed form in standard-error units on the 6,470 of the golden file's 7,234 rows where enough paths finish in the money to score it; the other 764 are too rare to score. | `tests/test_monte_carlo.cpp` ("the golden grid, priced by Monte Carlo": 6,147 scored at 32,768 paths + 323 re-run at 1,048,576 = 6,470; 764 too rare); as row 9 | Asserted on the scored rows; the rest reported |
+| 145 | README: the grid is held to QuantLib's values on the 7,200-row grid at 512 × 256, coarser than its defaults; the 34-row edge block is reported, not held; it also prices the American contract. | `tests/test_pde.cpp` (`sweep_settings`; "golden grid by Crank-Nicolson"; "the edge block, where a grid has less to work with", which asserts only that more than 20 of 34 price); `tests/test_american.cpp`; as rows 4 and 8 | Asserted (main block, American); reported (edge block) |
+| 146 | `pde.hpp`, file comment: the grid never uses `N(d)` and never draws a random number; it shares the scale functions of `detail/scales.hpp` with both others and `payoff` with the Monte Carlo. | `src/pde.cpp` (includes `detail/scales.hpp`, not `normal.hpp`, `rng.hpp` or `ClosedFormQuote`; `payoff_at` calls `payoff`, line 209); `src/monte_carlo.cpp` (`payoff(option, terminal)`, line 302) | Source |
+| 147 | `monte_carlo.hpp`, file comment: it samples the terminal distribution where the closed form evaluates `N(d)`; its discount factor and discounted strike come from `ClosedFormQuote`, its payoff is the grid's, and its scalars go through `scales.hpp`; what it checks is the terminal law, the discretisation, the sampling and the estimator. | `src/monte_carlo.cpp` (`ClosedFormQuote quote`, `quote.discount_factor()`, `quote.discounted_strike()`, `payoff`, lines 222–318) | Source |
+| 148 | `MonteCarloSettings`: the defaults promise no accuracy of their own; the standard error depends on the option, and `MonteCarloResult` reports it beside every price. | `include/touchstone/monte_carlo.hpp` (`MonteCarloResult::price_standard_error`); `tollgate.md` §3 (at the defaults over the main block: 10th percentile 0.0002, median 0.0625, 90th 0.2594) | Source; reported (pack) |
+| 149 | `PdeSettings`: `tests/test_pde.cpp` holds the golden grid's 7,200 rows at 512 × 256 to 2e-4 of the underlying's scale in price; `tests/test_three_way.cpp` holds 136 of them at the defaults' 1,024 × 512 to 5e-5. | `tests/test_pde.cpp` (`fields`: price 2e-4, scaled by max(\|ref\|, S); worst 8.928e-5); `tests/test_three_way.cpp` (`grid_settings`; `CHECK_MESSAGE(worst_grid.value() <= 5e-5, …)`; worst 2.160e-5) | Asserted |
+| 150 | `tests/test_three_way.cpp`, file comment: the three are different methods, not wholly separate code; a mistake in a shared piece shows only against a method that does not share it. | `ARCHITECTURE.md` §1; row 3 | Source (reasoning) |
+| 151 | `normal.hpp`, `norm_inv`: `docs/rng.md` §4 gives AS241's accuracy as about 1e-16; `tests/test_rng.cpp` round-trips p from 1e-300 to 0.5 through `norm_cdf` and asserts p comes back within (4 + 4x²) machine epsilons; the error that implies in x reaches 3.1 ulps in the far tail. | `docs/rng.md` §4; `tests/test_rng.cpp` (`round_trip_tolerance` and its comment; "AS241 round-trips through N(x)": 1,199 values, worst 0.778 of the bound, at p = 1e-179) | Asserted (the bound); reported (3.1 ulps) |
+| 152 | `bump_greeks.hpp`: each default bump is the size with the smallest worst scaled error; the test sweeps the delta, gamma, vega and rho bumps from 1e-9 to 1e-2 over nine options, asserts the default is the minimum and both ends are more than ten times worse; the floors are 1e-10 (delta), 3e-9 (gamma), 2e-10 (vega), each within an order of magnitude of `eps^(2/3)` ≈ 3.7e-11 or `eps^(1/2)` ≈ 1.5e-8. | `tests/test_bump_greeks.cpp` ("the bump size has an optimum, and it is where the analysis says"; 3 markets × 3 options; reported floors 1.04e-10, 2.84e-9, 2.07e-10) | Asserted (minimum, ends); reported (floors) |
+| 153 | `bump_greeks.hpp`: a pricer with error `d` has its best bump larger by `(d / eps)^(1/3)`, about 360 times at `d` = 1e-8. | Arithmetic: (1e-8 / 2.22e-16)^(1/3) = 356 | Source (arithmetic) |
+| 154 | `bump_greeks.hpp`: the test measures delta off the grid at the default bump and at one a thousand times wider, and asserts the two errors are within a factor of ten. | `tests/test_bump_greeks.cpp` ("bumping a grid gets the grid's Greeks, at the grid's bump size": `spot_relative` 1e-6 against `grid_bumps()`'s 1e-3; two `CHECK`s at a factor of ten; measured 9.48e-7 and 1.91e-7) | Asserted |
+| 155 | Test comments: the grid bumps are a hundred to a thousand times the defaults; delta's error moves by less than a factor of ten between bumps three decades apart; gamma's at the default bumps is more than fifty times the wide bumps' (asserted), over two hundred measured. | `tests/grid_bumps.hpp` against `BumpSizes` (1e-3 against 1e-6 four times, 1e-3 against 1e-5, 1e-2 against 3e-5); `tests/test_bump_greeks.cpp` (`fine_gamma > wide_gamma * 50.0`; measured 4.89e-3 against 2.14e-5) | Asserted; reported |
 
 ## The independent check
 

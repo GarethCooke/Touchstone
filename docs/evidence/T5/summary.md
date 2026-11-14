@@ -211,7 +211,8 @@ edited.
   3e-4 of the underlying's own scale" on the golden grid. The suite runs the whole grid at
   512 × 256 (worst price 8.9e-5 on that scale) and the defaults (1024 × 512) on 136 rows of
   it (worst 2.2e-5); it does not run the defaults on every row. `ARCHITECTURE.md` does not
-  repeat the claim. Outside this milestone's brief; for the owner.
+  repeat the claim. Outside this milestone's brief; for the owner. *(The tollgate made it
+  defect 5; fixed in the second entry below.)*
 - **`golden/SCHEMA.md` still says "T1 tests them directly"**: outside the five places the
   brief names.
 - **`actionlint`** not run; no workflow changed beyond comments.
@@ -236,6 +237,73 @@ gh release view v1.0.0                 # four assets: touchstone.mjs, touchstone
 
 If the release run fails, delete the tag (`git push origin :refs/tags/v1.0.0`, then
 `git tag -d v1.0.0`), fix on a branch, and tag again after the merge. P2 then unlocks.
+
+---
+
+### 2026-11-14 · claude-opus-5-5 · the tollgate's five wording defects fixed, and eight more of the kind found by the scan it asked for — every library object file still main's
+
+The tollgate passed T5 with defects (`tollgate.md` §1). It ran on `7110c84`; this entry
+covers the commits after it.
+
+**Done**
+
+1. **The five defects**, each fixed where the tollgate placed it (`tollgate.md` §2, rows
+   1–5):
+   - the README's opening list;
+   - the file comments of `pde.hpp` and `monte_carlo.hpp`;
+   - `MonteCarloSettings` and `PdeSettings`;
+   - `ARCHITECTURE.md` §1, which now states the resolution.
+2. **The scan for more.** In a header or test comment, a claim the check had narrowed, or a
+   figure nothing holds (rows A–F):
+   - `tests/test_three_way.cpp`'s "share no arithmetic";
+   - `normal.hpp`'s 1e-16 "re-established" by a test that measures 3.1 ulps;
+   - three figures in `bump_greeks.hpp` from a sweep the repository does not hold, a grid
+     accuracy, and a "factor of five across four decades" that the test runs as a factor
+     of ten across three;
+   - the same figures echoed in `tests/grid_bumps.hpp` and three comments of
+     `tests/test_bump_greeks.cpp`.
+
+   `src/`, `include/touchstone/detail/`, `wasm/` and `bench/` were scanned the same way;
+   none found.
+3. **`claims.md`**: row 8 reworded; rows 139–142 for the new §10.2 sentences; rows 143–155
+   for every rewritten README and comment sentence.
+4. **`ARCHITECTURE.md` §10.2**: a T5 tollgate entry, saying what it found and that each was
+   corrected.
+5. **The tollgate's figures, reproduced** at the defaults (`tollgate.md` §3): 0.0766,
+   2.232e-5 at the same row, and the main block's standard-error spread.
+6. **`tests.txt` §5**: six jobs, not seven.
+
+**Every number unchanged** (`tollgate.md` §4):
+
+- the seven library object files are byte-identical to main's;
+- ctest 18 of 18;
+- every assertion's printed values differ from main's only in the three renames;
+- the smoke test runs in CI.
+
+**Decisions (with why)**
+
+- **Defect 4: dropped, not replaced.** No test holds a standard error at the defaults, and
+  over the main block it runs from 0.0002 to 0.26 between the 10th and 90th percentiles.
+  No single figure describes "typical parameters". The comment now points to the
+  standard error the result reports.
+- **Defect 5: reworded, not asserted.** Asserting every row at the defaults would add about
+  35 s to the suite (7,200 calls at 4.7 ms). The suite already holds the defaults on 136
+  rows to 5e-5 (`test_three_way.cpp`), and the comment now cites that alongside the
+  512 × 256 sweep.
+- **`normal.hpp`'s 1e-16 kept, attributed.** It is Wichura's figure as `docs/rng.md` §4
+  records it (that file is frozen). The comment now says what the test asserts and
+  measures beside it.
+
+**Not done**
+
+- No second agent re-checked rows 139–155. I re-read each against its citation, and the
+  figures in them are the ones the suite and `tollgate.md` §3 print.
+- The tag is still the owner's.
+
+**Exact next step**
+
+The tollgate checks these fixes. Then the owner merges, tags with the commands in the
+first entry, and ticks T5.
 
 ## The claims check
 
@@ -283,11 +351,11 @@ sources, not a stack addition.
 
 ## Owner actions
 
-1. **Run the T5 tollgate** (F) on this pack; `claims.md` is the row-by-row check.
-2. **On PASS, merge, tick, and push `v1.0.0`** with the commands above.
+1. **Check the tollgate's fixes** in `tollgate.md`; `claims.md` rows 139–155 map each
+   changed sentence.
+2. **Then merge, tick, and push `v1.0.0`** with the commands in the first entry.
 3. **Rule, if you disagree, on the three pairs** (Decisions), and on counting governance
-   named without an id as history.
-4. **Consider the `PdeSettings` comment** under Not done.
+   named without an id as history. The tollgate let all three decisions stand.
 
 ## What is in this pack
 
@@ -301,5 +369,7 @@ sources, not a stack addition.
   measurements.
 - `tests.txt` — the native suite at the head with every reported figure, the four checks
   that no number moved, the smoke test, CI.
+- `tollgate.md` — the tollgate's defects, what changed for each and for the scan's finds,
+  the tollgate's figures reproduced, and the checks that no number moved.
 - `diff.txt` — `git diff --stat` against `74987c7`.
 - No `screenshots/`: T5 has no UI.

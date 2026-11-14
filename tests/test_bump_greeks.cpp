@@ -95,7 +95,7 @@ TEST_SUITE("bump-greeks")
 
     TEST_CASE("the bump size has an optimum, and it is where the analysis says")
     {
-        // One bump varied at a time over four decades, everything else at its
+        // One bump varied at a time from 1e-9 to 1e-2, everything else at its
         // default. Truncation dominates above the optimum and grows as `h^2`;
         // cancellation dominates below it and grows as the bump shrinks. Both
         // sides are asserted, because a scheme with only one of them would be a
@@ -188,9 +188,9 @@ TEST_SUITE("bump-greeks")
         // they work on a pricer that has no formula for vega. The finite
         // -difference grid is such a pricer, and bumping it produces all six.
         //
-        // The bumps here are a thousand times the defaults, and the header says
-        // why: the balance is between truncation and the *pricer's* own error,
-        // which for a grid is around 1e-8 relative rather than 1e-16. The default
+        // The bumps here are a hundred to a thousand times the defaults, and the
+        // header says why: the balance is between truncation and the *pricer's*
+        // own error, which for a grid is far above machine precision. The default
         // bumps would divide the grid's discretisation noise by 1e-6 and report
         // the result as a Greek.
         const BlackScholesMarket market{100.0, 0.30, 0.05, 0.02};
@@ -227,10 +227,11 @@ TEST_SUITE("bump-greeks")
         // That asymmetry is the whole finding. A first difference divides by `h`,
         // and the grid's error varies smoothly with the spot — it rebuilds itself
         // around each bumped spot — so the same bias appears in both legs and
-        // subtracts out; delta is flat across four decades of bump. Gamma divides
-        // by `h^2`, which turns the grid's 1e-6 into whatever `1e-6 / h^2` happens
-        // to be, and at a bump of 1e-9 that is a relative error of twenty-six
-        // thousand.
+        // subtracts out, and delta's error moves by less than a factor of ten
+        // between bumps three decades apart. Gamma divides by `h^2`, which turns
+        // what is left of the grid's error into that over `h^2`: at the default
+        // bumps, a relative error more than fifty times the wide bumps' (asserted
+        // below; it measures over two hundred).
         const PriceAndGreeks too_fine = touchstone::bump_greeks(call, market, {}, on_the_grid);
         const auto relative = touchstone::testing::relative_error;
         const double fine_gamma = relative(too_fine.gamma, analytic.gamma);
