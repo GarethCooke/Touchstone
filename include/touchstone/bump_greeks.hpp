@@ -1,6 +1,6 @@
 // Greeks by bumping and revaluing: the derivative as a difference quotient.
 //
-// Tech-decision B6 puts analytic and bump-and-revalue Greeks in v1, and this is
+// The library has Greeks two ways, analytic and by bump-and-revalue, and this is
 // the second of them. It is the slow one, the inaccurate one, and the one that
 // works: it needs nothing from the pricer but a price, so it gives a vega for a
 // method that has no formula for vega, and it is how the finite-difference

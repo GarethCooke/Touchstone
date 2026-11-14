@@ -220,8 +220,8 @@ TEST_SUITE("monte-carlo")
 
     TEST_CASE("same seed, same result")
     {
-        // Constitution I6. Bit-identical, not close: nothing here is allowed to
-        // depend on anything but the seed.
+        // Bit-identical, not close: nothing here is allowed to depend on anything
+        // but the seed.
         const EuropeanVanilla option{95.0, 1.5, OptionType::Put};
         const BlackScholesMarket market{100.0, 0.25, 0.02, 0.01};
 
@@ -630,12 +630,12 @@ TEST_SUITE("monte-carlo")
 
     TEST_CASE("no input the closed form accepts makes the engine return a NaN")
     {
-        // T1 made this a promise for the closed form: accepting an input means
-        // no output will be a NaN, because a NaN compares false against every
-        // tolerance a caller might test it with and so defeats the check that
-        // was meant to catch it. The Monte Carlo carries the promise with one
-        // extra condition of its own — the total variance must be
-        // representable, which the closed form never forms and so never checks.
+        // The closed form promises that accepting an input means no output will be
+        // a NaN, because a NaN compares false against every tolerance a caller
+        // might test it with and so defeats the check that was meant to catch it.
+        // The Monte Carlo carries the promise with one extra condition of its own —
+        // the total variance must be representable, which the closed form never
+        // forms and so never checks.
         //
         // The sweep is `test_limits.cpp`'s, coarsened in its axes and widened in
         // its corners, through all four combinations of scheme and pairing.

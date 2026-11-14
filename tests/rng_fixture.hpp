@@ -1,5 +1,5 @@
 // Reading `golden/rng-known-answers.json` — the known answers the browser's
-// implementation produced at L0, which this library must reproduce.
+// implementation produced, which this library must reproduce.
 
 #pragma once
 

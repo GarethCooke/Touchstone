@@ -1,8 +1,6 @@
-// Constitution I20, stated as one test.
-//
-//   "Correctness is three-way agreement. Closed form, Monte Carlo and finite
-//    differences MUST agree within stated tolerances; analytic and bump Greeks
-//    likewise; Monte Carlo standard error is reported, never hidden."
+// Three-way agreement, stated as one test: closed form, Monte Carlo and finite
+// differences agree within stated tolerances; analytic and bump Greeks
+// likewise; the Monte Carlo's standard error is reported, never hidden.
 //
 // The other test files each hold one method against one reference. This one puts
 // all three side by side on the same rows and asks whether they agree, which is
@@ -15,11 +13,12 @@
 //
 //   - **Closed form vs Monte Carlo:** standard errors. A sampling estimate is
 //     not close to anything; it is within so many standard errors of it, and the
-//     number of them is the test. Reported, never hidden — the same discipline
-//     T2 established, restated here on the same rows the grid sees.
+//     number of them is the test. Reported, never hidden — the discipline of
+//     `test_monte_carlo.cpp`, restated here on the same rows the grid sees.
 //   - **Closed form vs finite differences:** the underlying's own scale, which
 //     is the scale a truncation error lives on. `test_pde.cpp` explains why.
-//   - **Analytic vs bump Greeks:** the second sentence of I20, on the same rows.
+//   - **Analytic vs bump Greeks:** the same agreement for the Greeks, on the
+//     same rows.
 //   - **Analytic delta vs grid delta vs pathwise delta:** three routes to one
 //     derivative, none of which is a difference of the other two.
 
@@ -66,10 +65,10 @@ using touchstone::testing::full_sweep;
 /// A row worth comparing three ways.
 ///
 /// The Monte Carlo leg needs a row where a standard error means something: an
-/// option so far out of the money that no path finishes in it has an estimate of
-/// zero and a standard error of zero, and their ratio is not a z-score. T2
-/// established that rule and this reuses it — the row must have a material price
-/// and a healthy fraction of its paths in the money.
+/// option so far out of the money that no path finishes in it has an estimate
+/// of zero and a standard error of zero, and their ratio is not a z-score.
+/// `test_monte_carlo.cpp` applies that rule and this reuses it — the row must
+/// have a material price and a healthy fraction of its paths in the money.
 /// The grid both cases run at, stated rather than defaulted: a finite-difference
 /// tolerance means nothing without its grid beside it.
 [[nodiscard]] PdeSettings grid_settings()
@@ -156,8 +155,8 @@ TEST_SUITE("three-way")
             touchstone::testing::standardise(z, z_labels);
 
         std::ostringstream report;
-        report << "I20 on " << (rows + skipped) << " rows of the golden grid (" << skipped
-               << " with too little Monte Carlo signal to score)"
+        report << "three-way agreement on " << (rows + skipped) << " rows of the golden grid ("
+               << skipped << " with too little Monte Carlo signal to score)"
                << "\n  finite differences vs closed form, scaled by max(|V|, S):"
                << "\n    worst " << std::scientific << std::setprecision(3) << worst_grid.value()
                << "\n    at    " << worst_grid.at()

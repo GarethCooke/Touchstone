@@ -3,7 +3,7 @@
 //
 // The fixture in `golden/rng-known-answers.json` is what makes the tutorial's
 // demos and this library one thing rather than two: it was produced by
-// `touchstone-learn`'s TypeScript at L0, and if the numbers below stop matching
+// `touchstone-learn`'s TypeScript, and if the numbers below stop matching
 // it, a check on the page and a test here have stopped being the same check.
 
 #include "rng_fixture.hpp"
@@ -197,7 +197,7 @@ TEST_SUITE("rng")
 
     TEST_CASE("same seed, same numbers")
     {
-        // Constitution I6, in its simplest form.
+        // Same seed, same numbers, in the simplest form the promise takes.
         for (std::uint32_t seed : {0u, 1u, 42u, 2147483647u, 4294967295u}) {
             Xoshiro128SS first(seed);
             Xoshiro128SS second(seed);

@@ -1,7 +1,7 @@
 // Standard normal density, distribution, and inverse distribution.
 //
-// Shared by everything that follows: the closed form here at T1, the inverse
-// transform the Monte Carlo will need at T2, the implied-vol solver at T3.
+// Shared by the closed form, the implied-vol solvers built on it, and the
+// generator's normal draws, which are the inverse applied to its uniforms.
 
 #pragma once
 
@@ -19,7 +19,7 @@ namespace touchstone {
 
 /// N(x) — the standard normal cumulative distribution, as 0.5 * erfc(-x/sqrt(2)).
 ///
-/// The route is `std::erfc` by decision B3, and the reason is the left tail.
+/// The route is `std::erfc`, and the reason is the left tail.
 /// Computing N(-x) as 1 - N(x) subtracts two numbers that agree in every digit
 /// that matters: at x = -10 the true value is 7.6e-24 and the subtraction
 /// returns exactly zero. erfc exists precisely to keep that tail, so a deep

@@ -1,11 +1,11 @@
 // Difference quotients against the formulas they approximate.
 //
-// This is where the two halves of constitution I20's second sentence meet:
-// "analytic and bump Greeks likewise". Seven hand-transcribed derivative
-// formulas on one side; on the other, a difference of prices that knows nothing
-// about them. A slip in any of the seven — a sign, a discount factor on the wrong
-// term, `d1` where `d2` belongs — shows up here as a disagreement, because a
-// difference quotient of the price cannot make the same mistake twice.
+// This is where the analytic Greeks and the bumped ones are held to agree.
+// Seven hand-transcribed derivative formulas on one side; on the other, a
+// difference of prices that knows nothing about them. A slip in any of the
+// seven — a sign, a discount factor on the wrong term, `d1` where `d2` belongs
+// — shows up here as a disagreement, because a difference quotient of the price
+// cannot make the same mistake twice.
 //
 // The bump sizes are the other claim. `bump_greeks.hpp` says the optimum is
 // `eps^(1/3)` for a first derivative and `eps^(1/4)` for a second, and that the

@@ -1,8 +1,8 @@
 // Running the pricing map backwards, and Brent's method on its own.
 //
-// The roadmap's exit criterion for this is one sentence: "implied vol
-// round-trips golden prices to 1e-8". The sentence has two readings and this
-// file tests both, because only one of them is satisfiable everywhere.
+// The requirement is one sentence: "implied vol round-trips golden prices to
+// 1e-8". The sentence has two readings and this file tests both, because only
+// one of them is satisfiable everywhere.
 //
 //   - **The price round trip.** Take a golden price, solve for the volatility,
 //     price again at what came back, and compare with where you started. That is

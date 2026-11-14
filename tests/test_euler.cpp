@@ -12,7 +12,7 @@
 // and what survives in a price is O(dt). A suite that measured only one of them
 // would pass on an implementation that had the other badly wrong, and the
 // tutorial's D4 shows the path picture while its D6 uses the price, so both
-// claims are made on the site and both have to be tested here (I1).
+// claims are made on the site and both are tested here.
 
 #include "rng_fixture.hpp"
 #include "sweep.hpp"

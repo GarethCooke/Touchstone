@@ -1,14 +1,14 @@
 // European and American vanillas by finite differences: the third of the three
 // ways they are priced.
 //
-// Constitution I20 wants closed form, Monte Carlo and finite differences to
-// agree. T1 built the first and T2 the second; this is the third, and it is the
-// least like the others. The closed form evaluates a formula. The Monte Carlo
-// samples the terminal distribution. This solves the equation the option's value
-// satisfies, on a grid, from expiry backwards — so it never uses `N(d)`, never
-// draws a random number, and shares no arithmetic with either of them beyond the
-// scale functions of `touchstone/detail/scales.hpp`. Three methods that agree here have
-// agreed about the model rather than about one implementation of it.
+// Closed form, Monte Carlo and finite differences are held to agree, and this
+// is the third of the three and the least like the others. The closed form
+// evaluates a formula. The Monte Carlo samples the terminal distribution. This
+// solves the equation the option's value satisfies, on a grid, from expiry
+// backwards — so it never uses `N(d)`, never draws a random number, and shares
+// no arithmetic with either of them beyond the scale functions of
+// `touchstone/detail/scales.hpp`. Three methods that agree here have agreed
+// about the model rather than about one implementation of it.
 //
 // It is also the only one of the three that can price an option the holder may
 // exercise early, because early exercise is a constraint on the value function
@@ -50,10 +50,11 @@ namespace touchstone {
 
 /// The grid, and how it is stepped.
 ///
-/// The defaults are a grid good enough for one option priced once, at about
-/// eight milliseconds: on the golden grid they hold every row to 3e-4 of the
-/// underlying's own scale and the typical row to far less, which
-/// `tests/test_pde.cpp` measures rather than claims. They are not a
+/// The defaults are a grid good enough for one option priced once: on the
+/// golden grid they hold every row to 3e-4 of the underlying's own scale and the
+/// typical row to far less, which `tests/test_pde.cpp` measures rather than
+/// claims. What one call at the defaults took, on one machine, is in
+/// `ARCHITECTURE.md` with the machine. They are not a
 /// recommendation for every input — a grid is a resolution, and what resolution
 /// is enough depends on the option — and the sweeps in the tests deliberately
 /// run coarser ones and state what those achieve. `PdeResult` reports the grid

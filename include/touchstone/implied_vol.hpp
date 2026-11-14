@@ -1,13 +1,13 @@
 // The volatility that reproduces a price: Newton, with Brent behind it.
 //
-// Every other entry point in this library maps a volatility to a price. This one
-// runs the map backwards, which is the direction the market actually quotes in —
-// an option has a price, and the volatility is what the price is restated as so
-// that two strikes can be compared. Tech-decision B3 fixes the method: Newton,
-// because vega is in hand at no extra cost and Newton on a smooth monotone
-// function converges quadratically; Brent behind it, because "converges
-// quadratically" is a statement about the inputs Newton likes, and a solver in a
-// library has to answer on the others too.
+// Every other entry point in this library maps a volatility to a price. This
+// one runs the map backwards, which is the direction the market actually quotes
+// in — an option has a price, and the volatility is what the price is restated
+// as so that two strikes can be compared. The method is Newton, because vega is
+// in hand at no extra cost and Newton on a smooth monotone function converges
+// quadratically; Brent behind it, because "converges quadratically" is a
+// statement about the inputs Newton likes, and a solver in a library has to
+// answer on the others too.
 //
 // The map is invertible where it is worth inverting. Price is strictly
 // increasing in the volatility wherever vega is positive, from the discounted
@@ -44,7 +44,7 @@ struct ImpliedVolSettings {
     ///
     /// The default is about forty-five ulps of that scale: as tight as the
     /// arithmetic underneath supports, and six orders of magnitude tighter than
-    /// the 1e-8 round trip the roadmap asks for.
+    /// the 1e-8 round trip `tests/test_implied_vol.cpp` holds the golden prices to.
     double price_tolerance{1e-14};
 
     /// The largest volatility the search will consider, and the top of Brent's

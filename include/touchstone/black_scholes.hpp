@@ -1,7 +1,7 @@
 // European vanilla options under Black-Scholes-Merton: closed form and analytic Greeks.
 //
-// Scope is the constitution's I21 — European vanillas, one underlying, constant
-// rate and volatility, dividend yield — and the formulas are the ones written
+// Scope is European vanillas, one underlying, constant rate and volatility,
+// dividend yield — and the formulas are the ones written
 // out in `golden/SCHEMA.md`, which is also the contract this file is tested
 // against. Every output is a raw partial derivative in the units that document
 // states: vega per 1.00 of vol, theta per year, rho per 1.00 of rate. Scaling

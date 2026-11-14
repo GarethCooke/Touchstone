@@ -1,12 +1,12 @@
 // European vanillas by Monte Carlo: the second of the three ways they are priced.
 //
-// Constitution I20 wants closed form, Monte Carlo and finite differences to
-// agree. T1 built the first; this is the second, and the point of it is not
-// that it is a better way to price a European call — it is not, the closed form
-// is exact — but that it is an independent one. A discretisation, a discount
-// factor or a payoff misread the same way twice is a bug two agreeing methods
-// would hide; misread once, it shows up here as a disagreement in standard
-// errors, which is a number rather than an opinion.
+// Closed form, Monte Carlo and finite differences are held to agree, and this
+// is the second of the three. The point of it is not that it is a better way to
+// price a European call — it is not, the closed form is exact — but that it is
+// an independent one. A discretisation, a discount factor or a payoff misread
+// the same way twice is a bug two agreeing methods would hide; misread once, it
+// shows up here as a disagreement in standard errors, which is a number rather
+// than an opinion.
 //
 // Every path is drawn from the shared generator of `docs/rng.md`, so a demo in
 // the browser and a test here can price the same option from the same seed and
@@ -26,7 +26,7 @@ namespace touchstone {
 /// What to run. Defaults price a European vanilla to about a cent of standard
 /// error at typical parameters.
 struct MonteCarloSettings {
-    /// Seed for `Xoshiro128SS`. Same seed, same result, always (I6).
+    /// Seed for `Xoshiro128SS`. Same seed, same result, always.
     std::uint32_t seed{1};
 
     /// Total paths, including antithetic partners. Must be even when
@@ -75,7 +75,7 @@ struct MonteCarloResult {
     /// draw of `z` gets there — on a spot large enough to carry it.
     double price{};
 
-    double price_standard_error{};   ///< Standard error of that mean. Never hidden (I20).
+    double price_standard_error{};   ///< Standard error of that mean. Never hidden.
     double delta{};                  ///< Pathwise dV/dS, per 1.00 of spot. Never a NaN either.
     double delta_standard_error{};   ///< Standard error of the delta.
 
