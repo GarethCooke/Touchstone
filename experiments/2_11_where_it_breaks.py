@@ -47,9 +47,10 @@ vanna and volga named, not computed. (Q4/a) the page ends Part 2 with a bridge.
       form for a mixture of normals, and against the lognormal's 0.
   C3  Lognormal returns vs reality, on the mixture's paths: 2.6's test battery
       (log-return mean, variance, skewness, kurtosis; E[S_T]; the median; the sd
-      of S_T) applied to the mixture's draws against the lognormal that matches
-      its first two log moments -- which checks pass and which fail, and by how
-      many s.e.; daily log-returns (252 steps, 20,000 paths): the pooled kurtosis
+      of S_T) applied to the mixture's draws against two lognormals with the
+      fitted vol: the one matching the mixture's first two log moments for the
+      log-moment rows and the median, and the one with the forward F for E[S_T]
+      and the sd -- which checks pass and which fail, and by how many s.e.; daily log-returns (252 steps, 20,000 paths): the pooled kurtosis
       and the fraction beyond 3 sd against the normal's 0.27 %, and the same
       within each vol state (Gaussian -- the fat tails are the mixing).
   C4  The hedge under the wrong model. 2.7's delta hedge written as a bank
@@ -499,7 +500,14 @@ def kurtosis_study(rng, n_draws, n_batches, mix, S0, r, T, sigma_single) -> dict
 
 
 def battery_2_6(logS, state, mix, S0, r, T) -> dict:
-    """2.6's C1 checks, applied to the mixture's draws against the lognormal matching the first two log moments."""
+    """2.6's C1 checks, applied to the mixture's draws against two lognormals that share the vol sigma_fit.
+
+    The log-moment rows and the median are tested against the lognormal fitted to the mixture's first two
+    log moments. E[S_T] and the sd of S_T are tested against the lognormal with that vol and the forward F,
+    which is what any model priced to no-arbitrage has. They are different lognormals: the log-moment fit's
+    own E[S_T] is e^(mean + variance / 2), which is above F. Every row names its reference, and the two
+    forward-matched rows also record what the log-moment fit itself would have given.
+    """
     exact = mixture_log_moments(mix, S0, r, T)
     n = logS.size
     F = S0 * exp(r * T)
@@ -517,20 +525,29 @@ def battery_2_6(logS, state, mix, S0, r, T) -> dict:
     se_med = 1.0 / (2.0 * f_med * sqrt(n))
     rows = []
 
-    def row(name, measured, expected, se_, tol_se=5.0):
-        z = (measured - expected) / se_ if se_ > 0 else float("inf")
-        rows.append({"check": name, "measured": float(measured), "expected": float(expected), "se": float(se_), "z": float(z), "pass_within_5se": bool(abs(z) <= tol_se)})
+    LOG_FIT, FORWARD_MATCHED, ANY_LOGNORMAL = "log-moment fit", "forward-matched lognormal, vol sigma_fit", "any lognormal"
 
-    row("log-return mean is the fitted lognormal's (r - 1/2 sigma_fit^2) T -- i.e. the mixture's exact log mean", mm["mean"], exact["mean"] - log(S0), se["mean"])
-    row("log-return variance is sigma_fit^2 T (matched by construction)", mm["variance"], sig_fit ** 2 * T, se["variance"])
-    row("log-return skewness is 0 (the lognormal's)", mm["skewness"], 0.0, se["skewness"])
-    row("log-return excess kurtosis is 0 (the lognormal's) -- Gaussian", mm["excess_kurtosis"], 0.0, se["kurtosis"])
-    row("E[S_T] = S_0 e^(rT) = F (the forward -- both models)", float(S_T.mean()), F, se["E_S_T"])
-    row("median S_T = e^(E log S_T) (the lognormal's median)", med, med_fit, se_med)
+    def row(name, measured, expected, se_, reference, tol_se=5.0):
+        z = (measured - expected) / se_ if se_ > 0 else float("inf")
+        rows.append({"check": name, "measured": float(measured), "expected": float(expected), "se": float(se_), "z": float(z), "pass_within_5se": bool(abs(z) <= tol_se),
+                     "reference": reference})
+
+    # what the log-moment fit itself has for the two rows that are tested against the forward-matched lognormal
+    fit_E_S_T = exp(exact["mean"] + 0.5 * exact["variance"])
+    fit_sd_S_T = fit_E_S_T * sqrt(exp(exact["variance"]) - 1.0)
+
+    row("log-return mean is the mixture's exact log mean (the log-moment fit matches it by construction)", mm["mean"], exact["mean"] - log(S0), se["mean"], LOG_FIT)
+    row("log-return variance is sigma_fit^2 T (matched by construction)", mm["variance"], sig_fit ** 2 * T, se["variance"], LOG_FIT)
+    row("log-return skewness is 0 (the lognormal's)", mm["skewness"], 0.0, se["skewness"], ANY_LOGNORMAL)
+    row("log-return excess kurtosis is 0 (the lognormal's) -- Gaussian", mm["excess_kurtosis"], 0.0, se["kurtosis"], ANY_LOGNORMAL)
+    row("E[S_T] = S_0 e^(rT) = F (the forward -- the mixture's, and any lognormal's priced to the same forward)", float(S_T.mean()), F, se["E_S_T"], FORWARD_MATCHED)
+    rows[-1].update({"log_moment_fit_expected": float(fit_E_S_T), "log_moment_fit_z": float((float(S_T.mean()) - fit_E_S_T) / se["E_S_T"])})
+    row("median S_T = e^(E log S_T) (the lognormal's median)", med, med_fit, se_med, LOG_FIT)
     sd_fit = F * sqrt(exp(sig_fit ** 2 * T) - 1.0)
     sd_meas = float(S_T.std(ddof=1))
     rows.append({"check": "sd of S_T is F sqrt(e^(sigma_fit^2 T) - 1) (2.6's rule: to 3 %)", "measured": sd_meas, "expected": sd_fit, "relative_gap": sd_meas / sd_fit - 1.0,
-                 "pass_to_3pct": bool(abs(sd_meas / sd_fit - 1.0) <= 0.03), "exact_mixture_sd_S_T": exact["sd_S_T"], "exact_relative_gap": exact["sd_S_T"] / sd_fit - 1.0})
+                 "pass_to_3pct": bool(abs(sd_meas / sd_fit - 1.0) <= 0.03), "exact_mixture_sd_S_T": exact["sd_S_T"], "exact_relative_gap": exact["sd_S_T"] / sd_fit - 1.0,
+                 "reference": FORWARD_MATCHED, "log_moment_fit_expected": float(fit_sd_S_T)})
     by_state = []
     for j, (sg, f) in enumerate(zip(mix["sigmas"], mix["forward_factors"])):
         sel = state == j
@@ -845,7 +862,7 @@ def build_checks(res, params) -> list[dict]:
     rows = {r_["check"][:30]: r_ for r_ in Bt["rows"]}
     truth("C3 2.6's battery on the mixture: the log-return mean passes (matched by construction)", Bt["rows"][0]["pass_within_5se"])
     truth("C3 2.6's battery on the mixture: the log-return variance passes (matched by construction)", Bt["rows"][1]["pass_within_5se"])
-    truth("C3 2.6's battery on the mixture: E[S_T] = F passes (the forward is a property of both models)", Bt["rows"][4]["pass_within_5se"])
+    truth("C3 2.6's battery on the mixture: E[S_T] = F passes (the forward is the mixture's, and any lognormal's priced to the same forward)", Bt["rows"][4]["pass_within_5se"])
     truth(f"C3 2.6's battery on the mixture: the excess-kurtosis check FAILS, by more than 50 s.e. (z = {Bt['rows'][3]['z']:.0f})", not Bt["rows"][3]["pass_within_5se"] and abs(Bt["rows"][3]["z"]) > 50)
     truth("C3 2.6's battery on the mixture: each vol state alone is Gaussian (excess kurtosis 0 within 5 s.e.) -- the fat tails are the mixing", all(b_["gaussian_within_5se"] for b_ in Bt["by_state"]))
     D = res["returns"]["daily"]

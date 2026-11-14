@@ -1,5 +1,55 @@
 # S11 — Teaching session · page 2.11 Where it breaks · evidence pack
 
+### 2026-11-14 · claude-fable-5-2 (edit and run), claude-opus-5-5 (verification and commit) · The 2.11 battery names its two lognormals; no number moved
+
+**What changed.** `battery_2_6` in `experiments/2_11_where_it_breaks.py` said it tested the
+mixture's draws "against the lognormal matching the first two log moments". It tests them
+against two lognormals that share the vol σ_fit = 0.4543 and named one. Rows 1, 2 and 6 (log
+mean, log variance, median) use the log-moment fit: log mean −0.05, median e^(E log S_T) =
+95.12. Rows 5 and 7 (E[S_T], sd of S_T) use the forward F = 105.13 and F√(e^(σ_fit² T) − 1)
+= 50.33, the lognormal with the forward F and the vol σ_fit, whose log mean is
+(r − ½σ_fit²)T = −0.0532. Row 1's label gave that second lognormal's formula for an expected
+value that is the mixture's exact log mean. The numbers were right; the names were not.
+
+The edit, all in `battery_2_6` but for one check's text and the header comment:
+
+- the docstring and the header comment's C3 lines say which rows are tested against which
+  lognormal;
+- row 1's label drops the wrong formula;
+- every row gains `reference`: `"log-moment fit"` for rows 1, 2 and 6, `"any lognormal"` for
+  rows 3 and 4, `"forward-matched lognormal, vol sigma_fit"` for rows 5 and 7;
+- rows 5 and 7 gain `log_moment_fit_expected`, what the log-moment fit itself would give
+  (105.464 and 50.496); row 5 also gains `log_moment_fit_z` (−7.49);
+- row 5's label and the C3 check's text name the two as the mixture and any lognormal priced
+  to the same forward.
+
+No check was added or removed, and no existing number was changed.
+
+**Why.** The owner's ruling on L2 item `f3-2-11` (2026-11-14): leave page 2.11 as it is, fix
+the experiment first and let the page follow; keep both lognormals and name each. The defect
+was raised as *Flagged* 3 of `touchstone-learn`'s `docs/evidence/L2/batch-11/summary.md`.
+
+**How the run was made.** By the Fable session of 2026-11-14, in the environment S11 used:
+the Linux VM on the owner's workstation, `uv sync --frozen`, numpy 2.5.2, QuantLib 1.43.
+There the unmodified script first reproduced the committed JSON byte for byte; the edited
+script was then run once and its JSON is the one committed. The experiment was not re-run
+natively on Windows, whose last bits differ, as page 2.11 itself reports.
+
+**What the comparison found.** Opus 5.5 compared `HEAD`'s JSON with the new one, value by
+value, with a script of its own:
+
+- 13,820 leaf values compared; 0 numbers, booleans, types or array lengths changed (the four
+  NaNs in `results.solver.bounds_base_case.refusals` are NaN on both sides);
+- 3 strings changed: `results.returns.battery_2_6.rows[0].check`, `rows[4].check` and
+  `checks[57].claim`;
+- 10 fields added: the seven `reference` fields, `rows[4].log_moment_fit_expected` =
+  105.46405521383795, `rows[4].log_moment_fit_z` = −7.491375390905411 and
+  `rows[6].log_moment_fit_expected` = 50.49567900872939;
+- 157 of 157 checks pass.
+
+The C++ suite, which reads this JSON in `tests/test_implied_vol.cpp`, passes 18 of 18 on the
+workstation (MinGW-w64 g++ 15.2, RelWithDebInfo); CI's result is in the commit's run.
+
 ### 2026-11-08 → 2026-11-09 · claude-fable-5-1 · S11 taught; experiment run on the owner's workstation; owner draft written, reviewed against I1, checks and notation batch approved; drafts committed from the session's cloud clone. The last study milestone: the S track is complete.
 
 Work order (P3): teach 2.11 per constitution §7, numbers before theory. Inputs: index

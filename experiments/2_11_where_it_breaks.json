@@ -8479,12 +8479,13 @@
         "sigma_fit": 0.4543126676640219,
         "rows": [
           {
-            "check": "log-return mean is the fitted lognormal's (r - 1/2 sigma_fit^2) T -- i.e. the mixture's exact log mean",
+            "check": "log-return mean is the mixture's exact log mean (the log-moment fit matches it by construction)",
             "measured": -0.05025410450225831,
             "expected": -0.04999999999999982,
             "se": 0.00045403816048589224,
             "z": -0.5596545056621629,
-            "pass_within_5se": true
+            "pass_within_5se": true,
+            "reference": "log-moment fit"
           },
           {
             "check": "log-return variance is sigma_fit^2 T (matched by construction)",
@@ -8492,7 +8493,8 @@
             "expected": 0.2064,
             "se": 0.0002915410467871423,
             "z": -0.8552786145726782,
-            "pass_within_5se": true
+            "pass_within_5se": true,
+            "reference": "log-moment fit"
           },
           {
             "check": "log-return skewness is 0 (the lognormal's)",
@@ -8500,7 +8502,8 @@
             "expected": 0.0,
             "se": 0.0024494897427831783,
             "z": -168.01480090733673,
-            "pass_within_5se": false
+            "pass_within_5se": false,
+            "reference": "any lognormal"
           },
           {
             "check": "log-return excess kurtosis is 0 (the lognormal's) -- Gaussian",
@@ -8508,15 +8511,19 @@
             "expected": 0.0,
             "se": 0.004898979485566357,
             "z": 365.02222725398457,
-            "pass_within_5se": false
+            "pass_within_5se": false,
+            "reference": "any lognormal"
           },
           {
-            "check": "E[S_T] = S_0 e^(rT) = F (the forward -- both models)",
+            "check": "E[S_T] = S_0 e^(rT) = F (the forward -- the mixture's, and any lognormal's priced to the same forward)",
             "measured": 105.08168202149787,
             "expected": 105.12710963760242,
             "se": 0.051041787707539914,
             "z": -0.8900083273892944,
-            "pass_within_5se": true
+            "pass_within_5se": true,
+            "reference": "forward-matched lognormal, vol sigma_fit",
+            "log_moment_fit_expected": 105.46405521383795,
+            "log_moment_fit_z": -7.491375390905411
           },
           {
             "check": "median S_T = e^(E log S_T) (the lognormal's median)",
@@ -8524,7 +8531,8 @@
             "expected": 95.12294245007146,
             "se": 0.05416266946819708,
             "z": 71.196823605455,
-            "pass_within_5se": false
+            "pass_within_5se": false,
+            "reference": "log-moment fit"
           },
           {
             "check": "sd of S_T is F sqrt(e^(sigma_fit^2 T) - 1) (2.6's rule: to 3 %)",
@@ -8533,7 +8541,9 @@
             "relative_gap": 0.014054747779199461,
             "pass_to_3pct": true,
             "exact_mixture_sd_S_T": 51.186226062311604,
-            "exact_relative_gap": 0.016924325942426988
+            "exact_relative_gap": 0.016924325942426988,
+            "reference": "forward-matched lognormal, vol sigma_fit",
+            "log_moment_fit_expected": 50.49567900872939
           }
         ],
         "n_pass": 4,
@@ -14607,7 +14617,7 @@
       "pass": true
     },
     {
-      "claim": "C3 2.6's battery on the mixture: E[S_T] = F passes (the forward is a property of both models)",
+      "claim": "C3 2.6's battery on the mixture: E[S_T] = F passes (the forward is the mixture's, and any lognormal's priced to the same forward)",
       "measured": 1.0,
       "expected": 1.0,
       "tolerance": 0.0,
