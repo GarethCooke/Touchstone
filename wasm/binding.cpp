@@ -739,6 +739,7 @@ struct PathSpec {
         out.set("impliedVol", write(SafeguardedSettings{}));
         out.set("monteCarlo", write(MonteCarloSettings{}));
         out.set("crankNicolson", write(PdeSettings{}));
+        out.set("surfaceSampling", write(SurfaceSampling{}));
         out.set("bumpSizes", write(BumpSizes{}));
         return out;
     });
