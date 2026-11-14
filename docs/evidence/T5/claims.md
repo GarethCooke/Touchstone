@@ -200,7 +200,7 @@ the scan that followed them rewrote.
 | 132 | The binding is an embind binding. | `wasm/CMakeLists.txt` (`-lembind`); `wasm/binding.cpp` (`emscripten/bind.h`) | Source |
 | 133 | Scaling Greeks for display is the caller's. | `include/touchstone/black_scholes.hpp` (file comment); `PriceAndGreeks` units | Source |
 | 134 | One `template <Exercise E>` declaration per pair was considered; all three stay pairs. | `include/touchstone/pde.hpp` (the six declarations); `docs/evidence/T5/summary.md` (Decisions) | Source |
-| 135 | §10.1's T5 row: this document, the timings, comments without history, 1.0.0; in review. | `ARCHITECTURE.md`; `docs/evidence/T5/timing.txt`; `build.txt` §3; `CMakeLists.txt`; `README.md` status row | Source |
+| 135 | §10.1's T5 row: passed 2026-11-14; this document, the timings, comments without history, 1.0.0; released as `v1.0.0`; Fable tollgate PASS WITH DEFECTS, all wording, closed before the merge. | `ROADMAP.md` (T5's Passed line); `docs/evidence/T5/verdict.md`; the `v1.0.0` tag and its release; `ARCHITECTURE.md`; `docs/evidence/T5/timing.txt`; `build.txt` §3; `CMakeLists.txt`; `README.md` status row | Source |
 | 136 | Each milestone has an evidence pack under `docs/evidence/<milestone>/`. | `docs/evidence/T0/` … `T5/` | Source |
 | 137 | §11: first version 2026-11-14, with 1.0.0. | This branch's history | Source |
 | 138 | Each claim corrected after the check is worded as the source holds it. | The section below | Source |

@@ -324,7 +324,7 @@ repository's CI, which runs it in Node; a timing of the WebAssembly build; any t
 | T3 | 2026-08-31 | Crank–Nicolson with the Thomas solver; implied volatility by Newton and Brent; bump Greeks; American exercise as the stretch; `scales.hpp` and the repaired `require_valid`. |
 | T3a | 2026-11-13 | The path API; the second implied-vol solver; `AmericanVanilla` as a type; `scales.hpp` under `detail/`; the three classes; nine repeated pieces of code removed. |
 | T4 | 2026-11-13 | The WebAssembly artifact and its release workflow; `crank_nicolson_surface`; released as `v0.4.0`. |
-| T5 | — | This document, the timings in §7, comments that carry reasoning and not history, version 1.0.0. In review. |
+| T5 | 2026-11-14 | This document, the timings in §7, comments that carry reasoning and not history, version 1.0.0; released as `v1.0.0`. Fable tollgate: PASS WITH DEFECTS, all of them wording, closed before the merge. |
 
 Each has an evidence pack under `docs/evidence/<milestone>/`.
 
@@ -428,3 +428,4 @@ Removed at T5:
 | Date | Change |
 | --- | --- |
 | 2026-11-14 | First version, with Touchstone 1.0.0. |
+| 2026-11-14 | §10.1: T5's row completed with its date, its release and its tollgate, once T5 had passed. |
