@@ -10,7 +10,7 @@
  docs/evidence/T5/summary.md          | 375 +++++++++++++++++++++++
  docs/evidence/T5/tests.txt           | 566 +++++++++++++++++++++++++++++++++++
  docs/evidence/T5/timing.txt          | 564 ++++++++++++++++++++++++++++++++++
- docs/evidence/T5/tollgate.md         | 160 ++++++++++
+ docs/evidence/T5/tollgate.md         | 173 +++++++++++
  include/touchstone/black_scholes.hpp |   4 +-
  include/touchstone/bump_greeks.hpp   |  37 +--
  include/touchstone/implied_vol.hpp   |  18 +-
@@ -34,5 +34,5 @@
  third_party/CMakeLists.txt           |   4 +-
  wasm/binding.cpp                     |   1 +
  wasm/smoke.test.mjs                  |   6 +-
- 36 files changed, 3312 insertions(+), 170 deletions(-)
+ 36 files changed, 3325 insertions(+), 170 deletions(-)
 (plus diff.txt itself, written after this listing)
