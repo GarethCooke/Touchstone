@@ -305,6 +305,26 @@ covers the commits after it.
 The tollgate checks these fixes. Then the owner merges, tags with the commands in the
 first entry, and ticks T5.
 
+---
+
+### 2026-11-14 · claude-opus-5-5 · the tollgate re-check's four sentences, in its words; then the merge, the release and the tick, by the owner's instruction
+
+The re-check of `948ad76` confirmed the defect round and found four more sentences of the
+kind: three in `bump_greeks.hpp` ("26,000 … Nine orders", "a hundred thousand times", vega's
+floor) and one in `pde.hpp` (`mesh_peclet`'s "0.06, which … asserts"). The owner relayed the
+replacement words and an instruction that overrides "no tag, no PR, no merge": close them,
+then merge, release and tick, stopping at the first step that fails.
+
+**Done**
+
+1. The four sentences, in the given words, rewrapped to 80 columns (`tollgate.md` §2, rows
+   G–J); `claims.md` rows 156–160; one sentence in `ARCHITECTURE.md` §10.2.
+2. The re-check's mesh Péclet figures, reproduced: 0.0509 at the defaults and 0.1018 at
+   512 × 256, over all 7,200 rows (`tollgate.md` §2).
+3. The gates, the merge, the release and the tick follow in the commits after this one, as
+   the owner's instruction orders them. The report to the owner records each commit, run
+   and checksum.
+
 ## The claims check
 
 A fresh agent, told to be adversarial and to edit nothing, checked rows 1–129 of `claims.md`

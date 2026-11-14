@@ -40,9 +40,10 @@
 // the default is the minimum and that both ends are more than ten times worse.
 // The two errors are visible on either side of each optimum: below it the worst
 // error grows as the bump shrinks, above it as `h^2`. The floors that sweep
-// reports are 1e-10 for delta, 3e-9 for gamma and 2e-10 for vega, each within an
-// order of magnitude of the `eps^(2/3)` (a first difference) or `eps^(1/2)` (the
-// second) the analysis predicts.
+// reports are about 1e-10 for delta, 3e-9 for gamma and 2e-10 to 3e-10 for vega
+// (rounding floors, which move a little between compilers), each within an
+// order of magnitude of the `eps^(2/3)` (a first difference) or `eps^(1/2)`
+// (the second) the analysis predicts.
 //
 // **These sizes are for a pricer accurate to machine precision.** A pricer whose
 // own error is `d` — a finite-difference grid, a Monte Carlo — has that in place
@@ -56,10 +57,10 @@
 // spot — loses almost nothing: the same bias appears in both legs and subtracts
 // out, and `tests/test_bump_greeks.cpp` measures delta off the grid at the
 // default bump and at one a thousand times wider, and asserts the two errors
-// are within a factor of ten of each other. Gamma divides by
-// `h^2`, and there the same measurement shows a relative error of 26,000 at a
-// bump of 1e-9, falling to 2e-5 at 1e-2. Nine orders of magnitude, on the same
-// pricer, from the bump size alone.
+// are within a factor of ten of each other. Gamma divides by `h^2`, and there
+// the same test measures a relative error of 4.9e-3 at the default bump against
+// 2.1e-5 at a bump of 1e-2, and asserts the first is more than fifty times the
+// second. Two hundred times, on the same pricer, from the bump size alone.
 
 #pragma once
 
@@ -142,9 +143,10 @@ struct Bumps {
 /// form's domain: a volatility or an expiry smaller than its own bump would go
 /// negative, and a spot of zero has no relative bump at all. A one-sided
 /// difference at those points is not offered, deliberately — it is first order,
-/// its error is a hundred thousand times larger, and returning it under the same
-/// name as the central difference would make the accuracy of the answer depend
-/// on the input in a way nothing in the result would record.
+/// so its error falls only as the bump where the central difference's falls as
+/// the bump squared, and returning it under the same name as the central
+/// difference would make the accuracy of the answer depend on the input in a
+/// way nothing in the result would record.
 void require_valid(const EuropeanVanilla& option,
                    const BlackScholesMarket& market,
                    const BumpSizes& sizes);

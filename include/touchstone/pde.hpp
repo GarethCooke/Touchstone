@@ -140,11 +140,13 @@ struct PdeResult {
     ///
     /// Above 2 the central difference on the first derivative overwhelms the
     /// second and the scheme's matrix stops being an M-matrix: the answer can
-    /// oscillate node to node, and no assertion on the price alone would say why.
-    /// It is reported rather than enforced, because a caller who has chosen a
-    /// coarse grid deliberately should get their grid and the number that
-    /// describes it. On the golden grid at the default settings it stays below
-    /// 0.06, which `tests/test_pde.cpp` asserts.
+    /// oscillate node to node, and no assertion on the price alone would say
+    /// why. It is reported rather than enforced, because a caller who has
+    /// chosen a coarse grid deliberately should get their grid and the number
+    /// that describes it. On the golden grid at 512 intervals by 256 steps it
+    /// reaches 0.10, and `tests/test_pde.cpp` asserts it stays below 0.15
+    /// there. It is proportional to `dx`, so the defaults' grid, twice as fine,
+    /// halves it.
     double mesh_peclet{};
 
     /// `dx / (sigma sqrt(T))`: how much of one standard deviation of the

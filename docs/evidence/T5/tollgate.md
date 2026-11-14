@@ -49,6 +49,57 @@ Comments and documents only. Each old text is at `7110c84`.
 | E | `bump_greeks.hpp`, same | delta off the grid "flat to within a factor of five across four decades of bump size" | The two bumps are three decades apart (1e-6 and 1e-3) and the test asserts a factor of ten; it measures 4.96. The comment now says what is asserted. | 154 |
 | F | `tests/grid_bumps.hpp`; `tests/test_bump_greeks.cpp`, three comments | "A grid is accurate to about 1e-6 relative"; "over four decades" (the sizes span seven); "a thousand times the defaults"; "around 1e-8 relative"; "the grid's 1e-6 … at a bump of 1e-9 … twenty-six thousand" | No accuracy figure for the grid. The comments now give the sweep's real range, "a hundred to a thousand times the defaults", and the asserted factors (ten for delta, fifty for gamma) with gamma's measured ratio of 228. | 155 |
 
+The re-check of `948ad76` confirmed all five and the scan's finds. It also found four more
+sentences of the same kind, which neither scan had caught, and gave the words for each
+(rows G–J, in its words; old text at `948ad76`):
+
+| # | Where | Was | Now | `claims.md` |
+| --- | --- | --- | --- | --- |
+| G | `bump_greeks.hpp`, choosing the bump | "the same measurement shows a relative error of 26,000 at a bump of 1e-9, falling to 2e-5 at 1e-2. Nine orders of magnitude" | The test measures only the default bump and 1e-2. The sentence now gives 4.9e-3 against 2.1e-5 and the asserted factor of fifty. The old figures are true (the tollgate measured 2.617e4 at 1e-9 and 2.143e-5 at 1e-2), but nothing holds the first. | 156 |
+| H | `pde.hpp`, `PdeResult::mesh_peclet` | "On the golden grid at the default settings it stays below 0.06, which `tests/test_pde.cpp` asserts." | The test asserts 0.15 at 512 × 256, where it measures 0.1018. The sentence now says that, and that the defaults' grid, twice as fine, halves it. The tollgate measured 0.0509 at the defaults over all 7,200 rows; reproduced here, below. | 157 |
+| I | `bump_greeks.hpp`, above `require_valid` | "its error is a hundred thousand times larger" | Nothing holds the figure. Now: the error falls only as the bump, where the central difference's falls as its square. | 158 |
+| J | `bump_greeks.hpp`, the sweep's floors | "1e-10 for delta, 3e-9 for gamma and 2e-10 for vega" | Vega's floor is 2.07e-10 with g++ 15.2 (`tests.txt`) and 2.95e-10 with g++ 13.3 (the tollgate's run). Now "about … 2e-10 to 3e-10 for vega (rounding floors, which move a little between compilers)". | 159 |
+
+Row H's two figures, reproduced with a program built like §3's (`peclet_at_defaults.cpp`,
+the same command; it takes the worst `mesh_peclet` over the 7,200 main-block rows at each
+grid):
+
+```text
+1024 x 512: worst mesh Peclet 0.0509 over 7200 rows
+512 x 256: worst mesh Peclet 0.1018 over 7200 rows
+```
+
+```cpp
+// The worst mesh Peclet number over the golden file's 7,200-row main block,
+// at the library's default grid and at the sweep's 512 x 256.
+#include "golden_file.hpp"
+
+#include <touchstone/pde.hpp>
+
+#include <algorithm>
+#include <cstdio>
+
+int main()
+{
+    using namespace touchstone;
+    PdeSettings sweep{};
+    sweep.space_intervals = 512;
+    sweep.time_steps = 256;
+    const PdeSettings grids[] = {PdeSettings{}, sweep};
+    for (const PdeSettings& grid : grids) {
+        double worst = 0.0;
+        for (const auto& row : touchstone::testing::golden_file().cases) {
+            worst = std::max(worst, crank_nicolson(row.option, row.market, grid).mesh_peclet);
+        }
+        std::printf("%zu x %zu: worst mesh Peclet %.4f over %zu rows\n", grid.space_intervals,
+                    grid.time_steps, worst, touchstone::testing::golden_file().cases.size());
+    }
+}
+```
+
+`ARCHITECTURE.md` §10.2 gained one sentence (`claims.md` 160). After the four, none of
+"26,000", "Nine orders", "hundred thousand" or "0.06, which" is left under `include/`.
+
 The added sentences in `ARCHITECTURE.md` §10.2 are rows 139–142. Not changed: the
 "independent" in `bump_greeks.hpp` (a difference quotient of the price, against the
 analytic Greeks) and in `tests/test_monte_carlo.cpp` ("shares no line of code with the

@@ -212,7 +212,8 @@ narrowed here still stood unnarrowed, or a figure stood with nothing holding it.
 139–142 are the sentences this added to `ARCHITECTURE.md`; row 8 above was reworded.
 Rows 143–155 are the sentences rewritten outside it, in the README and in comments, by the
 five defects and by the scan for more of the kind (`tollgate.md` §2 lists each with its old
-text). Line references are at this branch's head.
+text). Rows 156–159 are the four sentences the tollgate's re-check found, in its own words,
+and row 160 the sentence it added to §10.2. Line references are at this branch's head.
 
 | # | Claim | Held by | How |
 | --- | --- | --- | --- |
@@ -233,6 +234,11 @@ text). Line references are at this branch's head.
 | 153 | `bump_greeks.hpp`: a pricer with error `d` has its best bump larger by `(d / eps)^(1/3)`, about 360 times at `d` = 1e-8. | Arithmetic: (1e-8 / 2.22e-16)^(1/3) = 356 | Source (arithmetic) |
 | 154 | `bump_greeks.hpp`: the test measures delta off the grid at the default bump and at one a thousand times wider, and asserts the two errors are within a factor of ten. | `tests/test_bump_greeks.cpp` ("bumping a grid gets the grid's Greeks, at the grid's bump size": `spot_relative` 1e-6 against `grid_bumps()`'s 1e-3; two `CHECK`s at a factor of ten; measured 9.48e-7 and 1.91e-7) | Asserted |
 | 155 | Test comments: the grid bumps are a hundred to a thousand times the defaults; delta's error moves by less than a factor of ten between bumps three decades apart; gamma's at the default bumps is more than fifty times the wide bumps' (asserted), over two hundred measured. | `tests/grid_bumps.hpp` against `BumpSizes` (1e-3 against 1e-6 four times, 1e-3 against 1e-5, 1e-2 against 3e-5); `tests/test_bump_greeks.cpp` (`fine_gamma > wide_gamma * 50.0`; measured 4.89e-3 against 2.14e-5) | Asserted; reported |
+| 156 | `bump_greeks.hpp`, choosing the bump: the same test measures gamma's relative error as 4.9e-3 at the default bump against 2.1e-5 at a bump of 1e-2, and asserts the first is more than fifty times the second; two hundred times, from the bump size alone. | `tests/test_bump_greeks.cpp` ("bumping a grid gets the grid's Greeks, at the grid's bump size": `fine_gamma > wide_gamma * 50.0`; reported 4.89e-3 and 2.14e-5, `tests.txt` §1); `tests/grid_bumps.hpp` (`spot_relative_for_gamma = 1e-2`) | Asserted (fifty); reported (4.9e-3, 2.1e-5, the ratio of 228) |
+| 157 | `pde.hpp`, `PdeResult::mesh_peclet`: on the golden grid at 512 × 256 it reaches 0.10, and `tests/test_pde.cpp` asserts it stays below 0.15 there; it is proportional to `dx`, so the defaults' grid, twice as fine, halves it. | `tests/test_pde.cpp` (`CHECK(worst_peclet.value() < 0.15)`; reported 1.018e-01, `tests.txt` §1); `include/touchstone/pde.hpp` (`\|nu\| dx / sigma^2`); `tollgate.md` §2 (0.0509 at the defaults over all 7,200 rows, measured) | Asserted (0.15); reported (0.10); reported in the pack (the halving) |
+| 158 | `bump_greeks.hpp`, `require_valid`: a one-sided difference is first order, so its error falls only as the bump where the central difference's falls as the bump squared. | The Taylor expansion in the file comment ("Choosing the bump": the central difference's error is `(h^2 / 6) f'''`); a forward difference's leading term is `(h / 2) f''` | Source (analysis) |
+| 159 | `bump_greeks.hpp`, the sweep's floors: about 1e-10 for delta, 3e-9 for gamma and 2e-10 to 3e-10 for vega, rounding floors that move a little between compilers. | `tests/test_bump_greeks.cpp` (the sweep's table: 1.04e-10, 2.84e-9, 2.07e-10 with g++ 15.2, `tests.txt` §1; vega 2.95e-10 with g++ 13.3, the tollgate's run) | Reported |
+| 160 | §10.2: the tollgate's re-check found four more, in `bump_greeks.hpp` and `pde.hpp`. | `tollgate.md` §2, rows G–J; `git diff 948ad76 -- include` | Source |
 
 ## The independent check
 

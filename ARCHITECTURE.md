@@ -362,7 +362,8 @@ Each has an evidence pack under `docs/evidence/<milestone>/`.
   defaults, where §7's option measures 0.077; `PdeSettings` said the suite held every golden
   row to 3e-4 at the defaults, where the suite runs the defaults on 136 rows and the whole
   grid only at a coarser resolution. A scan for more of both kinds found them in
-  `normal.hpp`, `bump_greeks.hpp` and three test files. All were corrected before 1.0.0;
+  `normal.hpp`, `bump_greeks.hpp` and three test files. The tollgate's re-check found four
+  more, in `bump_greeks.hpp` and `pde.hpp`. All were corrected before 1.0.0;
   `docs/evidence/T5/tollgate.md` lists each.
 
 ### 10.3 What the comments used to say
