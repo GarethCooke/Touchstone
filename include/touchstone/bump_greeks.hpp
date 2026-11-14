@@ -148,8 +148,8 @@ void require_valid(const EuropeanVanilla& option,
 
 /// Price and all six Greeks, by central differences of `pricer`.
 ///
-/// Thirteen calls: the base price, two for each of the six sensitivities, and
-/// one extra pair for gamma's wider bump.
+/// Thirteen calls: the base price and two for each of the six sensitivities,
+/// gamma's pair being a wider spot bump than delta's.
 ///
 /// The domain checked is the closed form's. A `pricer` with a narrower one — the
 /// finite-difference grid, which needs a positive spot and a positive total

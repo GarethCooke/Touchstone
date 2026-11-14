@@ -61,8 +61,10 @@ for the WebAssembly build (not timed), or for any input but the one in section 1
         $p.WaitForExit()
     }
 
-  No build or test was running at the time; the desktop session was otherwise in ordinary
-  use.
+  The affinity and priority are set as soon as Start-Process returns, so the harness's
+  first calibration batches may run before the pin takes effect; the timed rounds come after
+  calibration and three warm-up batches per entry point, and are pinned. No build or test was
+  running at the time; the desktop session was otherwise in ordinary use.
 
 3. The machine and the build
 ----------------------------

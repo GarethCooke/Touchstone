@@ -157,6 +157,12 @@ machine; CI (tests.txt section 5) is the authoritative run.
       sentence before.
   Each removed text is recorded in ARCHITECTURE.md section 10.3, with T3a's.
 
+  Outside the pattern's scope, the claims check found one more project-written comment with
+  an id: third_party/CMakeLists.txt:6, "the WASM artifact at T4". It now says "the
+  WebAssembly artifact", and section 10.3 records it. The golden/ and experiments/ scripts
+  and documents still name ids (I4, I6, T0 and others); they are outside the places ruling 8
+  and the brief name, and ARCHITECTURE.md section 10.3 says so.
+
 4. The three pairs in pde.hpp: the overload probe
 -------------------------------------------------
 
@@ -199,6 +205,10 @@ machine; CI (tests.txt section 5) is the authoritative run.
 
     fold.cpp:26:18: error: call of overloaded 'require_valid(EuropeanVanilla,
     BlackScholesMarket, <brace-enclosed initializer list>)' is ambiguous
+
+  and clang++ 22.1.7 -std=c++20 (recorded after the claims check asked for it):
+
+    fold.cpp:26:5: error: call to 'require_valid' is ambiguous
 
   Folded (-DFOLDED), g++ 15.2.0 and clang++ 22.1.7 both compile it and print:
 

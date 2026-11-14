@@ -25,7 +25,8 @@ same seeded stream the tutorial's demos use.
 
 Touchstone is one half of a pair. The other half is
 [learn.garethcooke.com](https://learn.garethcooke.com), a tutorial for developers who work
-alongside quants, whose checks are this library's tests and whose demos run on it. The
+alongside quants, whose checks are this library's tests and whose demos are to run on it
+(they run on a TypeScript backend until the tutorial's milestone L5 moves them). The
 organising thesis of both: linear products are priced by discounting and no-arbitrage; only
 nonlinear payoffs need stochastic calculus.
 
@@ -126,7 +127,7 @@ failure in each would mean:
 
 ## The WebAssembly side
 
-The tutorial's demos run on this library compiled to WebAssembly by Emscripten, through an
+The library is compiled to WebAssembly by Emscripten, for the tutorial's demos, through an
 embind binding: `wasm/binding.cpp` says what it carries and how a refused input reaches
 JavaScript. The artifact is `touchstone.mjs`, an ES module whose default export
 `createTouchstone()` resolves to the module, and `touchstone.wasm` beside it. Each version

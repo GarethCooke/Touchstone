@@ -1,10 +1,10 @@
 # Touchstone — Architecture
 
-**Status:** describes Touchstone 1.0.0, and is the source the portfolio's architecture page
-is rendered from. Every claim below is listed, numbered, against the test or file that holds
-it, in [`docs/evidence/T5/claims.md`](docs/evidence/T5/claims.md). The rules the programme
-runs by are in [`CONSTITUTION.md`](CONSTITUTION.md); this file describes the library those
-rules produced.
+**Status:** describes Touchstone 1.0.0, and is written as the source the portfolio's
+architecture page will be rendered from. Every claim below is listed, numbered, against the
+test or file that holds it, in [`docs/evidence/T5/claims.md`](docs/evidence/T5/claims.md).
+The rules the programme runs by are in [`CONSTITUTION.md`](CONSTITUTION.md); this file
+describes the library those rules produced.
 
 ---
 
@@ -12,21 +12,28 @@ rules produced.
 
 Touchstone is a C++20 library that prices European calls and puts on one underlying under
 Black–Scholes–Merton, with a constant rate, a constant volatility and a continuous dividend
-yield, in three independent ways: the closed form with its six analytic Greeks, Monte Carlo,
-and Crank–Nicolson finite differences. The finite-difference grid also prices the American
-contract. Around the three sit implied volatility by two solvers, Greeks by bumping any
-pricer, and sample paths of Brownian and geometric Brownian motion drawn from a frozen
-random-number generator.
+yield, in three ways: the closed form with its six analytic Greeks, Monte Carlo, and
+Crank–Nicolson finite differences. They are independent in method — a formula, a sample, a
+grid — and not in every line: all three form their scalars through one file of scale
+functions, the Monte Carlo and the grid share the payoff, and the Monte Carlo takes its
+discount factor and discounted strike from the closed form's volatility-free half. The
+finite-difference grid also prices the American contract. Around the three sit implied
+volatility by two solvers, Greeks by bumping any pricer, and sample paths of Brownian and
+geometric Brownian motion drawn from a frozen random-number generator.
 
 It is one half of a pair. The other half is learn.garethcooke.com, a tutorial whose demos
-run on this library compiled to WebAssembly.
+are to run on this library compiled to WebAssembly. At 1.0.0 they run on a TypeScript
+backend; moving them onto the WebAssembly build is the tutorial's milestone L5, not yet run.
 
-**What is claimed.** That the closed form and the grid agree with QuantLib's reference
-values, the Monte Carlo with the closed form in units of its own standard error, and the
-three with each other, within tolerances the tests state and assert, on the committed
-reference grid; that an input the library accepts never produces a NaN; that a seed draws
-the same numbers here as the tutorial's TypeScript generator recorded in the committed
-fixture; and the timings in §7, for one machine on one date.
+**What is claimed.** That the closed form agrees with QuantLib's reference values on every
+row of the committed reference file, and the grid on every row of its 7,200-row main block
+at a stated resolution; that the Monte Carlo agrees with the closed form in units of its own
+standard error on the rows where enough paths finish in the money to score it; that the
+three agree side by side on 136 of the rows; all within tolerances the tests state and
+assert. That an input the closed form, the Monte Carlo or the path functions accept never
+produces a NaN. That a seed draws the same numbers here as the tutorial's TypeScript
+generator recorded in the committed fixture. And the timings in §7, for one machine on one
+date.
 
 **What is not.** The claim is never that Touchstone is fast, or faster than anything: §7 is
 a measurement on one machine, not a comparison. Nothing is claimed for MSVC, which CI does
@@ -53,8 +60,9 @@ QuantLib is the oracle and never a dependency: Touchstone does not link it.
 ```
 
 The library is a static library of seven translation units and seventeen headers. Its
-consumers in this repository are the tests, the WebAssembly binding, and the timing harness
-in `bench/`, which is built with the tests and never run by them.
+consumers in this repository are the tests, the WebAssembly binding, a check that compiles
+each header on its own, and the timing harness in `bench/`, which is built with the tests and
+never run by them.
 
 ## 3. Repo layout
 
@@ -89,15 +97,17 @@ inheritance and no virtual function anywhere in the library.
 
 **The contract's exercise style is its type.** `EuropeanVanilla` and `AmericanVanilla` are
 both `Vanilla<E>`, so their fields are written once. The grid accepts either; every other
-entry point that takes a contract accepts the European one only, and refuses the American
-one at compile time. `with_exercise` converts between them, and nothing converts implicitly.
+pricing entry point accepts the European one only, and refuses the American one at compile
+time. `payoff`, which both exercise styles share, accepts either. `with_exercise` converts
+one contract to the other, and nothing converts implicitly.
 
 **The market is a type of its own,** `BlackScholesMarket`, and `QuotedMarket` is the same
 market without its volatility, for the functions whose job is to find it.
 
-**Every entry point validates before it computes.** Each family has a `require_valid` that
-throws `std::invalid_argument` with the reason, and each entry point calls it first; a
-caller can call it directly to ask without pricing.
+**Every entry point validates before it computes,** and refuses an input outside its domain
+with `std::invalid_argument` naming the reason. Each family has a `require_valid` a caller
+can call to ask without pricing. Two refusals sit outside them: `monte_carlo`'s check that
+`σ²T` is representable, and `crank_nicolson_surface`'s refusal of a stride of zero.
 
 **Every Greek is a raw partial derivative:** vega per 1.00 of volatility, theta per year,
 rho per 1.00 of rate. Scaling for display is the caller's.
@@ -112,10 +122,11 @@ solvers build it once per solve.
 
 **The Monte Carlo** draws one normal per path and samples the terminal law exactly, or steps
 Euler–Maruyama over `steps` equal steps from the same generator. It reports the standard
-error beside the price and a pathwise delta beside the delta. With antithetics the sampling
-unit is the pair, and the standard error is computed from pair means, so that the variance
-reduction does not also shrink the error bar it is judged by. An Euler path may go negative
-and is not clipped, because clipping would change the rate the scheme converges at.
+error beside the price, and a pathwise delta with its own standard error. With antithetics
+the sampling unit is the pair, and the standard error is computed from pair means, so that
+the variance reduction does not also shrink the error bar it is judged by. An Euler path may
+go negative and is not clipped, because clipping would change the rate the scheme converges
+at.
 
 **The grid** solves the pricing equation in log-spot, where its coefficients are constant and
 one uniform grid serves every spot. It runs Crank–Nicolson after two fully implicit half-step
@@ -138,8 +149,9 @@ every iterate on request. It answers a price outside the no-arbitrage bounds wit
 and a volatility of zero or infinity, never a NaN; `implied_vol` refuses such a price with
 `std::invalid_argument`.
 
-**Bump Greeks** take thirteen prices: the base, a central pair for each of six inputs, and a
-second, wider spot pair for gamma, because a second difference balances truncation against
+**Bump Greeks** take thirteen prices: the base and six central pairs — one each in
+volatility, rate, dividend yield and expiry, and two in spot, a narrow one for delta and a
+wider one for gamma, because a second difference balances truncation against
 cancellation at a larger bump than a first difference does. `tests/test_bump_greeks.cpp`
 sweeps the bumps for delta, gamma, vega and rho from 1e-9 to 1e-2 against the analytic
 Greeks, and asserts that each is most accurate at the size `BumpSizes` defaults to (1e-6;
@@ -152,9 +164,9 @@ the caller owns, one normal per step, and both GBM schemes are driven by the sam
 two paths from one seed differ by discretisation and nothing else. The Monte Carlo draws from
 the same generator through the same step.
 
-**One association per product.** Every scalar the methods form from a market and an expiry —
-`σ√T`, `½σ²T`, `(r − q)T`, the discount factors and the rest — is written once, in
-`detail/scales.hpp`, and the domain checks call the same functions the formulas do. A check
+**One association per product.** The products the domain checks guard — `σ√T`, `½σ²T`,
+`(r − q)T`, the discount factors and the rest — are each written once, in
+`detail/scales.hpp`, and the checks call the same functions the formulas do. A check
 that formed the same quantity with a different grouping would guard a different set of inputs
 from the one the formulas use (§10.2 has the input that showed it).
 
@@ -167,19 +179,26 @@ module and one `.wasm`, built by Emscripten 6.0.13 with C++ exception catching o
 
 ## 6. Invariants (the library's own rules)
 
-1. **Validate, then compute.** Every entry point calls its `require_valid` first, and an
-   input outside the domain is an `std::invalid_argument` naming the reason.
+1. **Validate, then compute.** Every entry point checks its inputs before it computes, and
+   an input outside the domain is an `std::invalid_argument` naming the reason (§4 names the
+   two checks that sit outside a `require_valid`).
    *Why:* a domain stated in code is a domain that can be tested at its boundary.
-   *Held by:* `tests/test_limits.cpp`, `tests/test_pde.cpp`, `tests/test_implied_vol.cpp`,
-   `tests/test_bump_greeks.cpp`, `tests/test_paths.cpp`, each of which asserts the refusals.
-2. **An accepted input never produces a NaN.** From the closed form, price, delta, vega,
-   rho and dividend rho are finite; gamma and theta may be infinite, where the true value is
-   unbounded or exceeds a double. A Monte Carlo estimate may saturate to infinity the same
-   way. None of them may be a NaN.
-   *Why:* an infinity compares correctly against a tolerance, and a NaN compares false
-   against every test a caller could write.
+   *Held by:* `tests/test_limits.cpp`, `tests/test_monte_carlo.cpp`, `tests/test_pde.cpp`,
+   `tests/test_implied_vol.cpp`, `tests/test_bump_greeks.cpp`, `tests/test_paths.cpp`, each
+   of which asserts the refusals.
+2. **An input the closed form, the Monte Carlo or the path functions accept never produces a
+   NaN.** From the closed form, price, delta, vega, rho and dividend rho are finite; gamma
+   and theta may be infinite, where the true value is unbounded or exceeds a double. A Monte
+   Carlo estimate or a path value may saturate to infinity the same way. None of them may be
+   a NaN. The grid, the implied-vol solvers and bump Greeks are held to the reference grid
+   and to their refusals, not swept for NaNs. One documented exception: `norm_inv` accepts a
+   probability of one or more and returns a NaN.
+   *Why:* an infinity compares correctly against a tolerance, while a NaN makes every
+   ordered comparison false, so a check written as `error <= tolerance` fails on it and one
+   written as `error > tolerance` passes it.
    *Held by:* the domain sweep in `tests/test_limits.cpp`, the Monte Carlo's in
-   `tests/test_monte_carlo.cpp`, and `tests/test_associations.cpp`.
+   `tests/test_monte_carlo.cpp`, `tests/test_paths.cpp`, and `tests/test_associations.cpp`;
+   the exception by `tests/test_rng.cpp`.
 3. **Each product is formed once, in one association,** through `detail/scales.hpp`.
    *Why:* floating-point multiplication does not associate, so a check and a formula that
    group one product differently guard different domains.
@@ -204,8 +223,9 @@ module and one `.wasm`, built by Emscripten 6.0.13 with C++ exception catching o
    argument of the wrong shape, `Error` otherwise.
    *Why:* an exception unwinding WebAssembly frames leaves the module's stack pointer behind;
    T4 measured a module killed by it at call 2,074.
-   *Held by:* `wasm/smoke.test.mjs`, which makes 300,000 refused calls and then reproduces
-   the fixtures.
+   *Held by:* `wasm/smoke.test.mjs`, which makes 300,000 refused calls — 100,000 of them a
+   throwing getter, refused before the module is entered — and then reproduces the RNG
+   fixture and one golden row exactly as before.
 
 ## 7. Timings — one machine, one date
 
@@ -215,10 +235,10 @@ a dividend yield of 0.02. `implied_vol` inverts the closed-form price of that op
 volatility; `bump_greeks` is the overload over the closed form.
 
 Taken on 2026-11-14 on an AMD Ryzen 7 3800X under Windows 11 Pro 10.0.26200, with g++ 15.2.0
-(MinGW-Builds), `-O3 -DNDEBUG -std=c++20`, the library as a static library. Each process ran
-25 rounds, pinned to one logical core at high priority; each round took the median of five
-batches of each entry point, a batch being as many calls in a row as take at least 20 ms. The
-table gives each of three processes' median round, lowest to highest.
+(MinGW-Builds), `-O3 -DNDEBUG -std=c++20`, the library as a static library. Each process was
+pinned to one logical core at high priority as it started and ran 25 rounds; each round took
+the median of five batches of each entry point, a batch being as many calls in a row as take
+at least 20 ms. The table gives each of three processes' median round, lowest to highest.
 
 | Entry point | Median of one call, three runs |
 | --- | --- |
@@ -230,52 +250,56 @@ table gives each of three processes' median round, lowest to highest.
 
 These are one machine's numbers on one date, with one compiler at one setting of its flags.
 They say nothing about another machine, compiler or flag, about the WebAssembly build, which
-was not timed, or about inputs other than the one above. Nothing was tuned for them: the
-harness measures the library as it is, and there is no fast path. The raw output, the
+was not timed, or about inputs other than the one above. Nothing was tuned for this
+measurement: the library timed is main's, object file for object file, and there is no fast
+path. The raw output, the
 machine and the method are in `docs/evidence/T5/timing.txt`.
 
 ## 8. Decisions already made (with rationale)
 
 - **Free functions over plain value types, with three classes underneath.** The functions
-  are the public face; `ClosedForm` is public because a caller that wants several outputs, or
-  one input at many volatilities, gains by holding it; the grid solver and the path
+  are the public face; `ClosedForm` is public because a caller that wants several outputs,
+  or one input at many volatilities, gains by holding it; the grid solver and the path
   generator are internal.
 - **The grid's three entry points stay overloaded per exercise style.** `require_valid`,
   `crank_nicolson` and `crank_nicolson_surface` are each declared twice in `pde.hpp`, and
   each pair forwards to one template in `pde.cpp`, so no logic is written twice. One
   `template <Exercise E>` declaration per pair was considered. For `require_valid` it is
-  unsafe: `bump_greeks.hpp` declares a three-argument `require_valid` taking `BumpSizes`, and
-  where both headers are included `require_valid(option, market, {})` is today an ambiguous
-  call that does not compile, while with a template in the pair's place overload resolution
-  prefers the non-template and the same line validates bump sizes instead of a grid. A probe
-  shows both outcomes under g++ 15.2 and clang 22.1.7. The other two pairs have no such
-  neighbour, but the validator and the two solvers it guards are one family, and a header in
-  which two are templates and the third a pair reads as though the third were different. All
-  three stay pairs.
+  unsafe: `bump_greeks.hpp` declares a three-argument `require_valid` taking `BumpSizes`,
+  and where both headers are included `require_valid(option, market, {})` is today an
+  ambiguous call that does not compile, while with a template in the pair's place overload
+  resolution prefers the non-template and the same line validates bump sizes instead of a
+  grid. A probe that mirrors the two headers' declarations shows both outcomes under g++
+  15.2 and clang 22.1.7. The other two pairs have no such neighbour, but the validator and
+  the two solvers it guards are one family, and a header in which two are templates and the
+  third a pair reads as though the third were different. All three stay pairs.
 - **Each implied-vol solver keeps its own stopping rule.** `implied_vol` stops relative to
   the scale the price is computed at; the safeguarded solver stops as page 2.11's experiment
   specifies, and is held to that experiment's committed trace iterate by iterate.
-- **A refused implied-vol price returns a volatility of zero or infinity with its status,**
-  never a NaN.
+- **The safeguarded solver answers a price outside the bounds with a volatility of zero or
+  infinity and its status,** never a NaN; `implied_vol` refuses it.
 - **A path's step keeps its two zero tests,** which make an infinity times a zero impossible
   in a path. T3a measured their cost on one machine at 1.5 ms of a 31.5 ms Euler run of 64
-  steps, and no faster formulation that returned the same bits.
+  steps, and timed one alternative that returned the same bits, which was no faster.
 - **Errors are returned across the WebAssembly boundary and thrown in JavaScript** (§6, 7),
   and arguments are structured-cloned before the module is entered, so that a getter that
   throws does so before any WebAssembly frame exists.
 - **An American option reaches the binding as an `exercise: 'american'` field,** which the
-  grid's entry points accept and every other entry point refuses with a `TypeError`.
-- **WebAssembly's own exception handling, not Emscripten's JavaScript-based kind:** at T4
-  it cost 31,650 bytes against 79,115.
-- **The grid's half-width defaults to 6 total volatilities,** where the boundary's
-  contribution is about 1.5e-8 and widening further buys nothing.
+  grid's entry points and `bumpGreeks` over the grid accept, and every other entry point
+  refuses with a `TypeError`.
+- **WebAssembly's own exception handling, not Emscripten's JavaScript-based kind:** at T4 it
+  cost 31,650 bytes against 79,115.
+- **The grid's half-width defaults to 6 total volatilities.** `pde.hpp` estimates the
+  boundary's contribution there as `exp(−α²/2)`, about 1.5e-8; `tests/test_pde.cpp` widens
+  the domain at a fixed step on one row and finds the price moves by at most 1.3e-8 for any
+  half-width from 3 to 12, against a discretisation error of 2.8e-6.
 - **Thomas without pivoting, with its precondition measured:** the dominance margin is
   computed for every grid and reported in `PdeResult`, as is the mesh Péclet number, which
   is reported rather than enforced.
-- **No `.clang-format`.** The closest configuration found still rewrites lines in include/,
-  src/, tests/, wasm/ and bench/, mostly hand-aligned comments and coefficient tables, and the
-  sources are not reformatted to suit a tool. `.editorconfig` states what the sources already
-  do.
+- **No `.clang-format`.** The closest configuration found still rewrites 46 lines in 14
+  files — hand-aligned coefficient tables and initialiser rows, continuation lines, switch
+  and enum layout — and the sources are not reformatted to suit a tool. `.editorconfig`
+  states what the sources already do.
 
 ## 9. Deliberately unspecified / out of scope
 
@@ -294,7 +318,7 @@ repository's CI, which runs it in Node; a timing of the WebAssembly build; any t
 
 | Milestone | Passed | What it added |
 | --- | --- | --- |
-| T0 | 2026-08-29 | The golden file: 7,200 grid rows and 34 edge rows from QuantLib 1.43, regenerated byte for byte in CI. |
+| T0 | 2026-08-29 | The golden file: 7,200 grid rows and 34 edge rows from QuantLib 1.43, reproducible byte for byte; CI regenerates it from T1 on. |
 | T1 | 2026-08-29 | The CMake project; the closed form and its analytic Greeks; `N(x)` through `erfc`; the golden-file, parity and limit tests; CI on GCC and Clang with warnings as errors. Fable tollgate: PASS. |
 | T2 | 2026-08-30 | The shared generator, reproducing the tutorial's known answers; Monte Carlo, exact and Euler, with standard errors, antithetics and a pathwise delta. |
 | T3 | 2026-08-31 | Crank–Nicolson with the Thomas solver; implied volatility by Newton and Brent; bump Greeks; American exercise as the stretch; `scales.hpp` and the repaired `require_valid`. |
@@ -307,31 +331,37 @@ Each has an evidence pack under `docs/evidence/<milestone>/`.
 ### 10.2 Reviews, and what they changed
 
 - **T1.** An adversarial review by a second session re-derived every formula, mutated the
-  implementation to see whether the suite noticed, and searched the domain for NaNs. It found
-  seven real problems; all were fixed, and the inputs are kept in `tests/test_limits.cpp` as
-  regressions. The Fable tollgate passed T1.
+  implementation to see whether the suite noticed, and searched the domain for NaNs. It
+  found seven real problems, and all were fixed; four of the inputs are kept in
+  `tests/test_limits.cpp` as regressions. The Fable tollgate passed T1.
 - **T2.** A review flagged a hazard in `require_valid`: its checks formed the same products
   the formulas did, but nothing made them form them the same way. The review was redone by
   Fable at the owner's request: PASS WITH DEFECTS, the defects in the evidence pack and a
   comment, none in the library.
-- **T3.** The hazard was real. T1's check took the drift as one product,
-  `(r − q + ½σ²)T`, while the formulas form `(r − q)T` and `½σ²T` separately; at
-  `σ = √(2·10³⁰⁰)`, `q = 10³⁰⁰`, `r = 0`, `T = 10¹⁰` the sum is zero and the input passed,
-  while the two terms are −∞ and +∞ and all seven outputs were NaN. The repair was
-  `scales.hpp`, and `tests/test_associations.cpp` keeps the input.
-- **T3a.** A review for repeated code by a session that had not written the change; its
-  findings are closed in `docs/evidence/T3a/review.md`.
+- **T3.** The hazard was real. T1's check took the drift as one product, `(r − q + ½σ²)T`,
+  while the formulas form `(r − q)T` and `½σ²T` separately; at `σ = √(2·10³⁰⁰)`, `q =
+  10³⁰⁰`, `r = 0`, `T = 10¹⁰` the sum is zero and the input passed, while the two terms are
+  −∞ and +∞ and all seven outputs were NaN. The repair was `scales.hpp`, and
+  `tests/test_associations.cpp` keeps the input.
+- **T3a.** A review for repeated code by a session that had not written the change; each of
+  its findings is closed or kept with a reason in `docs/evidence/T3a/review.md`.
 - **T4.** An audit by Fable loaded the artifact in Node and in headless Chromium, in a page
   and in a worker, and found the release job would have failed on the tag: its files were
   uploaded under their build paths, not flat. They are now assembled flat and downloaded on
   every push.
-- **T5.** The claims in this document were checked one by one against their citations by
-  an agent that did not write it; `docs/evidence/T5/claims.md` records what it found.
+- **T5.** The claims in this document were checked one by one against their citations by an
+  agent that did not write it. Of 129 claims, 9 said more than their sources held — among
+  them that every accepted input avoids a NaN, that the three methods share no arithmetic,
+  and that the tutorial's demos already run on the WebAssembly build — and 26 needed a
+  narrower wording or a better citation. Each was corrected before 1.0.0;
+  `docs/evidence/T5/claims.md` records them.
 
 ### 10.3 What the comments used to say
 
-The sources' comments give reasoning and name no milestone, review or governance id. Where a
-comment carried such history, the text is recorded here as it was.
+The comments in `include/`, `src/`, `tests/`, `wasm/`, `bench/`, the CMake files and the
+workflows give reasoning and name no milestone, review or governance id. Where a comment
+carried such history, the text is recorded here as it was. The golden-file and experiment
+scripts and their documents, outside that list, still name ids.
 
 Removed at T3a (`docs/evidence/T3a/history.md`):
 
@@ -367,7 +397,7 @@ Removed at T5:
 | `tests/rng_fixture.hpp`, file comment | "at L0" |
 | `tests/test_associations.cpp`, file comment | "T1 made the promise", "T2's review found the promise's method fragile … and left it for T3. T3 found it was not merely fragile: one input got through." |
 | `tests/test_associations.cpp`, test names | "the input T1 accepted and returned a NaN for"; "the volatility band T2 relies on is still priced" |
-| `tests/test_associations.cpp`, three comments | "T1's drift check was"; "T2's Monte Carlo prices this row"; "the whole of T2's accepted band"; "or T1's evidence describes a library that no longer exists" |
+| `tests/test_associations.cpp`, four comments | "T1's drift check was"; "T2's Monte Carlo prices this row"; "the whole of T2's accepted band"; "or T1's evidence describes a library that no longer exists" |
 | `tests/test_bump_greeks.cpp`, file comment | "the two halves of constitution I20's second sentence meet: \"analytic and bump Greeks likewise\"" |
 | `tests/test_closed_form.cpp` | "the roadmap's stated T1 figure" |
 | `tests/test_euler.cpp`, file comment | "have to be tested here (I1)" |
@@ -379,6 +409,7 @@ Removed at T5:
 | `tests/test_rng.cpp` | "at L0" and "Constitution I6, in its simplest form." |
 | `tests/test_three_way.cpp` | "Constitution I20, stated as one test." with its quotation; "the same discipline T2 established"; "the second sentence of I20"; "T2 established that rule"; and the report's opening words, "I20 on" |
 | `CMakeLists.txt`, warnings | "Tech-decision B1:" |
+| `third_party/CMakeLists.txt` | "the WASM artifact at T4" |
 | `.github/workflows/ci.yml` | "Tech-decision B7:"; "T0 proved the generator reproducible by hand. This is that proof as a standing check"; "T3's American reference." |
 | `wasm/smoke.test.mjs` | "The one golden row the roadmap's criterion names" |
 

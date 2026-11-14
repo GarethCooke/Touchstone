@@ -14,17 +14,17 @@ what changed.
 
 | # | Claim | Held by | How |
 | --- | --- | --- | --- |
-| 1 | The document describes Touchstone 1.0.0 and is the source of the portfolio's architecture page. | `CMakeLists.txt` (`VERSION 1.0.0`); `wasm/smoke.test.mjs` (the module's `version` equals it); `ROADMAP.md` T5 and P2 deliverables | Source; asserted for the module |
+| 1 | The document describes Touchstone 1.0.0 and is written as the source the portfolio's architecture page will be rendered from. | `CMakeLists.txt` (`VERSION 1.0.0`); `wasm/smoke.test.mjs` (the module's `version` equals it); `ROADMAP.md` T5 and P2 deliverables (P2 not yet run) | Source; asserted for the module |
 | 2 | Prices European calls and puts on one underlying under Black–Scholes–Merton with constant rate, volatility and continuous dividend yield. | `include/touchstone/black_scholes.hpp` (file comment, `BlackScholesMarket`); `include/touchstone/contract.hpp` | Source |
-| 3 | Three independent ways: closed form with six analytic Greeks, Monte Carlo, Crank–Nicolson. | `include/touchstone/black_scholes.hpp`, `monte_carlo.hpp`, `pde.hpp` | Source |
+| 3 | Three ways — closed form with six analytic Greeks, Monte Carlo, Crank–Nicolson — independent in method and not in every line: all three form scalars through `detail/scales.hpp`, the Monte Carlo and the grid share `payoff`, and the Monte Carlo takes its discount factor and discounted strike from `ClosedFormQuote`. | `include/touchstone/black_scholes.hpp`, `monte_carlo.hpp`, `pde.hpp`, `contract.hpp` (`payoff`); `src/monte_carlo.cpp` (`ClosedFormQuote quote`, `quote.discount_factor()`, `quote.discounted_strike()`, ~lines 222–318) | Source |
 | 4 | The finite-difference grid also prices the American contract. | `include/touchstone/pde.hpp` (`crank_nicolson(const AmericanVanilla&, …)`); `tests/test_american.cpp` | Asserted |
 | 5 | Implied volatility by two solvers; Greeks by bumping any pricer; Brownian and GBM paths from a frozen generator. | `include/touchstone/implied_vol.hpp`; `bump_greeks.hpp` (`VanillaPricer`); `paths.hpp`; `rng.hpp`, `docs/rng.md` | Source |
-| 6 | One half of a pair with learn.garethcooke.com, whose demos run on this library compiled to WebAssembly. | `README.md`; `CONSTITUTION.md` §1, I15 (A6); `wasm/binding.cpp` file comment | Source (programme documents; the site is not in this repository) |
-| 7 | The closed form agrees with QuantLib's reference values within the tolerances the tests state and assert, on the committed grid. | `tests/test_closed_form.cpp` against `golden/bs_vanilla.json` (1e-10 grid, 1e-8 edge block) | Asserted; worst 2.841e-13 (grid), 1.619e-11 (edge) reported in `tests.txt` §1 |
-| 8 | The grid agrees with QuantLib's reference values within stated, asserted tolerances on the committed grid. | `tests/test_pde.cpp` ("golden grid by Crank-Nicolson", 7,200 rows at 512 × 256) | Asserted |
-| 9 | The Monte Carlo agrees with the closed form in units of its own standard error. | `tests/test_monte_carlo.cpp` ("the golden grid, priced by Monte Carlo": 6,147 rows scored, worst \|z\| 3.559 against a bound of 5.648) | Asserted |
-| 10 | The three agree with each other within stated, asserted tolerances. | `tests/test_three_way.cpp` (136 rows) | Asserted |
-| 11 | An input the library accepts never produces a NaN. | See 85 | Asserted |
+| 6 | One half of a pair with learn.garethcooke.com, whose demos are to run on this library compiled to WebAssembly; at 1.0.0 they run on a TypeScript backend, and moving them is L5, not yet run. | `ROADMAP.md` (L1 "on the TypeScript backend"; L5 unticked); `CONSTITUTION.md` I15 (A6); `wasm/binding.cpp` file comment | Source (programme documents; the site is not in this repository) |
+| 7 | The closed form agrees with QuantLib's reference values on every row of the committed reference file (7,200 grid rows and 34 edge rows) within the tests' asserted tolerances. | `tests/test_closed_form.cpp` against `golden/bs_vanilla.json` (1e-10 grid, 1e-8 edge block; row counts asserted) | Asserted; worst 2.841e-13 (grid), 1.619e-11 (edge) reported in `tests.txt` §1 |
+| 8 | The grid agrees with QuantLib's reference values on every row of the 7,200-row main block at a stated resolution. | `tests/test_pde.cpp` ("golden grid by Crank-Nicolson", 7,200 rows at 512 × 256; the edge block is only asserted to price more than 20 of 34) | Asserted |
+| 9 | The Monte Carlo agrees with the closed form in units of its own standard error on the rows where enough paths finish in the money to score it. | `tests/test_monte_carlo.cpp` ("the golden grid, priced by Monte Carlo": 6,147 rows scored at 32,768 paths, worst \|z\| 3.559 against a bound of 5.648; 323 more re-run at 1,048,576; 764 too rare to score, 630 of them priced at exactly zero) | Asserted on the scored rows; the rest reported |
+| 10 | The three agree side by side on 136 of the rows within stated, asserted tolerances. | `tests/test_three_way.cpp` (136 rows; grid and Monte Carlo each against the closed form, Monte Carlo scored on 119) | Asserted (each against the closed form; grid against Monte Carlo by implication, as the test states) |
+| 11 | An input the closed form, the Monte Carlo or the path functions accept never produces a NaN. | See 85 | Asserted |
 | 12 | A seed draws the same numbers here as the tutorial's TypeScript generator recorded in the committed fixture. | `tests/test_rng.cpp` against `golden/rng-known-answers.json`; `wasm/smoke.test.mjs` | Asserted (uniforms bit for bit; normals 30 of 30 bit for bit, tolerance 1e-12) |
 | 13 | The timings in §7 are for one machine on one date. | `docs/evidence/T5/timing.txt` | Source |
 | 14 | §7 is a measurement on one machine, not a comparison. | `ARCHITECTURE.md` §7; `docs/evidence/T5/timing.txt` §5 | Source |
@@ -44,10 +44,10 @@ what changed.
 | 23 | The library uses the standard library only. | See 90 | Source |
 | 24 | The binding is translation only and produces `touchstone.mjs` and `touchstone.wasm`. | `wasm/binding.cpp` file comment; `wasm/CMakeLists.txt` | Source |
 | 25 | The artifact is smoke-tested in Node in CI. | `.github/workflows/ci.yml` calls `wasm.yml`, step "Smoke test" | Asserted in CI |
-| 26 | A GitHub release is made on a `v*` tag. | `.github/workflows/release.yml` | Source (it has not yet run; `docs/evidence/T4/summary.md`) |
-| 27 | The release feeds the tutorial's demos. | `.github/workflows/release.yml` file comment; `CONSTITUTION.md` I17 | Source |
+| 26 | A GitHub release is made on a `v*` tag. | `.github/workflows/release.yml`; the `v0.4.0` release, published 2026-11-13 with four assets (`gh release view v0.4.0`) | Source; it has run once |
+| 27 | The release is for the tutorial's demos. | `.github/workflows/release.yml` file comment; `CONSTITUTION.md` I17 | Source (design intent; L5 has not run) |
 | 28 | The library is a static library of seven translation units and seventeen headers. | `CMakeLists.txt` (`add_library(touchstone STATIC` with seven sources; `TOUCHSTONE_HEADERS` lists seventeen) | Source |
-| 29 | Its consumers here are the tests, the binding and the timing harness, which is built with the tests and never run by them. | `tests/CMakeLists.txt`, `wasm/CMakeLists.txt`, `bench/CMakeLists.txt`; `CMakeLists.txt` (`add_subdirectory(bench)` inside `if(TOUCHSTONE_BUILD_TESTS)`); no `add_test` names it | Source |
+| 29 | Its consumers here are the tests, the binding, the header self-containment check, and the timing harness, which is built with the tests and never run by them. | `tests/CMakeLists.txt`, `wasm/CMakeLists.txt`, `bench/CMakeLists.txt`; `CMakeLists.txt` (`touchstone_header_check`; `add_subdirectory(bench)` inside `if(TOUCHSTONE_BUILD_TESTS)`); no `add_test` names the harness | Source |
 
 ## §3 Repo layout
 
@@ -77,10 +77,10 @@ what changed.
 | 46 | `bump_greeks` defaults: closed form or any `VanillaPricer`; 1e-6 and 3e-5 relative spot; 1e-6 vol, rate, yield; 1e-5 years. | `include/touchstone/bump_greeks.hpp` (`BumpSizes`, the two overloads) | Source |
 | 47 | Path defaults: seed 1; horizon 1. | `include/touchstone/paths.hpp` (`PathGrid`) | Source |
 | 48 | `EuropeanVanilla` and `AmericanVanilla` are both `Vanilla<E>`, fields written once. | `include/touchstone/contract.hpp`; `tests/test_contract.cpp` (`is_same_v` static_asserts) | Asserted at compile time |
-| 49 | The grid accepts either; every other entry point taking a contract accepts the European one only and refuses the American one at compile time. | `tests/test_contract.cpp` (concepts and `static_assert`s) | Asserted at compile time |
+| 49 | The grid accepts either; every other pricing entry point accepts the European one only and refuses the American one at compile time; `payoff` accepts either. | `tests/test_contract.cpp` (concepts and `static_assert`s over the closed form, `ClosedForm`, Monte Carlo, implied vol, bump Greeks, the grid and `payoff`); the other `require_valid` overloads take `const EuropeanVanilla&` by signature | Asserted at compile time for the functions the concepts name; source for the rest |
 | 50 | `with_exercise` converts; nothing converts implicitly. | `tests/test_contract.cpp` (`!is_convertible_v` both ways; "with_exercise keeps every field") | Asserted |
 | 51 | `BlackScholesMarket` is the market; `QuotedMarket` is it without the volatility. | `include/touchstone/black_scholes.hpp` | Source |
-| 52 | Each family has a `require_valid` throwing `std::invalid_argument` with the reason; each entry point calls it first; a caller may call it directly. | `black_scholes.hpp`, `monte_carlo.hpp`, `pde.hpp`, `implied_vol.hpp`, `bump_greeks.hpp`, `paths.hpp` (declarations); `src/` (each entry point's first statement); the tests in 84 | Source; refusals asserted |
+| 52 | Every entry point validates before it computes and refuses with `std::invalid_argument` naming the reason; each family has a `require_valid` a caller can call; two refusals sit outside them: `monte_carlo`'s total-variance check and `crank_nicolson_surface`'s stride of zero. | `black_scholes.hpp`, `monte_carlo.hpp`, `pde.hpp`, `implied_vol.hpp`, `bump_greeks.hpp`, `paths.hpp` (declarations); `src/monte_carlo.cpp` (~237), `src/pde.cpp` (`sample_to_today`); the closed form validates in `ClosedForm`'s constructor; the tests in 84 | Source; refusals asserted |
 | 53 | Every Greek is a raw partial derivative: vega per 1.00 vol, theta per year, rho per 1.00 rate. | `include/touchstone/black_scholes.hpp` (`PriceAndGreeks`); `golden/SCHEMA.md`; `tests/test_closed_form.cpp` against the file's conventions | Asserted (against QuantLib in those units) |
 
 ## §5 How each method is built
@@ -89,14 +89,14 @@ what changed.
 | --- | --- | --- | --- |
 | 54 | `N(x)` is evaluated through `std::erfc`. | `include/touchstone/normal.hpp` (`norm_cdf`) | Source |
 | 55 | At x = −10 the subtraction `1 − N(10)` returns zero where the true value is 7.6e-24. | `include/touchstone/normal.hpp` comment; `tests/test_normal.cpp` (the subtraction demonstrated, ~line 73) | Asserted |
-| 56 | A `ClosedForm` validates once, computes once, serves all seven outputs. | `include/touchstone/black_scholes.hpp`, `src/black_scholes.cpp`; `tests/test_closed_form.cpp` ("worst accessor error 0") | Source; accessors asserted equal |
+| 56 | A `ClosedForm` validates once, computes once, serves all seven outputs. | `include/touchstone/black_scholes.hpp`, `src/black_scholes.cpp` | Source (the accessors are asserted within 1e-15 of `price_and_greeks` and measured identical, `tests/test_closed_form.cpp`) |
 | 57 | `ClosedFormQuote` is the volatility-free half, and both solvers build it once per solve. | `include/touchstone/black_scholes.hpp`; `src/implied_vol.cpp` (one `ClosedFormQuote` per search, ~lines 75–104); `tests/test_closed_form.cpp` (quote reused: 7,234 rows, 0 values not identical) | Source; reuse asserted |
 | 58 | The Monte Carlo samples the terminal law exactly from one normal per path, or steps Euler–Maruyama over `steps` equal steps from the same generator. | `include/touchstone/monte_carlo.hpp`, `paths.hpp` (`Scheme`); `include/touchstone/detail/path_generator.hpp` | Source |
-| 59 | It reports a standard error beside the price and a pathwise delta beside the delta. | `include/touchstone/monte_carlo.hpp` (`MonteCarloResult`); `tests/test_monte_carlo.cpp` ("the standard error is the spread of the estimator") | Asserted |
-| 60 | With antithetics the sampling unit is the pair and the standard error comes from pair means. | `include/touchstone/monte_carlo.hpp` (`antithetic`, `samples`); `tests/test_monte_carlo.cpp` ("antithetic sampling reduces the variance it is supposed to") | Asserted |
+| 59 | It reports a standard error beside the price, and a pathwise delta with its own standard error. | `include/touchstone/monte_carlo.hpp` (`MonteCarloResult`); `tests/test_monte_carlo.cpp` ("the standard error is the spread of the estimator"; pathwise delta vs analytic in standard errors) | Asserted |
+| 60 | With antithetics the sampling unit is the pair and the standard error comes from pair means. | `include/touchstone/monte_carlo.hpp` (`antithetic`, `samples`); `tests/test_monte_carlo.cpp` ("the standard error is the spread of the estimator", antithetic leg) | Asserted |
 | 61 | An Euler path may go negative and is not clipped. | `include/touchstone/paths.hpp` (`Scheme::EulerMaruyama`); `include/touchstone/contract.hpp` (`payoff` at a negative spot); `tests/test_contract.cpp` (`payoff(put, -5.0) == 105.0`) | Source; payoff asserted |
 | 62 | The grid is in log-spot, where the coefficients are constant and one uniform grid serves every spot. | `include/touchstone/pde.hpp` ("The equation") | Source |
-| 63 | Crank–Nicolson after two fully implicit half-step pairs (Rannacher), from a cell-averaged payoff. | `include/touchstone/pde.hpp` (`rannacher_steps{2}`, `smooth_payoff{true}`); `src/pde.cpp` (`advance`, `cell_average_payoff`); `tests/test_pde.cpp` (convergence with and without) | Source; convergence asserted |
+| 63 | Crank–Nicolson after two fully implicit half-step pairs (Rannacher), from a cell-averaged payoff. | `include/touchstone/pde.hpp` (`rannacher_steps{2}`, `smooth_payoff{true}`); `src/pde.cpp` (`advance`, `cell_average_payoff`); `tests/test_pde.cpp` (convergence order with the start; gamma at the strike with and without it; both payoff constants) | Source; convergence asserted |
 | 64 | The spot is exactly on a node; the price is a node value and delta and gamma central differences about it. | `include/touchstone/pde.hpp` (`crank_nicolson`); `src/pde.cpp` (`make_grid`, `result`); `tests/test_pde.cpp` (spot node at `ln S`) | Asserted |
 | 65 | Each step is a Thomas sweep without pivoting. | `include/touchstone/tridiagonal.hpp`; `src/tridiagonal.cpp`; `tests/test_tridiagonal.cpp` | Asserted |
 | 66 | The diagonal dominance is measured and reported, with the mesh Péclet number, rather than assumed. | `include/touchstone/pde.hpp` (`PdeResult::dominance_margin`, `mesh_peclet`); `tests/test_pde.cpp` ("grid diagnostics": smallest dominance 1.000, worst Péclet 0.10) | Asserted |
@@ -106,15 +106,15 @@ what changed.
 | 70 | `implied_vol` runs Newton from the Manaster–Koehler seed (Brenner–Subrahmanyam at the money) and hands over to Brent on `[0, max_vol]`, which always finishes because the bracket is established. | `include/touchstone/implied_vol.hpp` (`implied_vol`); `tests/test_implied_vol.cpp` ("Brent finishes what Newton cannot": 982 of 1,029 rows through Brent, worst reprice 1.07e-12) | Source; Brent path asserted |
 | 71 | `implied_vol_safeguarded` is page 2.11's solver: Newton in a sign-narrowed bracket, bisecting where Newton would leave it, recording iterates on request. | `include/touchstone/implied_vol.hpp`; `tests/test_implied_vol.cpp` (committed trace iterate by iterate, worst 7.105e-15; "steps are recorded only when asked") | Asserted |
 | 72 | It answers a price outside the bounds with a status and a volatility of zero or infinity, never a NaN; `implied_vol` refuses such a price with `std::invalid_argument`. | `include/touchstone/implied_vol.hpp` (`SafeguardedResult::vol`, `require_valid`); `tests/test_implied_vol.cpp` ("page 2.11's refusals…", "prices no volatility produces are refused"); `wasm/smoke.test.mjs` | Asserted |
-| 73 | Bump Greeks take thirteen prices: the base, a pair for each of six inputs, and a wider spot pair for gamma. | `include/touchstone/bump_greeks.hpp` (`bump_greeks`, `detail::Bumped`) | Source |
+| 73 | Bump Greeks take thirteen prices: the base and six central pairs — vol, rate, yield, expiry, and two in spot, narrow for delta and wider for gamma. | `include/touchstone/bump_greeks.hpp` (`bump_greeks`, `detail::Bumped`: twelve points) | Source |
 | 74 | A second difference balances truncation against cancellation at a larger bump than a first difference. | `include/touchstone/bump_greeks.hpp` ("Choosing the bump") | Source (analysis), shown by 75 |
 | 75 | `tests/test_bump_greeks.cpp` sweeps delta, gamma, vega and rho bumps from 1e-9 to 1e-2 and asserts each is most accurate at the default size (1e-6; 3e-5 for gamma) and more than ten times less accurate at both ends. | `tests/test_bump_greeks.cpp` ("the bump size has an optimum…": `sizes[]`, `axes[]`, `CHECK(best == expected)`, the two `* 10.0` checks) | Asserted |
 | 76 | The generator is xoshiro128\*\* seeded through the MurmurHash3 finaliser, with 53-bit uniforms and AS241 normals, frozen by `docs/rng.md`. | `include/touchstone/rng.hpp`, `normal.hpp`; `docs/rng.md`; `tests/test_rng.cpp` | Source; fixture asserted |
 | 77 | `brownian_path` and `gbm_path` write a whole path into a caller's span, one normal per step; both GBM schemes are driven by the same normals. | `include/touchstone/paths.hpp`; `tests/test_paths.cpp` (fixture; "increments are the stream's normals"; exact scheme on the same path) | Asserted |
 | 78 | The Monte Carlo draws from the same generator through the same step. | `include/touchstone/detail/path_generator.hpp` (file comment); `tests/test_paths.cpp` ("Monte Carlo's per-path functions are one step of the same generator") | Asserted |
-| 79 | Every scalar the methods form from a market and an expiry is written once in `detail/scales.hpp`, and the domain checks call the same functions. | `include/touchstone/detail/scales.hpp`; `src/black_scholes.cpp`, `src/pde.cpp`, `src/monte_carlo.cpp`; `tests/test_associations.cpp` | Source; associations asserted |
+| 79 | The products the domain checks guard (σ√T, ½σ²T, (r − q)T, the discount factors and the rest) are each written once in `detail/scales.hpp`, and the checks call the same functions. | `include/touchstone/detail/scales.hpp`; `src/black_scholes.cpp`, `src/pde.cpp`, `src/monte_carlo.cpp`; `tests/test_associations.cpp` | Source; associations asserted |
 | 80 | A check grouping a product differently guards a different set of inputs; §10.2 has the input. | `tests/test_associations.cpp` ("the input a check on the summed drift accepts…") | Asserted |
-| 81 | The binding is translation only: plain objects in, value types across, plain objects and `Float64Array`s back, under `PricingBackend`'s names, with `monteCarlo`, `crankNicolson`, `crankNicolsonSurface`, `bumpGreeks` beyond it. | `wasm/binding.cpp` (file comment, registrations at the end); `wasm/smoke.test.mjs` (each called) | Source; each asserted against the closed form |
+| 81 | The binding is translation only: plain objects in, value types across, plain objects and `Float64Array`s back, under `PricingBackend`'s names, with `monteCarlo`, `crankNicolson`, `crankNicolsonSurface`, `bumpGreeks` beyond it. | `wasm/binding.cpp` (file comment, registrations at the end; `types.ts` is the site's and not in this repository); `wasm/smoke.test.mjs` (each called) | Source; each extra entry point asserted against the closed form or, for the surface, against `crankNicolson` |
 | 82 | `defaults()` exports the default settings of every bound entry point that takes settings. | `wasm/binding.cpp` (`defaults`: five settings types); `wasm/smoke.test.mjs` ("the library's defaults are the module's": five keys) | Asserted |
 | 83 | The artifact is one ES module and one `.wasm`, built by Emscripten 6.0.13 with C++ exception catching on. | `wasm/CMakeLists.txt` (`MODULARIZE`, `EXPORT_ES6`); `.github/workflows/wasm.yml` (`EMSDK_VERSION`); `CMakeLists.txt` (`TOUCHSTONE_WASM_EXCEPTIONS` ON, `-fwasm-exceptions`) | Source |
 
@@ -122,16 +122,16 @@ what changed.
 
 | # | Claim | Held by | How |
 | --- | --- | --- | --- |
-| 84 | Validate, then compute: an input outside the domain is an `std::invalid_argument` naming the reason; the five test files assert refusals. | `tests/test_limits.cpp` (~547), `test_pde.cpp` (~515), `test_implied_vol.cpp` (~410, "settings, contracts and targets it cannot work with are refused"), `test_bump_greeks.cpp` (~258), `test_paths.cpp` (~256) | Asserted |
-| 85 | Accepted input never gives a NaN; from the closed form price, delta, vega, rho, dividend rho are finite, gamma and theta may be infinite; a Monte Carlo estimate may saturate to infinity. | `include/touchstone/black_scholes.hpp` (`require_valid` comment); `tests/test_limits.cpp` (domain sweep: 16,570 priced, 9,350 refused, 550 infinite gammas, no NaN); `tests/test_monte_carlo.cpp` ("no input the closed form accepts makes the engine return a NaN", including an infinite standard error, ~line 720) | Asserted |
-| 86 | Why: an infinity compares correctly against a tolerance; a NaN compares false against every test. | `include/touchstone/black_scholes.hpp` (`require_valid` comment) | Source (IEEE 754 behaviour) |
+| 84 | Validate, then compute; the six test files assert refusals. | `tests/test_limits.cpp` (~547), `test_monte_carlo.cpp` ("settings that cannot be run are refused", total variance), `test_pde.cpp` (~515), `test_implied_vol.cpp` (~410, ~654), `test_bump_greeks.cpp` (~258), `test_paths.cpp` (~256) | Asserted |
+| 85 | An input the closed form, the Monte Carlo or the path functions accept never gives a NaN; closed-form price, delta, vega, rho, dividend rho finite, gamma and theta possibly infinite; a Monte Carlo estimate or path value may saturate to infinity; the grid, implied vol and bump Greeks are not swept; `norm_inv` at p ≥ 1 is the documented exception. | `include/touchstone/black_scholes.hpp` (`require_valid` comment); `tests/test_limits.cpp` (domain sweep: 16,570 priced, 9,350 refused, 550 infinite gammas, no NaN); `tests/test_monte_carlo.cpp` ("no input the closed form accepts…", infinite standard error ~720); `tests/test_paths.cpp` ("an accepted path never holds a NaN"); `tests/test_associations.cpp`; `include/touchstone/normal.hpp`, `tests/test_rng.cpp` (`isnan(norm_inv(1.0))`) | Asserted |
+| 86 | Why: an infinity compares correctly against a tolerance; a NaN makes every ordered comparison false, so `error <= tolerance` fails on it and `error > tolerance` passes it. | IEEE 754 comparison semantics; `include/touchstone/black_scholes.hpp` (`require_valid` comment) | Source |
 | 87 | Each product is formed once, in one association, through `detail/scales.hpp`, because floating-point multiplication does not associate. | `include/touchstone/detail/scales.hpp` (file comment); `tests/test_associations.cpp` | Asserted |
 | 88 | Same seed, same result, bit for bit; the generator reproduces the TypeScript fixture. | `tests/test_rng.cpp` ("same seed, same numbers"; fixture); `tests/test_monte_carlo.cpp` ("same seed, same result"); `tests/test_paths.cpp` ("same seed, same path"); `wasm/smoke.test.mjs` | Asserted |
 | 89 | The exercise style is part of the contract's type; `test_contract.cpp` fails by not compiling. | `tests/test_contract.cpp` | Asserted at compile time |
 | 90 | No dependency: the library includes nothing outside the standard library; the vendored headers are linked by the test executable only. | `CMakeLists.txt` (`target_link_libraries(touchstone PRIVATE touchstone_warnings)`); `tests/CMakeLists.txt` (`touchstone_vendor`); every `#include` in `include/`, `src/` (`build.txt` §5) | Source |
-| 91 | Nothing is thrown across the WebAssembly boundary: each bound function catches and returns an error, `errors.post.js` throws it; `RangeError`, `TypeError`, `Error`. | `wasm/binding.cpp` ("Errors"); `wasm/errors.post.js`; `wasm/smoke.test.mjs` (RangeError, TypeError, thrown-getter tests) | Asserted |
+| 91 | Nothing is thrown across the WebAssembly boundary: each bound function catches and returns an error, `errors.post.js` throws it; `RangeError`, `TypeError`, `Error`. | `wasm/binding.cpp` ("Errors"); `wasm/errors.post.js`; `wasm/smoke.test.mjs` (RangeError, TypeError, thrown-getter tests) | Asserted for `RangeError` and `TypeError`; source for `Error` |
 | 92 | An exception unwinding WebAssembly frames leaves the stack pointer behind; T4 measured a module killed at call 2,074. | `docs/evidence/T4/summary.md` (Done 3); `docs/evidence/T4/tests.txt` §2 | Reported (T4) |
-| 93 | `wasm/smoke.test.mjs` makes 300,000 refused calls and then reproduces the fixtures. | `wasm/smoke.test.mjs` ("survives a hundred thousand refusals of each kind": three kinds) | Asserted |
+| 93 | `wasm/smoke.test.mjs` makes 300,000 refused calls, 100,000 of them a throwing getter refused before the module is entered, and then reproduces the RNG fixture and one golden row exactly as before. | `wasm/smoke.test.mjs` ("survives a hundred thousand refusals of each kind") | Asserted |
 
 ## §7 Timings
 
@@ -141,7 +141,7 @@ what changed.
 | 95 | Taken 2026-11-14 on a Ryzen 7 3800X, Windows 11 Pro 10.0.26200, g++ 15.2.0 (MinGW-Builds), `-O3 -DNDEBUG -std=c++20`, static library. | `docs/evidence/T5/timing.txt` §3 | Reported |
 | 96 | 25 rounds per process, pinned to one logical core at high priority; median of five batches per round; a batch at least 20 ms. | `bench/timing.cpp` (constants); `docs/evidence/T5/timing.txt` §2 (launch command) | Source |
 | 97 | The table gives each of three processes' median round, lowest to highest: 74–76 ns, 336–349 ns, 1.39–1.41 µs, 1.78–1.79 ms, 4.71–4.74 ms. | `docs/evidence/T5/timing.txt` §4, §6 (raw output) | Reported |
-| 98 | The WebAssembly build was not timed; nothing was tuned; there is no fast path. | `docs/evidence/T5/timing.txt` §5; `docs/evidence/T5/tests.txt` §2 (library objects byte-identical to `74987c7`'s) | Source; "nothing tuned" shown by identical objects |
+| 98 | The WebAssembly build was not timed; nothing was tuned for this measurement — the library timed is main's, object file for object file; there is no fast path. | `docs/evidence/T5/timing.txt` §5; `docs/evidence/T5/tests.txt` §2(a) | Source; identity shown by the objects (T3a's earlier tuning of `monte_carlo` is in main's library and `docs/evidence/T3a/timing.txt`) |
 
 ## §8 Decisions
 
@@ -150,17 +150,17 @@ what changed.
 | 99 | Free functions are the public face; `ClosedForm` public because holding it saves repeated validation and arithmetic; grid solver and path generator internal. | `include/touchstone/black_scholes.hpp` ("The evaluation behind the free functions"); `ROADMAP.md` T3a passed line | Source |
 | 100 | The three grid pairs are declared twice each and forward to one template in `pde.cpp`. | `include/touchstone/pde.hpp`; `src/pde.cpp` (`validated_grid`, `solve_to_today`, `sample_to_today`) | Source |
 | 101 | `bump_greeks.hpp` declares a three-argument `require_valid` taking `BumpSizes`. | `include/touchstone/bump_greeks.hpp` | Source |
-| 102 | With both headers included, `require_valid(option, market, {})` is ambiguous today, and with a template in the pair's place resolves silently to the `BumpSizes` overload, under g++ 15.2 and clang 22.1.7. | `docs/evidence/T5/build.txt` §4 (the probe and both compilers' output) | Reported (probe) |
+| 102 | A probe mirroring the two headers' declarations shows: with both visible, `require_valid(option, market, {})` is ambiguous today, and with a template in the pair's place resolves to the `BumpSizes` overload, under g++ 15.2 and clang 22.1.7. | `docs/evidence/T5/build.txt` §4 (the probe and both compilers' output for both cases) | Reported (probe; not the real headers) |
 | 103 | The other two pairs have no such neighbour. | `include/`, `src/`, `tests/`, `wasm/` (no other declaration of `crank_nicolson` or `crank_nicolson_surface`) | Source |
 | 104 | Each implied-vol solver keeps its own stopping rule; the safeguarded one is held to page 2.11's committed trace iterate by iterate. | `include/touchstone/implied_vol.hpp`; `tests/test_implied_vol.cpp`; `ROADMAP.md` T3a passed line | Asserted |
-| 105 | A refused implied-vol price returns zero or infinity with its status, never a NaN. | As 72; `ROADMAP.md` T3a passed line | Asserted |
-| 106 | A path's step keeps two zero tests, which make an infinity times a zero impossible; T3a measured 1.5 ms of a 31.5 ms Euler run of 64 steps, and no faster formulation returning the same bits. | `include/touchstone/detail/path_generator.hpp` (`GbmStep`); `tests/test_paths.cpp` ("an accepted path never holds a NaN"); `docs/evidence/T3a/timing.txt` §2–4 | Asserted (no NaN); reported (cost) |
+| 105 | The safeguarded solver answers a price outside the bounds with zero or infinity and its status, never a NaN; `implied_vol` refuses it. | As 72; `ROADMAP.md` T3a passed line | Asserted |
+| 106 | A path's step keeps two zero tests, which make an infinity times a zero impossible; T3a measured 1.5 ms of a 31.5 ms Euler run of 64 steps, and timed one alternative returning the same bits, no faster. | `include/touchstone/detail/path_generator.hpp` (`GbmStep`); `tests/test_paths.cpp` ("an accepted path never holds a NaN"); `docs/evidence/T3a/timing.txt` §2–4 (after 31.506, attribution 30.047; exp2) | Asserted (no NaN); reported (cost) |
 | 107 | Errors returned across the boundary; arguments structured-cloned first so a throwing getter throws before any WebAssembly frame exists. | `wasm/errors.post.js`; `docs/evidence/T4/summary.md` (Decisions); `wasm/smoke.test.mjs` ("a thrown getter on an argument reaches the caller as itself") | Asserted |
-| 108 | An American option reaches the binding as `exercise: 'american'`; the grid's entry points accept it, every other refuses with a `TypeError`. | `wasm/binding.cpp`; `wasm/smoke.test.mjs` (the grid test; the TypeError test); `docs/evidence/T4/summary.md` | Asserted |
+| 108 | An American option reaches the binding as `exercise: 'american'`; the grid's entry points and `bumpGreeks` over the grid accept it, every other entry point refuses with a `TypeError`. | `wasm/binding.cpp` (`european`, the grid pricer in `bumped`); `wasm/smoke.test.mjs` (grid test; American put through `bumpGreeks`; `monteCarlo` refusal) | Asserted |
 | 109 | WebAssembly exception handling, not Emscripten's JavaScript kind: 31,650 bytes against 79,115 at T4. | `docs/evidence/T4/summary.md` (Decisions); `docs/evidence/T4/build.txt` | Reported (T4) |
-| 110 | Half-width defaults to 6 total volatilities, where the boundary's contribution is about 1.5e-8 and widening further buys nothing. | `include/touchstone/pde.hpp` (`half_width_sigmas`); `tests/test_pde.cpp` ("domain width at a fixed dx"); `docs/briefs/T3a-design-rulings.md` F10 | Asserted (domain-width test); source |
+| 110 | Half-width 6 by default; `pde.hpp` estimates the boundary's contribution there as exp(−α²/2) ≈ 1.5e-8; `tests/test_pde.cpp` finds the price moves at most 1.3e-8 for α from 3 to 12 on one row, against a discretisation error of 2.8e-6. | `include/touchstone/pde.hpp` (`half_width_sigmas`); `tests/test_pde.cpp` ("domain width at a fixed dx"; `tests.txt` §1); `docs/briefs/T3a-design-rulings.md` F10 | Source (estimate); reported and asserted (test) |
 | 111 | The dominance margin is computed for every grid and reported in `PdeResult`, as is the Péclet number, reported rather than enforced. | `src/pde.cpp` (`GridSolver` constructor, `result`); `include/touchstone/pde.hpp` | Source |
-| 112 | No `.clang-format`: the closest configuration found still rewrites lines, mostly hand-aligned comments and coefficient tables; `.editorconfig` states what the sources do. | `docs/evidence/T5/build.txt` §6 (the configuration, the counts, the kinds of change); `.editorconfig` and §7 there | Reported |
+| 112 | No `.clang-format`: the closest configuration still rewrites 46 lines in 14 files — coefficient tables, initialiser rows, continuation lines, switch and enum layout; `.editorconfig` states what the sources do. | `docs/evidence/T5/build.txt` §6 (the configurations, the counts, the whole remaining diff); `.editorconfig`, `build.txt` §7 | Reported |
 
 ## §9 Out of scope
 
@@ -175,20 +175,94 @@ what changed.
 | # | Claim | Held by | How |
 | --- | --- | --- | --- |
 | 116 | Milestone dates: T0, T1 2026-08-29; T2 2026-08-30; T3 2026-08-31; T3a, T4 2026-11-13. | `ROADMAP.md` ("Passed" lines) | Source |
-| 117 | T0: 7,200 grid rows and 34 edge rows from QuantLib 1.43, regenerated byte for byte in CI. | `golden/bs_vanilla.json` (`oracle.version`); `tests/test_closed_form.cpp` (7200 and 34 asserted); `.github/workflows/ci.yml` | Asserted |
+| 117 | T0: 7,200 grid rows and 34 edge rows from QuantLib 1.43, reproducible byte for byte; CI regenerates it from T1 on. | `golden/bs_vanilla.json` (`oracle.version`); `tests/test_closed_form.cpp` (7200 and 34 asserted); `docs/evidence/T0/summary.md` (by hand); `.github/workflows/ci.yml` (first in 704aecc, T1) | Asserted (counts); source |
 | 118 | T1's, T2's, T3's, T3a's and T4's contents as listed. | `ROADMAP.md` (each milestone's deliverables and passed line); `docs/evidence/T3/summary.md` (Done 1, `scales.hpp`) | Source |
 | 119 | T1's Fable tollgate: PASS. | `docs/evidence/T1/verdict.md` | Source |
 | 120 | T4 released as `v0.4.0`. | `ROADMAP.md` T4 passed line | Source |
-| 121 | T1's adversarial review: re-derived formulas, mutation, NaN search; seven real problems, all fixed; inputs kept in `test_limits.cpp`. | `docs/evidence/T1/summary.md` (Done 11); `tests/test_limits.cpp` ("inputs that used to be wrong, kept as regressions") | Source; regressions asserted |
+| 121 | T1's adversarial review: re-derived formulas, mutation, NaN search; seven real problems, all fixed; four of the inputs kept as regressions. | `docs/evidence/T1/summary.md` (Done 11); `tests/test_limits.cpp` ("inputs that used to be wrong, kept as regressions": four subcases) | Source; regressions asserted |
 | 122 | T2: a review flagged the hazard; redone by Fable: PASS WITH DEFECTS, defects in the pack and a comment, none in the library. | `docs/evidence/T2/summary.md` (Owner actions 3); `docs/evidence/T2/verdict.md` | Source |
 | 123 | T3: the summed-drift check, the input σ = √(2·10³⁰⁰), q = 10³⁰⁰, r = 0, T = 10¹⁰, NaN in all seven outputs; repaired by `scales.hpp`; kept in `test_associations.cpp`. | `docs/evidence/T3/summary.md` (Done 1); `tests/test_associations.cpp` | Asserted |
-| 124 | T3a's repeated-code review by a session that had not written the change; findings closed. | `docs/evidence/T3a/review.md` | Source |
+| 124 | T3a's repeated-code review by a session that had not written the change; each finding closed or kept with a reason. | `docs/evidence/T3a/review.md` | Source |
 | 125 | T4's audit by Fable: Node and headless Chromium, page and worker; the release job's upload defect; fixed by a flat assembly downloaded on every push. | `docs/evidence/T4/summary.md` (second entry); `.github/workflows/wasm.yml` (`downloaded` job) | Source; download checked in CI |
-| 126 | T5's claims were checked one by one by an agent that did not write the document. | This file, last section | Source |
+| 126 | T5's claims were checked one by one by an agent that did not write the document: 9 said more than their sources held, 26 needed narrower wording or a better citation; each was corrected. | This file, last section | Source |
 | 127 | The text removed from comments at T3a, as recorded. | `docs/evidence/T3a/history.md` | Source |
-| 128 | The text removed from comments at T5, as recorded. | `git show 1755f0c ea23329 6d80fb0` (the removed lines) | Source |
-| 129 | The sources' comments name no milestone, review or governance id. | `docs/evidence/T5/build.txt` §3 (the grep, its pattern and its empty result) | Source |
+| 128 | The text removed from comments at T5, as recorded. | `git show 1755f0c ea23329 6d80fb0` and the commit that corrected `third_party/CMakeLists.txt` (the removed lines) | Source |
+| 129 | The comments in `include/`, `src/`, `tests/`, `wasm/`, `bench/`, the CMake files and the workflows name no milestone, review or governance id; the golden-file and experiment scripts and documents still do. | `docs/evidence/T5/build.txt` §3 (the grep, its pattern, scope and empty result; `third_party/CMakeLists.txt` added after the check) | Source |
+
+## Claims added after the check (unmapped at first)
+
+| # | Claim | Held by | How |
+| --- | --- | --- | --- |
+| 130 | Status: every claim is listed, numbered, in this file. | This file, rows 1–138 | Source |
+| 131 | Touchstone is a C++20 library. | `CMakeLists.txt` (`CMAKE_CXX_STANDARD 20`, required, no extensions) | Source |
+| 132 | The binding is an embind binding. | `wasm/CMakeLists.txt` (`-lembind`); `wasm/binding.cpp` (`emscripten/bind.h`) | Source |
+| 133 | Scaling Greeks for display is the caller's. | `include/touchstone/black_scholes.hpp` (file comment); `PriceAndGreeks` units | Source |
+| 134 | One `template <Exercise E>` declaration per pair was considered; all three stay pairs. | `include/touchstone/pde.hpp` (the six declarations); `docs/evidence/T5/summary.md` (Decisions) | Source |
+| 135 | §10.1's T5 row: this document, the timings, comments without history, 1.0.0; in review. | `ARCHITECTURE.md`; `docs/evidence/T5/timing.txt`; `build.txt` §3; `CMakeLists.txt`; `README.md` status row | Source |
+| 136 | Each milestone has an evidence pack under `docs/evidence/<milestone>/`. | `docs/evidence/T0/` … `T5/` | Source |
+| 137 | §11: first version 2026-11-14, with 1.0.0. | This branch's history | Source |
+| 138 | Each claim corrected after the check is worded as the source holds it. | The section below | Source |
 
 ## The independent check
 
-*Pending: filled in from the checking agent's report before the pack is final.*
+**Who and how.** A fresh agent session, given `ARCHITECTURE.md`, this file and the
+repository, told to check every row against its citation adversarially and to edit nothing,
+at `a83dfd3`. It read every cited file, used `git grep`, `git show`, `git log` and
+`gh release view`, and did not rebuild or rerun the suite (it used `tests.txt`). About eleven
+minutes, 80 tool calls.
+
+**What it found**, over rows 1–129: 93 hold; 26 hold but needed a correction to the wording,
+citation or label; 9 did not hold; 1 (row 126) could not be checked because this section was
+pending. It also listed nine factual sentences with no row. The author verified each finding
+against the code before changing anything; every one stood.
+
+**The nine that did not hold, and what changed:**
+
+| Row | Finding | Change |
+| --- | --- | --- |
+| 3 | "Three independent ways": the Monte Carlo takes its discount factor and discounted strike from `ClosedFormQuote`, all three share `scales.hpp`, two share `payoff`. | §1 says they are independent in method, not in every line, and names what they share. |
+| 6 | The demos do not run on the WebAssembly build yet: L1 put them on the TypeScript backend and L5, which moves them, has not run. | §1 says "are to run" and says where they run now. README likewise (two sentences). |
+| 9 | The Monte Carlo is scored on 6,147 + 323 of 7,234 rows; 764 are too rare to score. | §1 bounds the claim to the rows where enough paths finish in the money. |
+| 11 | "An accepted input never produces a NaN" is false for `norm_inv` at p ≥ 1 (asserted NaN in `test_rng.cpp`), and the grid, implied vol and bump Greeks have no NaN sweep. | §1 and §6.2 name the three families that are swept, say the others are not, and name the exception. |
+| 52 | Not every refusal is in a `require_valid`: `monte_carlo`'s total-variance check and the surface's stride of zero are not. | §4 and §6.1 say so; §6.1 cites `test_monte_carlo.cpp`. |
+| 73 | "A pair for each of six inputs and a wider spot pair" is fifteen prices, not thirteen. `bump_greeks.hpp`'s comment double-counted the same way. | §5 lists the six pairs. The header comment is corrected too (a comment only; the library's object files are still byte-identical to main's). |
+| 102 | `build.txt` recorded clang's output only for the folded case. | Clang's ambiguity error for the unfolded case is recorded (`build.txt` §4), and §8 says the probe mirrors the declarations rather than including the headers. |
+| 108 | `bumpGreeks` over the grid accepts an American option, and the smoke test asserts it. | §8 names it among the entry points that accept one. |
+| 112 | The 46 remaining clang-format lines contain no comment changes. | §8 names what they are. |
+
+**The 26 corrections** (rows 1, 26, 27, 29, 49, 56, 59, 60, 63, 79, 81, 84, 85, 86, 91, 93,
+98, 105, 106, 110, 117, 121, 124, 128, 129, and row 10's label), in short:
+
+- **Present tense for future work:** the portal page (1) and the release feeding the demos (27)
+  are intended, not done; row 26's note that the release had not run was stale (`v0.4.0` was
+  published 2026-11-13).
+- **Overbroad wording:** the consumers list missed the header check (29). `payoff` accepts
+  either contract (49). "Every scalar" in `scales.hpp` became "the products the checks guard"
+  (79). "No faster formulation" became "one alternative, no faster" (106). The half-width's
+  1.5e-8 is an estimate, and the test's measurement is now quoted beside it (110). Four of
+  T1's inputs are kept, not all (121). Some T3a findings were kept with a reason, not closed
+  (124). The comment-grep's scope is now stated (129). That last check also found
+  `third_party/CMakeLists.txt`'s "the WASM artifact at T4", project-written and outside the
+  grep's scope; it is corrected and recorded in §10.3.
+- **Wrong citation or label:** antithetic pair means (60), the Rannacher test (63),
+  "accessors asserted equal" (56), the surface tested against `crankNicolson`, not the closed
+  form (81), the plain `Error` branch not asserted (91), the smoke test re-checking one row
+  and the RNG fixture rather than every fixture (93), "nothing was tuned" true of this
+  measurement, not of T3a (98), the safeguarded solver named where §8 meant it (105), T0
+  regenerating by hand and CI from T1 (117), §10.3's "three comments" that quoted four (128).
+- **Imprecise reasoning:** a NaN does not compare false against *every* test; `x != x` is
+  true. §6.2 now says what a NaN does to `<=` and `>` (86). Row 85 now includes
+  `test_associations.cpp`, which §6.2 cites.
+- **Row 10's label:** the test compares the grid and the Monte Carlo with each other only
+  through the closed form, as it states.
+
+**The nine unmapped sentences** are rows 130–138 above.
+
+**Noted, not changed:** row 96. The launch command sets affinity and priority right after
+`Start-Process` returns, so the harness's calibration may start before the pin takes
+effect; the rounds are pinned. `timing.txt` §2 now says so. Row 40: the binding has one
+class with a base, `ArgumentError : std::runtime_error`; the claim is about the library,
+and the binding is not part of it.
+
+**Not re-checked by a second agent.** The author made these corrections and re-read every
+changed row against its citation; the checking agent did not see the corrected document.
