@@ -157,4 +157,17 @@ working tree that became this commit:
 
 ## 5. CI
 
-Pending: filled in from the Actions run on the final commit.
+Run 43580715829 on 5a28eb8, the commit with every change above; ubuntu-24.04; all six jobs
+green. The commit after it adds only this section and diff.txt.
+
+| Job | Result | Time |
+| --- | --- | --- |
+| gcc | g++ 13.3.0, `-Werror`; 18/18 ctest entries (192.66 s of tests) | 231 s |
+| clang | clang 18.1.3, `-Werror`; 18/18 (111.07 s) | 139 s |
+| asan + ubsan | g++, Debug, sweep scale 16; 18/18 (378.83 s) | 412 s |
+| golden file | every row re-derived; the generators reproduce both reference files and the path fixture byte for byte | 85 s |
+| wasm / build and smoke test | Emscripten 6.0.13; smoke test 17/17; release files assembled | 54 s |
+| wasm / the release's files, downloaded | `touchstone.mjs`: OK, `touchstone.wasm`: OK | 6 s |
+
+The artifact as CI built it: 144,256 + 28,784 = 173,040 bytes (56,190 gzipped), the same
+as at `7110c84` (`tests.txt` §5): the comments changed nothing it is built from.
