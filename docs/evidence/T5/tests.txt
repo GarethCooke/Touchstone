@@ -5,7 +5,8 @@ T5 · test evidence
 -------------------------------
 
   g++ 15.2.0 (MinGW-Builds), RelWithDebInfo, -Werror, from PowerShell (build.txt section 2),
-  at 7391234, the last commit to touch code, a test or a build file.
+  at 7391234. The one later commit to touch what the build reads, 8f5b77f, changes two
+  comments; section 2(a) and section 5 cover it.
 
   ctest, all 18 entries:
 
@@ -533,4 +534,33 @@ T5 · test evidence
 5. CI
 -----
 
-  Pending: filled in from the Actions run on the final commit.
+    Run 43543357272 on 8f5b77f, the last commit to touch anything the build, the tests or the
+    workflows read (the commits after it change only docs/evidence/T5/), ubuntu-24.04: all
+    seven jobs green. Run 43541849034 on a83dfd3, before the claims check, was green as well.
+
+      Job                                    Result                                        Time
+      gcc                                    g++ 13.3.0, -Werror; 18/18 ctest entries      159 s
+                                             (123.45 s of tests); touchstone_timing built
+      clang                                  clang 18.1.3, -Werror; 18/18 (107.30 s)       143 s
+                                             touchstone_timing built
+      asan + ubsan                           g++, Debug, sweep scale 16; 18/18 (405.94 s)  433 s
+      golden file                            every row re-derived; the generators          115 s
+                                             reproduce both reference files and the path
+                                             fixture byte for byte (git diff --exit-code)
+      wasm / build and smoke test            Emscripten 6.0.13; smoke test 17/17 on        82 s
+                                             Node 22; release files assembled
+      wasm / the release's files, downloaded touchstone.mjs: OK, touchstone.wasm: OK      4 s
+
+    The artifact as CI built it, bytes:
+
+                                   .wasm      .mjs     total gzip -9 total
+      catching on (shipped)         144256     28784    173040         56190
+      catching off                  112401     29387    141788         49750
+
+    Two bytes fewer in the .mjs than the local build (build.txt section 2), as at T4.
+
+    The local suite in section 1 ran at 7391234. 8f5b77f changes two comments the build reads,
+    one in include/touchstone/bump_greeks.hpp and one in third_party/CMakeLists.txt. After it,
+    the seven library object files were rebuilt at -O3 and are still byte-identical to
+    74987c7's (section 2(a)); CI ran the whole suite on it above.
+
