@@ -407,10 +407,11 @@ TEST_SUITE("pde")
             double schema_tolerance; ///< scaled by max(|reference|, 1), SCHEMA.md's rule
         };
 
-        // Measured at these settings and rounded up by about a factor of two.
-        // Both columns are asserted: the first is the scheme's accuracy, the
-        // second is what a reader comparing against the golden file the way T1
-        // does would see, and neither is allowed to hide behind the other.
+        // Measured at these settings and rounded up by about a factor of two. Both
+        // columns are asserted: the first is the scheme's accuracy, the second is
+        // what a reader comparing against the golden file the way
+        // `test_closed_form.cpp` does would see, and neither is allowed to hide
+        // behind the other.
         const Field fields[] = {
             {"price", &PriceAndGreeks::price, &PdeResult::price, 2e-4, 3e-3},
             {"delta", &PriceAndGreeks::delta, &PdeResult::delta, 1e-5, 5e-4},

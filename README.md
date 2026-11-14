@@ -1,16 +1,25 @@
 # Touchstone
 
-A C++20 pricing and risk library for European vanilla options.
+A C++20 pricing and risk library for European vanilla options. Version 1.0.0: complete for
+its v1 scope, and built for the browser as a WebAssembly module.
 
-**In progress.** The pricing library is complete for its v1 scope and is built for the
-browser as a WebAssembly module — see [Status](#status). It prices European calls and puts with a dividend yield
-three independent ways, and the three agree across a 7200-row reference grid:
+It prices European calls and puts on one underlying, with a constant rate and volatility and
+a dividend yield, three ways, independent in method though not in every line
+([`ARCHITECTURE.md`](ARCHITECTURE.md) §1 names what they share):
 
-- the Black-Scholes-Merton closed form and its six analytic Greeks, agreeing with QuantLib on
-  7234 committed reference rows to better than 3e-13;
+- the Black-Scholes-Merton closed form and its six analytic Greeks, agreeing with QuantLib's
+  committed reference values to better than 3e-13 on the 7200-row grid and to 1.7e-11 on the
+  34-row edge block (scaled errors; the file's tolerances are 1e-10 and 1e-8);
 - Monte Carlo on the shared random-number generator, exact and Euler-Maruyama, with
-  antithetics, a pathwise delta and its standard error;
-- Crank-Nicolson on a log-spot grid, which also prices the American contract.
+  antithetics, a pathwise delta and its standard error, held to the closed form in units of
+  that standard error on the 6,470 of the golden file's 7,234 rows where enough paths finish
+  in the money to score it (the other 764 are too rare to score);
+- Crank-Nicolson on a log-spot grid, held to QuantLib's values on the 7,200-row grid at 512
+  space intervals by 256 time steps, coarser than its defaults (the 34-row edge block is
+  reported, not held), and also pricing the American contract.
+
+The three are also compared side by side on 136 rows of the grid, and analytic Greeks against
+bumped ones.
 
 Around them: implied volatility by two solvers (Newton with a Brent fallback, and the
 step-recording Newton with a bisection guard that the tutorial teaches); Greeks by bumping
@@ -19,9 +28,15 @@ same seeded stream the tutorial's demos use.
 
 Touchstone is one half of a pair. The other half is
 [learn.garethcooke.com](https://learn.garethcooke.com), a tutorial for developers who work
-alongside quants, whose checks are this library's tests and whose demos run on it. The
+alongside quants, whose checks are this library's tests and whose demos are to run on it
+(they run on a TypeScript backend until the tutorial's milestone L5 moves them). The
 organising thesis of both: linear products are priced by discounting and no-arbitrage; only
 nonlinear payoffs need stochastic calculus.
+
+**[`ARCHITECTURE.md`](ARCHITECTURE.md)** describes how the library is built, what it holds
+itself to, what it does not claim, one machine's timings of its five entry points, and its
+history. Every claim in it is numbered against the test or file that holds it in
+[`docs/evidence/T5/claims.md`](docs/evidence/T5/claims.md).
 
 ## Governance
 
@@ -29,6 +44,7 @@ This repository is governed by documents, not convention. Read them before chang
 
 | Document | What it is |
 |---|---|
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | How the library is built, what it claims and what it does not, and its history. |
 | [`CONSTITUTION.md`](CONSTITUTION.md) | Normative. Truth, publication, architecture invariants (I1–I22); session and tollgate protocol; the amendment log. |
 | [`ROADMAP.md`](ROADMAP.md) | Milestones T0–T5 for this repository, each with entry, deliverables, exit criteria and tollgate. |
 | [`docs/tech-decisions-v1.md`](docs/tech-decisions-v1.md) | Why each technology was chosen, and what was rejected. |
@@ -57,7 +73,7 @@ Milestones are ticked in `ROADMAP.md` when their tollgate passes.
 | T3 — finite differences, implied vol, bump Greeks | passed — [evidence](docs/evidence/T3/) |
 | T3a — settle the library before it is bound | passed — [evidence](docs/evidence/T3a/) |
 | T4 — WASM artifact | passed — [evidence](docs/evidence/T4/) |
-| T5 — architecture write-up, `v1.0.0` | not started |
+| T5 — architecture write-up, `v1.0.0` | in review — [evidence](docs/evidence/T5/) |
 
 ## Layout
 
@@ -66,6 +82,7 @@ include/touchstone/  the public headers — the whole API surface; detail/ is in
 src/                 the implementation
 tests/               doctest suites, one per claim; see the table below
 wasm/                the WebAssembly binding, its build script and its Node smoke test
+bench/               the timing harness behind ARCHITECTURE.md's timings
 third_party/         doctest and nlohmann/json, single headers, test target only
 golden/              the oracle: QuantLib-generated reference values the C++ tests read
 experiments/         numpy scripts behind the tutorial's Part 2 pages, each with its JSON result
@@ -82,6 +99,9 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
 cmake --build build -j
 ctest --test-dir build --output-on-failure
 ```
+
+`build/bench/touchstone_timing` times the five entry points; `ARCHITECTURE.md` gives what
+it printed on one machine, with the machine.
 
 One ctest entry per suite, and one that runs them all. The whole suite takes a few minutes,
 almost all of it in the statistical and finite-difference sweeps over the golden grid. What a
@@ -110,7 +130,7 @@ failure in each would mean:
 
 ## The WebAssembly side
 
-The tutorial's demos run on this library compiled to WebAssembly by Emscripten, through an
+The library is compiled to WebAssembly by Emscripten, for the tutorial's demos, through an
 embind binding: `wasm/binding.cpp` says what it carries and how a refused input reaches
 JavaScript. The artifact is `touchstone.mjs`, an ES module whose default export
 `createTouchstone()` resolves to the module, and `touchstone.wasm` beside it. Each version
@@ -150,5 +170,4 @@ discipline every experiment follows.
 
 ## Licence
 
-MIT — see [`LICENSE`](LICENSE). This repository is public from T0 (I12): a library in
-progress is a normal public state.
+MIT — see [`LICENSE`](LICENSE). This repository has been public since T0 (I12).

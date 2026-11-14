@@ -60,7 +60,7 @@ TEST_SUITE("closed-form")
         CHECK(file.edge_cases.size() == file.declared_edge_cases);
         CHECK(file.cases.size() == 7200u);
         CHECK(file.edge_cases.size() == 34u);
-        CHECK(file.tolerance_cases == 1e-10);   // the roadmap's stated T1 figure
+        CHECK(file.tolerance_cases == 1e-10);   // what the grid is held to
         CHECK(file.tolerance_edge_cases == 1e-8);
     }
 

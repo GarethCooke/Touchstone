@@ -2,9 +2,8 @@
 // a pricer with a discretisation error of its own wants.
 //
 // `BumpSizes`' defaults are measured for a pricer accurate to machine
-// precision. A grid is accurate to about 1e-6 relative, and `bump_greeks.hpp`
-// works out why that moves the best bump up by several hundred times. These are
-// the sizes the tests bump the grid at.
+// precision. A grid has an error of its own, and `bump_greeks.hpp` works out why
+// that moves the best bump up. These are the sizes the tests bump the grid at.
 
 #pragma once
 

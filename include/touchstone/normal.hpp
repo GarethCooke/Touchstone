@@ -1,7 +1,7 @@
 // Standard normal density, distribution, and inverse distribution.
 //
-// Shared by everything that follows: the closed form here at T1, the inverse
-// transform the Monte Carlo will need at T2, the implied-vol solver at T3.
+// Shared by the closed form, the implied-vol solvers built on it, and the
+// generator's normal draws, which are the inverse applied to its uniforms.
 
 #pragma once
 
@@ -19,7 +19,7 @@ namespace touchstone {
 
 /// N(x) — the standard normal cumulative distribution, as 0.5 * erfc(-x/sqrt(2)).
 ///
-/// The route is `std::erfc` by decision B3, and the reason is the left tail.
+/// The route is `std::erfc`, and the reason is the left tail.
 /// Computing N(-x) as 1 - N(x) subtracts two numbers that agree in every digit
 /// that matters: at x = -10 the true value is 7.6e-24 and the subtraction
 /// returns exactly zero. erfc exists precisely to keep that tail, so a deep
@@ -61,9 +61,12 @@ inline constexpr double uniform_resolution = 0x1p-53;
 /// TypeScript and the Python then land on the same value to within a few ulps.
 /// Inverting `erfc` instead would put a libm function at the centre of the
 /// shared generator, and libm is exactly where V8 and glibc part company.
-/// Accurate to about 1e-16 relative over the whole range, which
-/// `tests/test_rng.cpp` re-establishes here by round-tripping through
-/// `norm_cdf` — the check `docs/rng.md` §7 asks the C++ port to repeat.
+/// `docs/rng.md` §4 gives its accuracy as about 1e-16 relative over the whole
+/// range. `tests/test_rng.cpp` makes the check §7 asks the C++ port to repeat,
+/// round-tripping through `norm_cdf` from p = 1e-300 to 0.5, and asserts p comes
+/// back within (4 + 4x^2) machine epsilons; the error that implies in x reaches
+/// 3.1 ulps in the far tail, where `log`'s own half-ulp arrives through
+/// `sqrt(-log p)`.
 ///
 /// The domain is `[0, 1)`, which is exactly the range of
 /// `Xoshiro128SS::next_uniform`.

@@ -1,10 +1,10 @@
-// The two limits the roadmap names for T1: sigma -> 0 and T -> 0.
+// The two limits with closed-form answers: sigma -> 0 and T -> 0.
 //
-// `golden/SCHEMA.md` is explicit that these are not the edge block's job:
-// "They are not limits. sigma -> 0 and T -> 0 are exact limits with closed-form
-// answers, and T1 tests them directly rather than against this file." So this
-// suite compares the library against those closed forms, re-derived here from
-// the discounted forward rather than borrowed from the implementation, and then
+// `golden/SCHEMA.md` is explicit that these are not the edge block's job: "They
+// are not limits. sigma -> 0 and T -> 0 are exact limits with closed-form
+// answers", to be tested directly rather than against the file. So this suite
+// compares the library against those closed forms, re-derived here from the
+// discounted forward rather than borrowed from the implementation, and then
 // checks that the limits are approached as well as returned.
 
 #include "forward_contract.hpp"
@@ -468,10 +468,9 @@ TEST_SUITE("limits")
 
     TEST_CASE("inputs that used to be wrong, kept as regressions")
     {
-        // Each of these came from an adversarial review of this library's first
-        // version, and each returned a NaN, an infinity, or a wrong number. The
-        // expected values are re-derived here from the formulas rather than
-        // copied from what the fixed code now returns.
+        // On each of these an earlier version of this library returned a NaN, an
+        // infinity, or a wrong number. The expected values are re-derived here from
+        // the formulas rather than copied from what the fixed code now returns.
 
         SUBCASE("sigma sqrt(T) underflows although neither sigma nor T is zero")
         {

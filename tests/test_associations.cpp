@@ -1,11 +1,11 @@
 // `require_valid`'s promise, and the way it was broken.
 //
-// T1 made the promise: an input this library accepts never produces a NaN,
-// because a NaN compares false against every tolerance a caller might test it
-// with and so defeats the check that was meant to catch it. T2's review found
-// the promise's method fragile — the domain checks form the same quantities the
-// formulas do, and nothing made them form them the *same way* — and left it for
-// T3. T3 found it was not merely fragile: one input got through.
+// The promise: an input this library accepts never produces a NaN, because a
+// NaN compares false against every tolerance a caller might test it with and so
+// defeats the check that was meant to catch it. Its method is fragile — the
+// domain checks form the same quantities the formulas do, and only
+// `detail/scales.hpp` makes them form them the *same way* — and it has failed
+// once: one input got through.
 //
 // This file is what closes it. It pins the escape itself, and then the boundary
 // of every other check in `require_valid`, so that a future edit that changes an
@@ -48,15 +48,16 @@ using touchstone::PriceAndGreeks;
 
 TEST_SUITE("associations")
 {
-    TEST_CASE("the input T1 accepted and returned a NaN for")
+    TEST_CASE("the input a check on the summed drift accepts and the formulas turn into a NaN")
     {
         // sigma = sqrt(2e300), q = 0.5 sigma^2, r = 0, T = 1e10.
         //
-        // T1's drift check was `(r - q + 0.5 sigma^2) T`. The bracket is exactly
-        // zero here by construction, so the product is zero and finite whatever T
-        // is, and the input was accepted. The kernel forms the two terms
-        // separately — `(r - q) T` inside the log-moneyness and `0.5 sigma^2 T`
-        // beside it in d1 — and at this expiry they are -inf and +inf. Their sum
+        // A check on the summed drift, `(r - q + 0.5 sigma^2) T`, sees a bracket
+        // that is exactly zero here by construction, so the product is zero and
+        // finite whatever T is, and the input is accepted. The kernel forms the two
+        // terms separately — `(r - q) T` inside the log-moneyness and
+        // `0.5 sigma^2 T` beside it in d1 — and at this expiry they are -inf and
+        // +inf. Their sum
         // is a NaN, and it reaches every one of the seven outputs.
         //
         // Every other check in `require_valid` passes on this input, which is
@@ -82,13 +83,13 @@ TEST_SUITE("associations")
         CHECK_THROWS_AS(touchstone::price_and_greeks(option, market), std::invalid_argument);
     }
 
-    TEST_CASE("the volatility band T2 relies on is still priced")
+    TEST_CASE("the volatility band the Monte Carlo prices is still priced")
     {
         // The other side of the same coin, and the reason the repair is two
         // separate checks rather than one tighter one. sigma = 1.6e154 squares to
         // an infinity, but over an expiry of 1e-160 neither product the closed
         // form forms overflows: `0.5 sigma^2 T` is 1.3e148 because the halving
-        // comes first, and `sigma sqrt(T)` is 1.6e74. T2's Monte Carlo prices
+        // comes first, and `sigma sqrt(T)` is 1.6e74. The Monte Carlo prices
         // this row and `test_monte_carlo.cpp` asserts a value for it, so a repair
         // that rejected it would have been a regression wearing a fix's clothes.
         const BlackScholesMarket enormous{100.0, 1.6e154, 0.01, 0.0};
@@ -186,7 +187,7 @@ TEST_SUITE("associations")
         //
         // `0.5 sigma^2 T` grouped as `((0.5 sigma) sigma) T` survives a
         // volatility that `(sigma sigma) 0.5 T` does not, by a factor of two —
-        // and that factor is the whole of T2's accepted band.
+        // and that factor is the whole of the band the Monte Carlo prices.
         const double sigma = 1.6e154;
         CHECK(std::isfinite(touchstone::detail::half_variance_time(sigma, 1e-160)));
         CHECK(std::isinf(sigma * sigma));
@@ -214,8 +215,8 @@ TEST_SUITE("associations")
     TEST_CASE("the golden grid is untouched by the repair")
     {
         // The repair changes which inputs are accepted. Every row of the golden
-        // file must still be one of them, or T1's evidence describes a library
-        // that no longer exists.
+        // file must still be one of them, or the oracle's rows describe inputs
+        // the library no longer prices.
         const auto& file = touchstone::testing::golden_file();
         for (const auto& row : file.cases) {
             CHECK_NOTHROW(touchstone::require_valid(row.option, row.market));

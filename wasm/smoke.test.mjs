@@ -38,7 +38,7 @@ const goldenField = { dividendRho: 'dividend_rho' }
 const option = (row) => ({ strike: row.strike, expiryYears: row.expiry_years, type: row.type })
 const market = (row) => ({ spot: row.spot, vol: row.vol, rate: row.rate, dividendYield: row.dividend_yield })
 
-/** The one golden row the roadmap's criterion names, chosen by label so it reads as itself. */
+/** One golden row reproduced on its own, chosen by label so it reads as itself. */
 const namedRow = golden.edge_cases.find((row) => row.label === 'one-day-atm')
 
 const base = { strike: 100, expiryYears: 1, type: 'call' }
@@ -205,7 +205,9 @@ test('bump Greeks over each pricer', () => {
 
 test('the library\'s defaults are the module\'s', () => {
   const defaults = touchstone.defaults()
-  assert.deepEqual(Object.keys(defaults).sort(), ['bumpSizes', 'crankNicolson', 'impliedVol', 'monteCarlo'])
+  assert.deepEqual(Object.keys(defaults).sort(),
+    ['bumpSizes', 'crankNicolson', 'impliedVol', 'monteCarlo', 'surfaceSampling'])
+  assert.deepEqual(defaults.surfaceSampling, { everySteps: 1 })
   assert.equal(defaults.impliedVol.initialVol, experiment.params.solver.sigma0)
   assert.equal(defaults.impliedVol.maxIterations, experiment.params.solver.max_iter)
 })

@@ -1,7 +1,7 @@
 // Tridiagonal systems: the Thomas algorithm, and its projected form.
 //
-// Tech-decision B3 puts a Thomas solver at the centre of the Crank-Nicolson
-// scheme and rules out a linear-algebra dependency. The whole of it is two
+// A Thomas solver is at the centre of the Crank-Nicolson scheme, and the
+// library takes no linear-algebra dependency for it. The whole of it is two
 // sweeps over three vectors, which is `solve_tridiagonal` below; the American
 // constraint costs one comparison per node in the second sweep, which is
 // `solve_tridiagonal_projected`.

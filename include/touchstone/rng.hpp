@@ -1,4 +1,4 @@
-// The shared random-number generator, frozen by `docs/rng.md` (constitution I16).
+// The shared random-number generator, frozen by `docs/rng.md`.
 //
 // Same seed, same numbers, in this library and in the browser. That is the whole
 // point of freezing it: the tutorial's demos and the library's tests draw from
@@ -7,7 +7,7 @@
 // is the other implementation; `golden/rng-known-answers.json` is what proves
 // the two agree, and `docs/rng.md` is the specification both were written from.
 //
-// Nothing here may be changed without amending the constitution: a different
+// Nothing here changes unless `docs/rng.md` changes first: a different
 // generator, a different seed expansion, a different bit layout in the uniform,
 // or a different order of the two draws would each invalidate every fixture
 // downstream of it.

@@ -1,4 +1,4 @@
-# The library's gate. Tech-decision B7: native build and tests on Linux with
+# The library's gate: native build and tests on Linux with
 # both compilers, the golden-file checks, and the WebAssembly build with its
 # smoke test and artifact upload.
 name: library
@@ -94,8 +94,8 @@ jobs:
       - name: Every row re-derived independently
         run: uv run --frozen golden/verify_bs_vanilla.py
 
-      # T0 proved the generator reproducible by hand. This is that proof as a
-      # standing check: regenerate, and require the working tree to be clean.
+      # The generator is deterministic, and this holds it to that: regenerate,
+      # and require the working tree to be clean.
       # The committed file's SHA-256 has been reproduced on two unrelated
       # Linux x86-64 hosts, so a failure here means QuantLib changed or the grid
       # did — which is exactly what it should mean.
@@ -104,7 +104,7 @@ jobs:
           uv run --frozen golden/generate_bs_vanilla.py
           git diff --exit-code -- golden/bs_vanilla.json
 
-      # T3's American reference. Re-derived by an independent lattice written in
+      # The American reference, re-derived by an independent lattice written in
       # numpy rather than called from QuantLib, and checked against the two exact
       # identities, the inequalities, and the put-call bounds where they hold.
       - name: Every American row re-derived independently
