@@ -1,0 +1,562 @@
+T5 · timing evidence — the five entry points at their defaults
+================================================================
+
+Taken 2026-11-14, between 01:20:50 and 01:21:46 UTC, on one machine, with one compiler at
+one setting of its flags. Nothing here claims a time on any other machine, compiler or flag,
+for the WebAssembly build (not timed), or for any input but the one in section 1.
+
+1. What was timed
+-----------------
+
+  The harness is bench/timing.cpp, committed on this branch and built by
+  bench/CMakeLists.txt wherever the tests are built. It uses the C++ standard library and
+  the library, nothing else (I19).
+
+  One option and one market, the base case of every figure below:
+
+    call, K = 100, T = 1; S = 100, sigma = 0.2, r = 0.05, q = 0.02
+
+  The five entry points, each with every setting at its default:
+
+    price_and_greeks(option, market)
+    implied_vol(option, QuotedMarket::of(market), target)  target = price(option, market);
+                                                           ImpliedVolSettings{}
+    bump_greeks(option, market)                            the closed-form overload;
+                                                           BumpSizes{}
+    monte_carlo(option, market)                            MonteCarloSettings{}: seed 1,
+                                                           32768 paths, exact, no antithetics
+    crank_nicolson(option, market)                         PdeSettings{}: 1024 x 512,
+                                                           half-width 6, 2 Rannacher steps,
+                                                           cell-averaged payoff
+
+  What each returned is printed at the top of each run (section 6), so the output says what
+  was computed as well as how long it took. The Monte Carlo price, 9.2654458141056377, is
+  the price docs/evidence/T3a/timing.txt printed for the same option, market and settings.
+
+2. How
+------
+
+  A call to price_and_greeks takes less time than a clock read resolves, so calls are timed
+  in batches. For each entry point the harness doubles a batch, from one call, until a batch
+  takes at least 20 ms by std::chrono::steady_clock; that count is the entry point's batch
+  size for the run. Three warm-up batches follow. A round then times five batches of each
+  entry point and keeps, per entry point, the median of the five divided by the batch size.
+  The order of the five rotates by one each round. After 25 rounds the summary gives, per
+  entry point, the median round and the lowest and highest.
+
+  The batch loop is a template instantiated around each entry point's call, so the call is
+  direct; the harness's one indirection, a std::function, is taken once per batch. After
+  every call the harness reads and writes a volatile double so that no result is unused:
+  one load and one store per call, which the times include.
+
+  Three processes were run one after another, each pinned to logical processor 3 at high
+  priority, from PowerShell 7:
+
+    $exe = "<build>\bench\touchstone_timing.exe"
+    foreach ($run in 1..3) {
+        $p = Start-Process -FilePath $exe -ArgumentList 25 -NoNewWindow -PassThru `
+                           -RedirectStandardOutput "timing-run$run.txt"
+        $p.ProcessorAffinity = [IntPtr](1 -shl 3)
+        $p.PriorityClass = 'High'
+        $p.WaitForExit()
+    }
+
+  No build or test was running at the time; the desktop session was otherwise in ordinary
+  use.
+
+3. The machine and the build
+----------------------------
+
+  Machine     AMD Ryzen 7 3800X 8-Core Processor, 16 logical processors, 32 GB;
+              Windows 11 Pro 10.0.26200
+  Compiler    g++ 15.2.0 (x86_64-posix-seh-rev0, Built by MinGW-Builds project)
+  Generator   CMake 3.31.6 (Visual Studio 2022's), Ninja 1.12.1
+  Configure   cmake -S . -B <build> -G Ninja -DCMAKE_BUILD_TYPE=Release
+                    -DCMAKE_CXX_COMPILER=g++
+  Library     the sources as committed on m/T5; their object files at -O3 are byte-identical
+              to 74987c7's (tests.txt section 2), so the times are main's library's
+
+  The compile and link lines, as Ninja ran them; the seven library sources are compiled
+  alike, src/pde.cpp shown:
+
+    g++ -I<repo>/include -O3 -DNDEBUG -std=c++20 -Wall -Wextra -Wpedantic -Wshadow
+        -Wconversion -Wsign-conversion -Wold-style-cast -Wcast-qual -Wdouble-promotion
+        -Wformat=2 -Wnon-virtual-dtor -Woverloaded-virtual -Wnull-dereference -Wunused
+        -Werror -c src/pde.cpp
+    g++ <the same flags> -c bench/timing.cpp
+    ar qc libtouchstone.a <the seven library objects>
+    g++ -O3 -DNDEBUG timing.cpp.obj -o touchstone_timing.exe libtouchstone.a
+
+  The library is a static library; nothing is built with link-time optimisation.
+
+4. The result
+-------------
+
+  Per call: each run's median round, and its lowest and highest round.
+
+                     run 1                         run 2                         run 3
+  price_and_greeks    75.9 ns [72.5 ns, 100.7 ns]      73.8 ns [71.1 ns, 90.5 ns]      75.1 ns [71.6 ns, 89.9 ns]
+  implied_vol        348.9 ns [323.6 ns, 387.0 ns]     339.6 ns [323.9 ns, 377.3 ns]     336.4 ns [318.6 ns, 407.7 ns]
+  bump_greeks        1.414 us [1.338 us, 1.637 us]     1.388 us [1.350 us, 1.646 us]     1.411 us [1.358 us, 1.842 us]
+  monte_carlo        1.791 ms [1.745 ms, 1.904 ms]     1.776 ms [1.743 ms, 2.074 ms]     1.776 ms [1.741 ms, 2.042 ms]
+  crank_nicolson     4.738 ms [4.666 ms, 5.010 ms]     4.742 ms [4.641 ms, 4.936 ms]     4.709 ms [4.642 ms, 4.897 ms]
+
+  ARCHITECTURE.md section 7 gives the three medians as a range, rounded: price_and_greeks
+  74 - 76 ns, implied_vol 336 - 349 ns, bump_greeks 1.39 - 1.41 us, monte_carlo
+  1.78 - 1.79 ms, crank_nicolson 4.71 - 4.74 ms.
+
+5. What it says, on this machine
+--------------------------------
+
+  - The three runs' medians agree: for every entry point the largest is within
+    3.7% of the smallest.
+  - The slowest round of any entry point in any run is 1.33 times its run's median
+    (price_and_greeks, run 1: 100.7 ns against 75.9 ns). What made the
+    slow rounds slow was not measured; a median of 25 rounds does not rest on a few of them.
+  - crank_nicolson at its defaults took 4.7 ms here. pde.hpp said "about eight
+    milliseconds", with no recorded measurement (F4); that sentence is cut, and the header
+    points to ARCHITECTURE.md instead.
+  - Nothing here is compared with ruling 7's rough first timings
+    (docs/briefs/T3a-design-rulings.md: another machine, g++ 13.3) or with
+    docs/evidence/T3a/timing.txt (this machine, one function, another method).
+
+  Not measured: the WebAssembly build; any other input; any setting but the defaults; Clang;
+  MSVC; any other machine. Nothing in the library was changed to be timed.
+
+6. The raw output of the three runs
+-----------------------------------
+
+  run 1
+
+    touchstone_timing: 25 rounds of 5 batches, each batch at least 20 ms
+    call K=100 T=1; S=100 sigma=0.2 r=0.05 q=0.02; implied_vol target 9.2270055081540363
+    
+    price_and_greeks  returned 9.2270055081540363; 262144 calls per batch
+    implied_vol       returned 0.19999999999999971; 65536 calls per batch
+    bump_greeks       returned 0.58685114616707779; 16384 calls per batch
+    monte_carlo       returned 9.2654458141056377; 16 calls per batch
+    crank_nicolson    returned 9.2270195802670401; 8 calls per batch
+    
+    round entry_point ns_per_call
+    0 price_and_greeks 74.9
+    0 implied_vol 333.6
+    0 bump_greeks 1343.9
+    0 monte_carlo 1900437.5
+    0 crank_nicolson 5009937.5
+    1 implied_vol 324.6
+    1 bump_greeks 1389.1
+    1 monte_carlo 1784712.5
+    1 crank_nicolson 4773925.0
+    1 price_and_greeks 75.1
+    2 bump_greeks 1413.0
+    2 monte_carlo 1810312.5
+    2 crank_nicolson 4982900.0
+    2 price_and_greeks 78.3
+    2 implied_vol 338.0
+    3 monte_carlo 1761243.8
+    3 crank_nicolson 4755087.5
+    3 price_and_greeks 75.0
+    3 implied_vol 327.2
+    3 bump_greeks 1350.7
+    4 crank_nicolson 4727362.5
+    4 price_and_greeks 73.8
+    4 implied_vol 323.6
+    4 bump_greeks 1413.9
+    4 monte_carlo 1786493.8
+    5 price_and_greeks 75.6
+    5 implied_vol 340.3
+    5 bump_greeks 1595.1
+    5 monte_carlo 1797043.8
+    5 crank_nicolson 4794662.5
+    6 implied_vol 368.8
+    6 bump_greeks 1416.0
+    6 monte_carlo 1791193.8
+    6 crank_nicolson 4715737.5
+    6 price_and_greeks 73.9
+    7 bump_greeks 1397.3
+    7 monte_carlo 1753662.5
+    7 crank_nicolson 4703537.5
+    7 price_and_greeks 73.2
+    7 implied_vol 324.6
+    8 monte_carlo 1904256.2
+    8 crank_nicolson 4796112.5
+    8 price_and_greeks 76.8
+    8 implied_vol 351.8
+    8 bump_greeks 1459.1
+    9 crank_nicolson 4807025.0
+    9 price_and_greeks 91.1
+    9 implied_vol 346.7
+    9 bump_greeks 1457.2
+    9 monte_carlo 1799431.2
+    10 price_and_greeks 76.5
+    10 implied_vol 353.2
+    10 bump_greeks 1636.5
+    10 monte_carlo 1765850.0
+    10 crank_nicolson 4752487.5
+    11 implied_vol 350.1
+    11 bump_greeks 1384.4
+    11 monte_carlo 1744800.0
+    11 crank_nicolson 4817050.0
+    11 price_and_greeks 74.3
+    12 bump_greeks 1393.2
+    12 monte_carlo 1835912.5
+    12 crank_nicolson 4728325.0
+    12 price_and_greeks 85.4
+    12 implied_vol 387.0
+    13 monte_carlo 1847031.2
+    13 crank_nicolson 4715450.0
+    13 price_and_greeks 79.0
+    13 implied_vol 355.8
+    13 bump_greeks 1549.5
+    14 crank_nicolson 4744450.0
+    14 price_and_greeks 92.6
+    14 implied_vol 359.0
+    14 bump_greeks 1551.9
+    14 monte_carlo 1804112.5
+    15 price_and_greeks 93.8
+    15 implied_vol 352.0
+    15 bump_greeks 1442.7
+    15 monte_carlo 1819218.8
+    15 crank_nicolson 4738112.5
+    16 implied_vol 348.9
+    16 bump_greeks 1535.3
+    16 monte_carlo 1771643.8
+    16 crank_nicolson 4686900.0
+    16 price_and_greeks 72.5
+    17 bump_greeks 1365.7
+    17 monte_carlo 1752093.8
+    17 crank_nicolson 4706762.5
+    17 price_and_greeks 74.7
+    17 implied_vol 334.8
+    18 monte_carlo 1821693.8
+    18 crank_nicolson 4748712.5
+    18 price_and_greeks 80.5
+    18 implied_vol 338.2
+    18 bump_greeks 1443.1
+    19 crank_nicolson 4708112.5
+    19 price_and_greeks 77.3
+    19 implied_vol 359.1
+    19 bump_greeks 1399.1
+    19 monte_carlo 1801581.2
+    20 price_and_greeks 100.7
+    20 implied_vol 368.0
+    20 bump_greeks 1379.9
+    20 monte_carlo 1769606.2
+    20 crank_nicolson 4670362.5
+    21 implied_vol 334.1
+    21 bump_greeks 1392.6
+    21 monte_carlo 1753618.8
+    21 crank_nicolson 4705862.5
+    21 price_and_greeks 73.8
+    22 bump_greeks 1510.0
+    22 monte_carlo 1834862.5
+    22 crank_nicolson 4741962.5
+    22 price_and_greeks 76.6
+    22 implied_vol 362.0
+    23 monte_carlo 1784443.8
+    23 crank_nicolson 4665837.5
+    23 price_and_greeks 75.9
+    23 implied_vol 333.8
+    23 bump_greeks 1338.1
+    24 crank_nicolson 4710087.5
+    24 price_and_greeks 72.8
+    24 implied_vol 362.4
+    24 bump_greeks 1516.4
+    24 monte_carlo 1775381.2
+    
+    entry point               median      min round      max round
+    price_and_greeks         75.9 ns        72.5 ns       100.7 ns
+    implied_vol             348.9 ns       323.6 ns       387.0 ns
+    bump_greeks            1413.9 ns      1338.1 ns      1636.5 ns
+    monte_carlo         1791193.8 ns   1744800.0 ns   1904256.2 ns
+    crank_nicolson      4738112.5 ns   4665837.5 ns   5009937.5 ns
+
+  run 2
+
+    touchstone_timing: 25 rounds of 5 batches, each batch at least 20 ms
+    call K=100 T=1; S=100 sigma=0.2 r=0.05 q=0.02; implied_vol target 9.2270055081540363
+    
+    price_and_greeks  returned 9.2270055081540363; 262144 calls per batch
+    implied_vol       returned 0.19999999999999971; 65536 calls per batch
+    bump_greeks       returned 0.58685114616707779; 16384 calls per batch
+    monte_carlo       returned 9.2654458141056377; 16 calls per batch
+    crank_nicolson    returned 9.2270195802670401; 8 calls per batch
+    
+    round entry_point ns_per_call
+    0 price_and_greeks 77.4
+    0 implied_vol 368.2
+    0 bump_greeks 1384.2
+    0 monte_carlo 1761750.0
+    0 crank_nicolson 4781712.5
+    1 implied_vol 331.4
+    1 bump_greeks 1367.5
+    1 monte_carlo 1754875.0
+    1 crank_nicolson 4767825.0
+    1 price_and_greeks 75.7
+    2 bump_greeks 1423.9
+    2 monte_carlo 1777343.8
+    2 crank_nicolson 4831112.5
+    2 price_and_greeks 74.9
+    2 implied_vol 339.8
+    3 monte_carlo 1765656.2
+    3 crank_nicolson 4777300.0
+    3 price_and_greeks 87.8
+    3 implied_vol 324.8
+    3 bump_greeks 1353.3
+    4 crank_nicolson 4789900.0
+    4 price_and_greeks 71.6
+    4 implied_vol 327.8
+    4 bump_greeks 1349.9
+    4 monte_carlo 1776206.2
+    5 price_and_greeks 71.9
+    5 implied_vol 346.3
+    5 bump_greeks 1362.2
+    5 monte_carlo 1830431.2
+    5 crank_nicolson 4799975.0
+    6 implied_vol 325.6
+    6 bump_greeks 1384.6
+    6 monte_carlo 1821200.0
+    6 crank_nicolson 4700725.0
+    6 price_and_greeks 78.2
+    7 bump_greeks 1556.6
+    7 monte_carlo 1786381.2
+    7 crank_nicolson 4700650.0
+    7 price_and_greeks 71.3
+    7 implied_vol 326.6
+    8 monte_carlo 1760606.2
+    8 crank_nicolson 4655287.5
+    8 price_and_greeks 76.5
+    8 implied_vol 356.6
+    8 bump_greeks 1646.3
+    9 crank_nicolson 4693500.0
+    9 price_and_greeks 71.8
+    9 implied_vol 331.0
+    9 bump_greeks 1403.9
+    9 monte_carlo 1770281.2
+    10 price_and_greeks 73.0
+    10 implied_vol 346.3
+    10 bump_greeks 1478.1
+    10 monte_carlo 1775350.0
+    10 crank_nicolson 4745275.0
+    11 implied_vol 323.9
+    11 bump_greeks 1404.7
+    11 monte_carlo 1756875.0
+    11 crank_nicolson 4712575.0
+    11 price_and_greeks 72.2
+    12 bump_greeks 1416.8
+    12 monte_carlo 1796175.0
+    12 crank_nicolson 4821075.0
+    12 price_and_greeks 73.8
+    12 implied_vol 339.0
+    13 monte_carlo 2074462.5
+    13 crank_nicolson 4741962.5
+    13 price_and_greeks 71.1
+    13 implied_vol 351.2
+    13 bump_greeks 1464.3
+    14 crank_nicolson 4714662.5
+    14 price_and_greeks 73.9
+    14 implied_vol 328.2
+    14 bump_greeks 1359.2
+    14 monte_carlo 1760506.2
+    15 price_and_greeks 72.2
+    15 implied_vol 339.6
+    15 bump_greeks 1381.2
+    15 monte_carlo 1767637.5
+    15 crank_nicolson 4671587.5
+    16 implied_vol 338.8
+    16 bump_greeks 1382.9
+    16 monte_carlo 1919837.5
+    16 crank_nicolson 4936150.0
+    16 price_and_greeks 72.5
+    17 bump_greeks 1472.9
+    17 monte_carlo 1796968.8
+    17 crank_nicolson 4672237.5
+    17 price_and_greeks 72.3
+    17 implied_vol 339.8
+    18 monte_carlo 1742543.8
+    18 crank_nicolson 4656475.0
+    18 price_and_greeks 72.1
+    18 implied_vol 363.3
+    18 bump_greeks 1377.5
+    19 crank_nicolson 4640887.5
+    19 price_and_greeks 90.5
+    19 implied_vol 377.3
+    19 bump_greeks 1366.7
+    19 monte_carlo 1833531.2
+    20 price_and_greeks 78.4
+    20 implied_vol 337.1
+    20 bump_greeks 1350.5
+    20 monte_carlo 1787937.5
+    20 crank_nicolson 4768200.0
+    21 implied_vol 359.0
+    21 bump_greeks 1387.9
+    21 monte_carlo 1761518.8
+    21 crank_nicolson 4709987.5
+    21 price_and_greeks 75.8
+    22 bump_greeks 1443.8
+    22 monte_carlo 1820962.5
+    22 crank_nicolson 4704862.5
+    22 price_and_greeks 74.7
+    22 implied_vol 347.7
+    23 monte_carlo 1766987.5
+    23 crank_nicolson 4763875.0
+    23 price_and_greeks 72.5
+    23 implied_vol 355.8
+    23 bump_greeks 1453.2
+    24 crank_nicolson 4755200.0
+    24 price_and_greeks 83.2
+    24 implied_vol 335.2
+    24 bump_greeks 1447.9
+    24 monte_carlo 1780525.0
+    
+    entry point               median      min round      max round
+    price_and_greeks         73.8 ns        71.1 ns        90.5 ns
+    implied_vol             339.6 ns       323.9 ns       377.3 ns
+    bump_greeks            1387.9 ns      1349.9 ns      1646.3 ns
+    monte_carlo         1776206.2 ns   1742543.8 ns   2074462.5 ns
+    crank_nicolson      4741962.5 ns   4640887.5 ns   4936150.0 ns
+
+  run 3
+
+    touchstone_timing: 25 rounds of 5 batches, each batch at least 20 ms
+    call K=100 T=1; S=100 sigma=0.2 r=0.05 q=0.02; implied_vol target 9.2270055081540363
+    
+    price_and_greeks  returned 9.2270055081540363; 524288 calls per batch
+    implied_vol       returned 0.19999999999999971; 65536 calls per batch
+    bump_greeks       returned 0.58685114616707779; 16384 calls per batch
+    monte_carlo       returned 9.2654458141056377; 16 calls per batch
+    crank_nicolson    returned 9.2270195802670401; 8 calls per batch
+    
+    round entry_point ns_per_call
+    0 price_and_greeks 77.5
+    0 implied_vol 345.8
+    0 bump_greeks 1388.7
+    0 monte_carlo 1750531.2
+    0 crank_nicolson 4896850.0
+    1 implied_vol 407.7
+    1 bump_greeks 1841.9
+    1 monte_carlo 1799162.5
+    1 crank_nicolson 4820687.5
+    1 price_and_greeks 78.3
+    2 bump_greeks 1411.4
+    2 monte_carlo 1785756.2
+    2 crank_nicolson 4709350.0
+    2 price_and_greeks 76.8
+    2 implied_vol 384.7
+    3 monte_carlo 1810962.5
+    3 crank_nicolson 4771725.0
+    3 price_and_greeks 73.8
+    3 implied_vol 328.1
+    3 bump_greeks 1527.0
+    4 crank_nicolson 4765712.5
+    4 price_and_greeks 74.7
+    4 implied_vol 332.3
+    4 bump_greeks 1365.1
+    4 monte_carlo 1763112.5
+    5 price_and_greeks 73.7
+    5 implied_vol 336.6
+    5 bump_greeks 1408.7
+    5 monte_carlo 1792531.2
+    5 crank_nicolson 4678500.0
+    6 implied_vol 346.5
+    6 bump_greeks 1487.0
+    6 monte_carlo 1774087.5
+    6 crank_nicolson 4657050.0
+    6 price_and_greeks 78.0
+    7 bump_greeks 1437.5
+    7 monte_carlo 1744556.2
+    7 crank_nicolson 4656400.0
+    7 price_and_greeks 74.2
+    7 implied_vol 357.9
+    8 monte_carlo 1776425.0
+    8 crank_nicolson 4657800.0
+    8 price_and_greeks 75.4
+    8 implied_vol 343.7
+    8 bump_greeks 1390.3
+    9 crank_nicolson 4744787.5
+    9 price_and_greeks 79.0
+    9 implied_vol 323.9
+    9 bump_greeks 1560.1
+    9 monte_carlo 1823987.5
+    10 price_and_greeks 74.5
+    10 implied_vol 335.5
+    10 bump_greeks 1423.0
+    10 monte_carlo 1766750.0
+    10 crank_nicolson 4730900.0
+    11 implied_vol 333.7
+    11 bump_greeks 1380.5
+    11 monte_carlo 1768325.0
+    11 crank_nicolson 4772437.5
+    11 price_and_greeks 80.5
+    12 bump_greeks 1502.2
+    12 monte_carlo 1775800.0
+    12 crank_nicolson 4658225.0
+    12 price_and_greeks 73.7
+    12 implied_vol 376.0
+    13 monte_carlo 1813650.0
+    13 crank_nicolson 4696375.0
+    13 price_and_greeks 73.0
+    13 implied_vol 336.4
+    13 bump_greeks 1482.2
+    14 crank_nicolson 4720400.0
+    14 price_and_greeks 77.9
+    14 implied_vol 342.2
+    14 bump_greeks 1401.2
+    14 monte_carlo 1779062.5
+    15 price_and_greeks 81.2
+    15 implied_vol 324.7
+    15 bump_greeks 1572.3
+    15 monte_carlo 1766868.8
+    15 crank_nicolson 4688662.5
+    16 implied_vol 320.0
+    16 bump_greeks 1366.4
+    16 monte_carlo 1751562.5
+    16 crank_nicolson 4642087.5
+    16 price_and_greeks 74.0
+    17 bump_greeks 1358.2
+    17 monte_carlo 1766812.5
+    17 crank_nicolson 4725237.5
+    17 price_and_greeks 77.1
+    17 implied_vol 369.2
+    18 monte_carlo 1792993.8
+    18 crank_nicolson 4674062.5
+    18 price_and_greeks 75.1
+    18 implied_vol 343.6
+    18 bump_greeks 1435.0
+    19 crank_nicolson 4650562.5
+    19 price_and_greeks 74.0
+    19 implied_vol 332.2
+    19 bump_greeks 1394.5
+    19 monte_carlo 1741468.8
+    20 price_and_greeks 71.6
+    20 implied_vol 324.9
+    20 bump_greeks 1520.6
+    20 monte_carlo 2042406.2
+    20 crank_nicolson 4649275.0
+    21 implied_vol 345.8
+    21 bump_greeks 1392.2
+    21 monte_carlo 1769343.8
+    21 crank_nicolson 4890175.0
+    21 price_and_greeks 89.9
+    22 bump_greeks 1386.5
+    22 monte_carlo 1882256.2
+    22 crank_nicolson 4656675.0
+    22 price_and_greeks 72.7
+    22 implied_vol 318.6
+    23 monte_carlo 1776062.5
+    23 crank_nicolson 4737700.0
+    23 price_and_greeks 80.7
+    23 implied_vol 329.7
+    23 bump_greeks 1432.3
+    24 crank_nicolson 4713325.0
+    24 price_and_greeks 73.5
+    24 implied_vol 326.1
+    24 bump_greeks 1402.4
+    24 monte_carlo 1770818.8
+    
+    entry point               median      min round      max round
+    price_and_greeks         75.1 ns        71.6 ns        89.9 ns
+    implied_vol             336.4 ns       318.6 ns       407.7 ns
+    bump_greeks            1411.4 ns      1358.2 ns      1841.9 ns
+    monte_carlo         1775800.0 ns   1741468.8 ns   2042406.2 ns
+    crank_nicolson      4709350.0 ns   4642087.5 ns   4896850.0 ns
