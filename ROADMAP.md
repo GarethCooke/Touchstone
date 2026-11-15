@@ -75,7 +75,7 @@ and L1b (D5–D6) with one tollgate at the end.
 **Passed** 2026-08-30 — evidence: `touchstone-learn/docs/evidence/L1/`.
 
 ### ☑ L2 — Part 2 ingestion
-**Entry:** L1; Entry: L1; batches ingest as drafts land, each batch's drafts and experiments committed;
+**Entry:** L1; batches ingest as drafts land, each batch's drafts and experiments committed;
 the F tollgate runs once, at the end, over all eleven.
 **Deliverables:** MDX for every Part 2 page from the owner's drafts, verbatim in substance;
 snippets extracted from the committed experiments; demos embedded per the index; checks with
@@ -102,9 +102,9 @@ Unlocks P1.
 page exist without breaking the production build; Fable drafts for 0.1 and 0.2. 0.3's notation
 ledger is already live from L2 batch 1 under a labelled placeholder; the rest of 0.3 lands here.
 **Deliverables:** 0.1, 0.2 and 0.3 as MDX with checks. 0.2 carries the thesis, the map of the
-parts, and how to read a demo, a check and an exercise — written about the affordances, not as
-a tour of specific demos, so that D7–D10 (L5) and D11 (L4b) arriving later does not date it.
-No demos, no snippets, no experiments: Part 0 makes no quantitative claim that needs one. Any
+parts, and how to read a demo and a check — written about the affordances, not as a tour of
+specific demos, so that D7–D10 (L5) and D11 (L4b) arriving later does not date it. No demos, no
+snippets, no experiments: Part 0 makes no quantitative claim that needs one. Any
 market-structure figure on 0.1 carries a cited source (I1).
 **Exit:** the three pages `draft`, or `published` if L3 has already run; checks meet I5;
 curriculum integrity green; both build modes green; I22 at 390 px; owner review.
@@ -113,6 +113,9 @@ Retires the I2 exception at the head of 2.1: with 0.1 and 0.2 in front of it, 2.
 the first page a reader meets, and its opening paragraph can be rewritten knowing what
 precedes it rather than to compensate for nothing preceding it.
 **Fable drafts for 0.1 and 0.2** — done 2026-09-05, `touchstone-learn/drafts/`, Project note `touchstone/L4a-drafting-session.md`
+**Passed** 2026-11-15 — evidence: `touchstone-learn/docs/evidence/L4a/`. Self-verified; the owner
+read the three pages on the preview and approved them. By his rulings of that day 0.1 and 0.2
+carry four static figures, which are neither demos nor snippets.
 
 ### ☐ L4b — Part 1
 **Entry:** L3; Fable drafts for 1.0–1.5.
