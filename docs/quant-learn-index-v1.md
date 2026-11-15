@@ -20,8 +20,7 @@ has misunderstood the page.
 
 - **0.1 Why derivatives exist.** Risk transfer; hedgers, speculators, market makers; OTC vs
   exchange-traded.
-- **0.2 Linear vs nonlinear.** The thesis, a map of the parts, how to use the demos, checks
-  and exercises.
+- **0.2 Linear vs nonlinear.** The thesis, a map of the parts, how to use the demos and checks.
 - **0.3 Conventions.** Notation, units (annualised vol, continuous vs simple rates, day
   counts), prerequisites, how to run the code.
 
