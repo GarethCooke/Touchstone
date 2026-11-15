@@ -74,7 +74,7 @@ and are operable by touch (I22).
 and L1b (D5–D6) with one tollgate at the end.
 **Passed** 2026-08-30 — evidence: `touchstone-learn/docs/evidence/L1/`.
 
-### ☐ L2 — Part 2 ingestion
+### ☑ L2 — Part 2 ingestion
 **Entry:** L1; Entry: L1; batches ingest as drafts land, each batch's drafts and experiments committed;
 the F tollgate runs once, at the end, over all eleven.
 **Deliverables:** MDX for every Part 2 page from the owner's drafts, verbatim in substance;
@@ -85,6 +85,8 @@ renders every page; the owner has reviewed each page.
 **Tollgate:** F — content review against I1: every claim backed by a test, an experiment
 result or a source. **Executor:** Sonnet (mechanical), Opus if the conversion is not clean.
 **Size:** batches allowed; one tollgate at the end.
+**Passed** 2026-11-15 — evidence: `touchstone-learn/docs/evidence/L2/`, with the verdict in
+`verdict.md`. PASS WITH DEFECTS: eight, all low, D1–D8 to close before L3.
 
 ### ☐ L3 — First publication
 **Entry:** L2 passed; L4a if it has run.
