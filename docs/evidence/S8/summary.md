@@ -1,5 +1,93 @@
 # S8 — Teaching session · page 2.8 Risk-neutral pricing · evidence pack
 
+### 2026-11-15 · claude-fable-5-2 (edit and runs), claude-opus-5-5 (verification and commit) · 2.8's `--quick` asserts the full run's claims on a tenth of the draws; two wrong statements in the script corrected; the committed JSON is byte-identical
+
+**What changed.** `experiments/2_8_risk_neutral_pricing.py`, and nothing else in the experiment.
+The three notes are `touchstone-learn`'s `docs/evidence/L2/batch-8/summary.md`, *Findings* 5,
+carried to the L2 tollgate and ruled by the owner to be fixed before L3.
+
+1. **`--quick`.** It ran a tenth of the draws against the full run's batch and nested sizes.
+   Batches of 10,000 then numbered 10, under the 100 the experiment asks for, so two checks were
+   dropped and both slopes were fitted through two points, at the full run's ±0.06. The nested
+   estimate at "all the draws" repeated the one at 100,000. It listed 129 checks, 128 of them
+   different.
+   - The batch sizes are now fractions of the draws, so `--quick` has batches of 10, 100 and
+     1,000: the full run's 10,000, 1,000 and 100 of them. The rms tolerances, which depend on
+     the number of batches, and the slope's ±0.06 mean there what they mean in the full run,
+     and both slopes are fitted through three points.
+   - The nested estimates stop at the draws there are: 1,000, 10,000 and 100,000. The one at
+     10⁶ is the full run's alone. The sizes were not scaled down to 100 because a "within 5
+     s.e." check on 100 draws of a payoff that is zero on more than half of them fails about
+     once in 2,000 seeds, always low (960 of 2 × 10⁶ trials); at 1,000 draws it is 2 in
+     300,000.
+   - Two tolerances move further under `--quick`, each marked in `build_checks`. Mean L² and
+     the effective sample size take the larger of the sample's standard error and the exact
+     one, √((e^(6λ²T) − e^(2λ²T))/n). The PDE residual's bound is twice the widened fraction,
+     13 % of the γ term where 2 % × √10 gave 6 %.
+   `--quick` now asserts 130 of the full run's 131 checks, in 0.5 s.
+2. **`largest_pde_term_rms`** is the rms of ½σ²S²·∂²V/∂S², and that is not the PDE's largest
+   term: on the grid Θ's rms is 7.96 and 8.95 against its 5.19 and 6.27 (τ = 1, ½), and rSΔ's
+   is 5.86 at τ = 1. The field's name and the check's claim, "the PDE's largest term", are in
+   the committed JSON, so both stay. The script now says what the term is, beside the field
+   and above the check. The check needs a term of the PDE's own size, and holds against a
+   larger one too.
+3. **The docstring** said the weighted estimate's standard error "grows with |lambda|". The
+   script's own check contradicts that for the call: reweighted from μ = +0.3 the standard
+   error is below the Q-run's, 0.015 against 0.031, and from μ = −0.2 above it, 0.073. It now
+   says the effective sample size falls as |λ| grows, and that the standard error depends on
+   the payoff as well.
+
+**What did not change.** The committed JSON, by a byte: sha256
+`c4b8abe589e6aec81624fcd8f5c455a2ae18630131350f96a3b10aa89256e94c` before and after. The full
+run's sizes, claims, tolerances and results are what they were; every tolerance that moves does
+so under `--quick` only. Lines 1 to 391 of the script keep their numbers, so the three ranges
+page 2.8 shows (208–283, 289–337, 343–391) still open and close where they did. Three of those
+lines changed in place: two of the docstring, and line 388, which gained a trailing comment.
+
+**How the runs were made.** By the Fable session of 2026-11-15. The shell on the owner's
+workstation would not start that day, so the VM that S8 and S11 used was not available, and the
+experiment was not run natively on Windows. The runs were made in the session's cloud container
+(Linux, x86-64, Python 3.13.18, `uv sync --frozen`: numpy 2.5.2), with AVX-512 switched off for
+numpy and for OpenBLAS: `NPY_DISABLE_CPU_FEATURES="X86_V4 AVX512_ICL AVX512_SPR"` and
+`OPENBLAS_CORETYPE=Haswell`. There the unmodified script reproduced the committed JSON byte for
+byte, which is the test S11's follow-up set for an environment. The edited script was then run
+in full, and its JSON is byte-identical to the committed file too: 2,636 leaf values compared,
+none different. The owner accepted that proof in place of the VM's on 2026-11-15.
+
+Without those two settings the container does not reproduce the file: its CPU has AVX-512, and
+129 of the 2,222 numbers differ, the largest by 9 parts in 10¹¹ apart from three that are
+rounding residue. With numpy's setting alone one number differs, `slope_forward_rms_error_vs_n`
+and the check that copies it, in its last digit, from OpenBLAS inside `polyfit`.
+
+**What the sweeps found.** `--quick` at each seed in turn, in the container:
+
+| Script | Seeds | Fail | Which checks |
+|---|---|---|---|
+| `HEAD` (`27fbff5`'s) | 1 to 300 | 23 | the slope 14, the forward's slope 15, the residual's fraction at τ = 1 3, mean L² at μ = 0.6 1 |
+| this commit's | 1 to 3,000 | 0 | |
+
+The first row is the reviewer's figure of batch 8, reproduced. Measured separately at a tenth
+of the draws, over seeds 1 to 1,000: mean L² at μ = 0.6 was more than 5 of its own standard
+errors low on 5 seeds, and within 1.8 of the larger standard error on every seed; the residual
+at τ = 1 exceeded 6.3 % of the γ term on 3 seeds, and its highest was 6.6 %.
+
+What is left is the full run's own exposure. A slope fitted through 10,000, 1,000 and 100
+batches has a standard deviation of 0.0155 (3,000 trials), so ±0.06 is 3.9 of them, in the
+full run as in `--quick`: of the order of one seed in 5,000 fails on one of the two slopes. The
+committed seed passes at −0.512 and −0.519. `touchstone-learn`'s `amplify.yml` still installs
+numpy unpinned; pinning it to the lock's 2.5.2 would take the seed's stream out of the
+question, and is that repository's change.
+
+**Verification on the workstation.** By claude-opus-5-5 on 2026-11-15, natively on Windows 11
+(Git Bash, `uv run --frozen`: Python 3.12.2, numpy 2.5.2), `--quick` only; the full run was not
+made here. The script's blob is `53be4f13bd36afac8f669421041398db39e21c80`, its sha256
+`33497ce0b566985424764e57baacc54ae83ebae7765b4f8dc229757253d94318`, 597 lines with LF endings.
+The JSON's sha256 is `c4b8abe589e6aec81624fcd8f5c455a2ae18630131350f96a3b10aa89256e94c`, as at
+`HEAD`, before and after every run. `--quick` at the default seed: 130 of 130 checks pass in
+0.7 s, and the JSON is not written. Seeds 1 to 300 with `--quick`: this commit's script fails
+on none; `HEAD`'s fails on 23, the same 23 seeds as the container's (5, 14, 62, 73, 76, 81, 89,
+103, 120, 144, 145, 147, 176, 180, 188, 234, 235, 259, 267, 283, 287, 288, 290).
+
 ### 2026-11-04 · claude-fable-5-1 · S8 taught; experiment run on the owner's workstation; owner draft written, reviewed against I1, checks and notation batch approved
 
 Work order (P3): teach 2.8 per constitution §7, numbers before theory. Inputs: index
