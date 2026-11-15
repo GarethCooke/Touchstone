@@ -140,7 +140,7 @@ depth · counterparty risk (CVA) · credit (CDS).
 - **D3** ∫W dW with left-endpoint vs midpoint sums (2.4)
 - **D4** GBM path generator: exact vs Euler, dt vs √dt toggle, distribution at T (2.6)
 - **D5** Delta-hedging simulator — the flagship: rebalance count, realised vs implied vol,
-  P&L distribution (2.7, 2.10)
+  P&L distribution (2.7, 2.10, 2.11)
 - **D6** Black–Scholes pricer: sliders, Greeks, price-vs-spot curve over the payoff (2.9–2.10)
 - **D7** Monte Carlo convergence with error bars (3.2)
 - **D8** PDE grid heatmap of V(S, t) (3.3)

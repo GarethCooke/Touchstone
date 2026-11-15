@@ -75,8 +75,8 @@ and L1b (D5–D6) with one tollgate at the end.
 **Passed** 2026-08-30 — evidence: `touchstone-learn/docs/evidence/L1/`.
 
 ### ☑ L2 — Part 2 ingestion
-**Entry:** L1; batches ingest as drafts land, each batch's drafts and experiments committed;
-the F tollgate runs once, at the end, over all eleven.
+**Entry:** L0, L1, S1–S11; batches ingest as drafts land, each batch's drafts and experiments
+committed; the F tollgate runs once, at the end, over all eleven.
 **Deliverables:** MDX for every Part 2 page from the owner's drafts, verbatim in substance;
 snippets extracted from the committed experiments; demos embedded per the index; checks with
 at least three questions per page; status `draft`.
@@ -89,7 +89,7 @@ result or a source. **Executor:** Sonnet (mechanical), Opus if the conversion is
 `verdict.md`. PASS WITH DEFECTS: eight, all low, D1–D8 to close before L3.
 
 ### ☐ L3 — First publication
-**Entry:** L2 passed; L4a if it has run.
+**Entry:** L2 passed; the `seed + p` batch; L4a if it has run.
 **Deliverables:** 2.1–2.11 set to `published`, and 0.1–0.3 with them if L4a has run; landing
 paragraph live; sitemap; the production index renders the tree (I10).
 **Exit:** production shows Part 2 end to end, preceded by Part 0 if L4a has run; no `tbc` page
