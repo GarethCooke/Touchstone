@@ -88,7 +88,7 @@ result or a source. **Executor:** Sonnet (mechanical), Opus if the conversion is
 **Passed** 2026-11-15 — evidence: `touchstone-learn/docs/evidence/L2/`, with the verdict in
 `verdict.md`. PASS WITH DEFECTS: eight, all low, D1–D8 to close before L3.
 
-### ☐ L3 — First publication
+### ☑ L3 — First publication
 **Entry:** L2 passed; the `seed + p` batch; L4a if it has run.
 **Deliverables:** 2.1–2.11 set to `published`, and 0.1–0.3 with them if L4a has run; landing
 paragraph live; sitemap; the production index renders the tree (I10).
@@ -96,6 +96,10 @@ paragraph live; sitemap; the production index renders the tree (I10).
 is a route; the owner signs off.
 **Tollgate:** V, then owner. **Executor:** Opus. **Size:** under an evening.
 Unlocks P1.
+**Passed** 2026-11-16 — evidence: `touchstone-learn/docs/evidence/L3/`. Self-verified; the owner
+merged `m/L3` (pull request #6) and production shows Part 0 and Part 2 end to end. By his
+rulings of 2026-11-15 the landing paragraph is the L0 brief's, unchanged, and it is also the
+site's description.
 
 ### ☑ L4a — Part 0
 **Entry:** L2 batch 1 merged — its `scripts/routable.mjs` per-mode fix is what lets a `draft`
