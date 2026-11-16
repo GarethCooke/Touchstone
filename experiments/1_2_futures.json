@@ -1,0 +1,665 @@
+{
+  "page": "1.2",
+  "script": "1_2_futures.py",
+  "params": {
+    "quick": false,
+    "random": "none -- arithmetic only, so no seed (I6 has nothing to seed)",
+    "fx": {
+      "pair": "GBP/USD",
+      "underlying": "one pound",
+      "price_unit": "dollars per pound",
+      "S": 1.25,
+      "r": 0.05,
+      "q": 0.03,
+      "T": 1.0,
+      "r_is": "the dollar rate, continuously compounded",
+      "q_is": "the sterling rate, continuously compounded",
+      "note": "page 1.1's levels: illustrative, not a market's"
+    },
+    "contract": {
+      "size": 62500.0,
+      "size_is": "pounds a contract, as CME's British pound future",
+      "contracts": 16,
+      "awkward_amount": 1030000.0,
+      "initial_margin_per_contract": 2500.0,
+      "maintenance_margin_per_contract": 2000.0,
+      "note": "the margin levels are illustrative, not an exchange's"
+    },
+    "walk": {
+      "side": "long",
+      "trade_price": 1.2753,
+      "days_elapsed": 4,
+      "settlements": [
+        {
+          "day": "Monday",
+          "price": 1.2731
+        },
+        {
+          "day": "Tuesday",
+          "price": 1.2688
+        },
+        {
+          "day": "Wednesday",
+          "price": 1.2659
+        },
+        {
+          "day": "Thursday",
+          "price": 1.2702
+        },
+        {
+          "day": "Friday",
+          "price": 1.274
+        }
+      ],
+      "note": "bought on Monday before the close; the settlement prices are illustrative"
+    },
+    "basis": {
+      "months_to_delivery": [
+        12,
+        9,
+        6,
+        3,
+        0
+      ]
+    },
+    "hedge": {
+      "months_left_when_closed": 2,
+      "spots_then": [
+        1.15,
+        1.25,
+        1.35
+      ],
+      "rate_differences_then": [
+        0.01,
+        0.02,
+        0.03
+      ],
+      "note": "pounds needed in ten months, hedged with the contract delivering in twelve"
+    },
+    "roll": {
+      "near_months": 3,
+      "next_months": 6
+    }
+  },
+  "environment": {
+    "quantlib": "1.43"
+  },
+  "results": {
+    "price": {
+      "F": 1.2752516750334446,
+      "F_at_nearest_tick": 1.2753,
+      "points_over_spot": 252.51675033444607
+    },
+    "contract": {
+      "position_pounds": 1000000.0,
+      "tick_value_per_contract": 6.25,
+      "point_value_on_position": 100.0,
+      "dollars_committed_per_contract": 79706.25,
+      "dollars_committed_on_position": 1275300.0,
+      "initial_margin": 40000.0,
+      "maintenance_margin": 32000.0,
+      "initial_margin_in_points": 400.0,
+      "initial_margin_as_fraction_of_dollars_committed": 0.03136516897984788,
+      "contracts_for_an_amount_that_is_not_a_multiple": 16.48
+    },
+    "walk": {
+      "rows": [
+        {
+          "day": "Monday",
+          "settlement_price": 1.2731,
+          "change_points": -22.0,
+          "gain": -2200.0,
+          "balance_before_call": 37800.0,
+          "margin_call": 0.0,
+          "balance": 37800.0
+        },
+        {
+          "day": "Tuesday",
+          "settlement_price": 1.2688,
+          "change_points": -43.0,
+          "gain": -4300.0,
+          "balance_before_call": 33500.0,
+          "margin_call": 0.0,
+          "balance": 33500.0
+        },
+        {
+          "day": "Wednesday",
+          "settlement_price": 1.2659,
+          "change_points": -29.0,
+          "gain": -2900.0,
+          "balance_before_call": 30600.0,
+          "margin_call": 9400.0,
+          "balance": 40000.0
+        },
+        {
+          "day": "Thursday",
+          "settlement_price": 1.2702,
+          "change_points": 43.0,
+          "gain": 4300.0,
+          "balance_before_call": 44300.0,
+          "margin_call": 0.0,
+          "balance": 44300.0
+        },
+        {
+          "day": "Friday",
+          "settlement_price": 1.274,
+          "change_points": 38.0,
+          "gain": 3800.0,
+          "balance_before_call": 48100.0,
+          "margin_call": 0.0,
+          "balance": 48100.0
+        }
+      ],
+      "total_gain": -1300.0,
+      "paid_in": 49400.0,
+      "closing_balance": 48100.0,
+      "days_with_a_call": [
+        "Wednesday"
+      ],
+      "calls": [
+        9400.0
+      ],
+      "price_change_points": -13.0,
+      "position_times_price_change": -1300.0,
+      "lowest_balance": 30600.0,
+      "excess_over_initial_at_close": 8100.0
+    },
+    "forward_comparison": {
+      "delivery_price": 1.2753,
+      "forward_price_at_close": 1.274,
+      "tau_left": 0.989041095890411,
+      "discount_factor": 0.951750788929705,
+      "value": -1237.2760256086917,
+      "cash_moved": 0.0,
+      "futures_cash_moved": -1300.0
+    },
+    "delta": {
+      "futures_price_per_unit_of_spot": 1.0202013400267558,
+      "one_cent_on_position": 10202.013400267559,
+      "one_cent_discounted_from_delivery": 9704.455335485083,
+      "forward_delta_of_page_1_1": 0.9704455335485082
+    },
+    "basis": {
+      "spot_held_at": 1.25,
+      "rows": [
+        {
+          "months_to_delivery": 12,
+          "tau": 1.0,
+          "futures_price": 1.2752516750334446,
+          "basis_points": 252.51675033444607
+        },
+        {
+          "months_to_delivery": 9,
+          "tau": 0.75,
+          "futures_price": 1.2688913307696486,
+          "basis_points": 188.9133076964855
+        },
+        {
+          "months_to_delivery": 6,
+          "tau": 0.5,
+          "futures_price": 1.26256270885521,
+          "basis_points": 125.62708855210047
+        },
+        {
+          "months_to_delivery": 3,
+          "tau": 0.25,
+          "futures_price": 1.2562656510742511,
+          "basis_points": 62.656510742511436
+        },
+        {
+          "months_to_delivery": 0,
+          "tau": 0.0,
+          "futures_price": 1.25,
+          "basis_points": 0.0
+        }
+      ]
+    },
+    "hedge": {
+      "F_bought": 1.2753,
+      "tau_left_when_closed": 0.16666666666666666,
+      "grid": [
+        {
+          "S_then": 1.15,
+          "rate_difference_then": 0.01,
+          "F_then": 1.1519182647766042,
+          "basis_points_then": 19.182647766042837,
+          "futures_gain_per_pound": -0.1233817352233959,
+          "net_price_paid": 1.2733817352233958,
+          "net_price_via_basis": 1.2733817352233958
+        },
+        {
+          "S_then": 1.25,
+          "rate_difference_then": 0.01,
+          "F_then": 1.2520850704093525,
+          "basis_points_then": 20.85070409352463,
+          "futures_gain_per_pound": -0.023214929590647637,
+          "net_price_paid": 1.2732149295906476,
+          "net_price_via_basis": 1.2732149295906476
+        },
+        {
+          "S_then": 1.35,
+          "rate_difference_then": 0.01,
+          "F_then": 1.3522518760421007,
+          "basis_points_then": 22.518760421006423,
+          "futures_gain_per_pound": 0.07695187604210063,
+          "net_price_paid": 1.2730481239578995,
+          "net_price_via_basis": 1.2730481239578995
+        },
+        {
+          "S_then": 1.15,
+          "rate_difference_then": 0.02,
+          "F_then": 1.1538397293269071,
+          "basis_points_then": 38.39729326907237,
+          "futures_gain_per_pound": -0.12146027067309295,
+          "net_price_paid": 1.2714602706730929,
+          "net_price_via_basis": 1.2714602706730929
+        },
+        {
+          "S_then": 1.25,
+          "rate_difference_then": 0.02,
+          "F_then": 1.2541736188335948,
+          "basis_points_then": 41.73618833594794,
+          "futures_gain_per_pound": -0.021126381166405306,
+          "net_price_paid": 1.2711263811664053,
+          "net_price_via_basis": 1.2711263811664053
+        },
+        {
+          "S_then": 1.35,
+          "rate_difference_then": 0.02,
+          "F_then": 1.3545075083402824,
+          "basis_points_then": 45.07508340282351,
+          "futures_gain_per_pound": 0.07920750834028234,
+          "net_price_paid": 1.2707924916597177,
+          "net_price_via_basis": 1.2707924916597177
+        },
+        {
+          "S_then": 1.15,
+          "rate_difference_then": 0.03,
+          "F_then": 1.155764398988311,
+          "basis_points_then": 57.64398988311159,
+          "futures_gain_per_pound": -0.11953560101168903,
+          "net_price_paid": 1.269535601011689,
+          "net_price_via_basis": 1.269535601011689
+        },
+        {
+          "S_then": 1.25,
+          "rate_difference_then": 0.03,
+          "F_then": 1.2562656510742511,
+          "basis_points_then": 62.656510742511436,
+          "futures_gain_per_pound": -0.019034348925748956,
+          "net_price_paid": 1.269034348925749,
+          "net_price_via_basis": 1.269034348925749
+        },
+        {
+          "S_then": 1.35,
+          "rate_difference_then": 0.03,
+          "F_then": 1.3567669031601914,
+          "basis_points_then": 67.6690316019135,
+          "futures_gain_per_pound": 0.08146690316019134,
+          "net_price_paid": 1.2685330968398087,
+          "net_price_via_basis": 1.2685330968398087
+        }
+      ],
+      "unchanged_rates_and_spot": {
+        "S_then": 1.25,
+        "rate_difference_then": 0.020000000000000004,
+        "F_then": 1.2541736188335948,
+        "basis_points_then": 41.73618833594794,
+        "futures_gain_per_pound": -0.021126381166405306,
+        "net_price_paid": 1.2711263811664053,
+        "net_price_via_basis": 1.2711263811664053
+      },
+      "net_price_lowest": 1.2685330968398087,
+      "net_price_highest": 1.2733817352233958,
+      "net_price_range_points": 48.48638383587067,
+      "unhedged_price_range_points": 2000.0000000000016,
+      "max_abs_identity_error": 0.0,
+      "basis_points_per_one_percent_of_rate_difference": 20.920322406564605
+    },
+    "roll": {
+      "near_price": 1.2562656510742511,
+      "next_price": 1.26256270885521,
+      "spread_points": 62.97057780958903,
+      "points_between_the_two_dates": 62.97057780958737
+    },
+    "quoted_in_checks": {
+      "call_if_topped_up_only_to_maintenance": 1400.0,
+      "call_if_it_were_the_day_s_loss": 2900.0,
+      "points_below_trade_price_on_the_third_day": 94.0,
+      "loss_if_margin_paid_in_were_the_cost": 49400.0,
+      "loss_if_the_call_were_the_loss": 9400.0,
+      "net_price_if_the_hedge_were_exact": 1.2753,
+      "net_price_with_unchanged_rates": 1.2711263811664053
+    },
+    "oracle": {
+      "version": "1.43",
+      "max_abs_error": 2.220446049250313e-16
+    },
+    "page_1_1": {
+      "F": 1.2752516750334446,
+      "forward_value_change_for_one_cent": 9704.455335485081
+    }
+  },
+  "checks": [
+    {
+      "claim": "C1 the futures price is 1.2753 dollars per pound at the nearest tick",
+      "measured": 1.2753,
+      "expected": 1.2753,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 which is the price the walk's position is bought at",
+      "measured": 1.2753,
+      "expected": 1.2753,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 it is page 1.1's forward price, from that page's committed result (1e-12)",
+      "measured": 1.2752516750334446,
+      "expected": 1.2752516750334446,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 one tick is 6.25 dollars a contract",
+      "measured": 6.25,
+      "expected": 6.25,
+      "tolerance": 1e-09,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 one point on 16 contracts is 100 dollars",
+      "measured": 100.0,
+      "expected": 100.0,
+      "tolerance": 1e-09,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 16 contracts are one million pounds",
+      "measured": 1000000.0,
+      "expected": 1000000.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 the initial margin is 400 points a contract",
+      "measured": 400.0,
+      "expected": 400.0,
+      "tolerance": 1e-09,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 and 3.1% of the dollars the position commits",
+      "measured": 0.03136516897984788,
+      "expected": 0.031,
+      "tolerance": 0.0005,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 the week's gains and losses sum to the position times the price change (1e-6)",
+      "measured": -1300.0,
+      "expected": -1300.0,
+      "tolerance": 1e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 which is a loss of 1,300 dollars on a fall of 13 points",
+      "measured": -1300.0,
+      "expected": -1300.0,
+      "tolerance": 1e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 money paid in plus gains and losses is the closing balance (1e-6)",
+      "measured": 48100.0,
+      "expected": 48100.0,
+      "tolerance": 1e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 there is exactly one margin call, on the third day",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 it is for 9,400 dollars",
+      "measured": 9400.0,
+      "expected": 9400.0,
+      "tolerance": 1e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 and it restores the initial margin, not the maintenance level",
+      "measured": 40000.0,
+      "expected": 40000.0,
+      "tolerance": 1e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 the balance is below the maintenance level only on that day",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 the closing balance is 48,100 dollars",
+      "measured": 48100.0,
+      "expected": 48100.0,
+      "tolerance": 1e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 each day's gain is 100 dollars a point (1e-6)",
+      "measured": 0.0,
+      "expected": 0.0,
+      "tolerance": 1e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 the forward over the same week is worth about -1,237 dollars, and has moved no cash",
+      "measured": -1237.2760256086917,
+      "expected": -1237.0,
+      "tolerance": 1.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 that is smaller in size than the future's 1,300, by the discount factor to delivery",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 the two differ by exactly the discount factor (1e-12)",
+      "measured": 0.9517507889297628,
+      "expected": 0.951750788929705,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C5 the futures price moves 1.0202 for each unit of spot",
+      "measured": 1.0202013400267558,
+      "expected": 1.0202,
+      "tolerance": 5e-05,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C5 one cent on spot is 10,202 dollars on 16 contracts, in cash that day",
+      "measured": 10202.013400267559,
+      "expected": 10202.0,
+      "tolerance": 0.5,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C5 discounted from the delivery date that is the forward's delta times one cent (1e-9 relative)",
+      "measured": 9704.455335485083,
+      "expected": 9704.455335485081,
+      "tolerance": 1e-09,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C5 which is page 1.1's 9,704 dollars, from that page's committed result (1e-6)",
+      "measured": 9704.455335485083,
+      "expected": 9704.455335485081,
+      "tolerance": 1e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 1,030,000 pounds would need 16.48 contracts, which cannot be bought",
+      "measured": 16.48,
+      "expected": 16.48,
+      "tolerance": 1e-09,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C6 the basis a year from delivery is 1.1's 252.5 points",
+      "measured": 252.51675033444607,
+      "expected": 252.5,
+      "tolerance": 0.05,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C6 it falls as delivery approaches",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C6 and is nothing at delivery",
+      "measured": 0.0,
+      "expected": 0.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 the net price paid is the futures price bought less the basis when the hedge is closed (1e-12)",
+      "measured": 0.0,
+      "expected": 0.0,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 with rates and spot unchanged that basis is 41.7 points, and the net price 1.2711",
+      "measured": 1.2711263811664053,
+      "expected": 1.2711,
+      "tolerance": 5e-05,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 across the grid spot moves by 2,000 points",
+      "measured": 2000.0000000000016,
+      "expected": 2000.0,
+      "tolerance": 1e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 and the net price paid by fewer than 50",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 one percent on the rate difference is 21 points of basis with two months left",
+      "measured": 20.920322406564605,
+      "expected": 21.0,
+      "tolerance": 0.5,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C8 the next contract is 63.0 points above the near one",
+      "measured": 62.97057780958903,
+      "expected": 63.0,
+      "tolerance": 0.05,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C8 which is the points between the two delivery dates (1e-9)",
+      "measured": 62.97057780958903,
+      "expected": 62.97057780958737,
+      "tolerance": 1e-09,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "the page's checks: topping up only to the maintenance level would be 1,400 dollars",
+      "measured": 1400.0,
+      "expected": 1400.0,
+      "tolerance": 1e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "the page's checks: the third day's loss alone is 2,900 dollars",
+      "measured": 2900.0,
+      "expected": 2900.0,
+      "tolerance": 1e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "the page's checks: the price is then 94 points below the trade price",
+      "measured": 94.0,
+      "expected": 94.0,
+      "tolerance": 1e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "the page's checks: 49,400 dollars has been paid in over the week",
+      "measured": 49400.0,
+      "expected": 49400.0,
+      "tolerance": 1e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C9 QuantLib's discount factors give the same futures price at every delivery date used (1e-12)",
+      "measured": 2.220446049250313e-16,
+      "expected": 0.0,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    }
+  ]
+}

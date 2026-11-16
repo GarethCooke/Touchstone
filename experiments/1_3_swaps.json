@@ -1,0 +1,579 @@
+{
+  "page": "1.3",
+  "script": "1_3_swaps.py",
+  "params": {
+    "quick": false,
+    "random": "none -- arithmetic only, so no seed (I6 has nothing to seed)",
+    "curve": {
+      "times": [
+        0.5,
+        1.0,
+        1.5,
+        2.0
+      ],
+      "zero_rates": [
+        0.048,
+        0.05,
+        0.051,
+        0.052
+      ],
+      "note": "page 1.0's curve: continuously compounded zero rates, illustrative, not a market's"
+    },
+    "swap": {
+      "notional": 10000000.0,
+      "tau": 0.5,
+      "off_market_fixed_rate": 0.05,
+      "perturbed_pillar": 1,
+      "floating_rate_is": "the six-month simple rate, set at the start of each period and paid at its end",
+      "note": "both legs every six months, every period exactly half a year; one curve projects and discounts"
+    },
+    "bump": 1e-06
+  },
+  "environment": {
+    "quantlib": "1.43"
+  },
+  "results": {
+    "periods": [
+      {
+        "period": 1,
+        "start": 0.0,
+        "end": 0.5,
+        "zero_rate": 0.048,
+        "discount_factor": 0.9762857097579093,
+        "forward_rate": 0.04858063578124305,
+        "floating_payment": 242903.17890621527,
+        "floating_pv": 237142.9024209068,
+        "floating_pv_as_difference_of_discount_factors": 237142.90242090708,
+        "fixed_payment_at_par": 263041.9365868403,
+        "fixed_pv_at_par": 256804.08375677836,
+        "net_paid_by_fixed_payer_if_fixings_are_the_forwards": 20138.757680625044
+      },
+      {
+        "period": 2,
+        "start": 0.5,
+        "end": 1.0,
+        "zero_rate": 0.05,
+        "discount_factor": 0.951229424500714,
+        "forward_rate": 0.05268189694688408,
+        "floating_payment": 263409.4847344204,
+        "floating_pv": 250562.8525719523,
+        "floating_pv_as_difference_of_discount_factors": 250562.85257195277,
+        "fixed_payment_at_par": 263041.9365868403,
+        "fixed_pv_at_par": 250213.22995905342,
+        "net_paid_by_fixed_payer_if_fixings_are_the_forwards": -367.5481475800625
+      },
+      {
+        "period": 3,
+        "start": 1.0,
+        "end": 1.5,
+        "zero_rate": 0.051,
+        "discount_factor": 0.9263529142888222,
+        "forward_rate": 0.05370849452336435,
+        "floating_payment": 268542.47261682176,
+        "floating_pv": 248765.10211891905,
+        "floating_pv_as_difference_of_discount_factors": 248765.10211891856,
+        "fixed_payment_at_par": 263041.9365868403,
+        "fixed_pv_at_par": 243669.6645373951,
+        "net_paid_by_fixed_payer_if_fixings_are_the_forwards": -5500.536029981449
+      },
+      {
+        "period": 4,
+        "start": 1.5,
+        "end": 2.0,
+        "zero_rate": 0.052,
+        "discount_factor": 0.9012252974212048,
+        "forward_rate": 0.055763230214505466,
+        "floating_payment": 278816.15107252734,
+        "floating_pv": 251276.16867617404,
+        "floating_pv_as_difference_of_discount_factors": 251276.1686761733,
+        "fixed_payment_at_par": 263041.9365868403,
+        "fixed_pv_at_par": 237060.04753472487,
+        "net_paid_by_fixed_payer_if_fixings_are_the_forwards": -15774.214485687029
+      }
+    ],
+    "floating_leg": {
+      "pv": 987747.0257879521,
+      "pv_by_telescoping": 987747.0257879517,
+      "max_abs_period_error": 7.275957614183426e-10,
+      "notional_at_maturity_pv": 9012252.974212049,
+      "with_notional_pv": 10000000.0,
+      "sum_of_projected_payments_undiscounted": 1053671.2873299848
+    },
+    "par": {
+      "annuity": 1.877546672984325,
+      "sum_of_discount_factors": 3.75509334596865,
+      "par_rate": 0.05260838731736806,
+      "par_rate_as_weighted_average_of_forwards": 0.05260838731736809,
+      "fixed_payment": 263041.9365868403,
+      "fixed_leg_pv": 987747.0257879517,
+      "value_to_payer": 4.656612873077393e-10,
+      "par_rate_continuously_compounded": 0.0519283757060438,
+      "lowest_forward": 0.04858063578124305,
+      "highest_forward": 0.055763230214505466
+    },
+    "off_market": {
+      "fixed_rate": 0.05,
+      "fixed_payment": 250000.0,
+      "fixed_leg_pv": 938773.3364921625,
+      "floating_leg_pv": 987747.0257879521,
+      "value_to_payer": 48973.689295789576,
+      "value_to_receiver": -48973.689295789576,
+      "value_via_par_rate": 48973.68929578909
+    },
+    "first_exchange": {
+      "floating_rate_fixed_at_start": 0.04858063578124305,
+      "fixed_payment": 263041.9365868403,
+      "floating_payment": 242903.17890621527,
+      "net_paid_by_fixed_payer": 20138.757680625044,
+      "gross_payments_netted_into_one": 2
+    },
+    "risk": {
+      "pv01_payer_by_bump": 1924.2745810886845,
+      "pv01_payer_analytic": 1924.2745812137084,
+      "pv01_receiver": -1924.2745812137084,
+      "buckets": [
+        {
+          "T": 0.5,
+          "analytic": 12.84020418783892,
+          "by_bump": 12.840204092208296,
+          "share_of_total": 0.006672750507227584
+        },
+        {
+          "T": 1.0,
+          "analytic": 25.021322995905344,
+          "by_bump": 25.021323043620214,
+          "share_of_total": 0.013002989926792831
+        },
+        {
+          "T": 1.5,
+          "analytic": 36.55044968060926,
+          "by_bump": 36.550449614878744,
+          "share_of_total": 0.01899440445633055
+        },
+        {
+          "T": 2.0,
+          "analytic": 1849.8626043493548,
+          "by_bump": 1849.8626043496188,
+          "share_of_total": 0.961329855109649
+        }
+      ],
+      "sum_of_buckets_by_bump": 1924.274581100326,
+      "annuity_times_notional_times_one_basis_point": 1877.5466729843251,
+      "one_payment_of_the_notional_at_maturity": 1802.4505948424098
+    },
+    "perturbation": {
+      "pillar_T": 1.0,
+      "bump_bp": 1.0,
+      "rows": [
+        {
+          "period": 1,
+          "forward_rate_change_bp": 0.0,
+          "floating_payment_change": 0.0,
+          "floating_pv_change": 0.0,
+          "fixed_pv_change": 0.0
+        },
+        {
+          "period": 2,
+          "forward_rate_change_bp": 2.0527845344631146,
+          "floating_payment_change": 1026.3922672315966,
+          "floating_pv_change": 951.1818646149477,
+          "fixed_pv_change": -25.02007197145128
+        },
+        {
+          "period": 3,
+          "forward_rate_change_bp": -2.053605812522008,
+          "floating_payment_change": -1026.8029062610003,
+          "floating_pv_change": -951.1818646150932,
+          "fixed_pv_change": 0.0
+        },
+        {
+          "period": 4,
+          "forward_rate_change_bp": 0.0,
+          "floating_payment_change": 0.0,
+          "floating_pv_change": 0.0,
+          "fixed_pv_change": 0.0
+        }
+      ],
+      "floating_leg_pv_change": -1.4551915228366852e-10,
+      "fixed_leg_pv_change": -25.02007197145128,
+      "value_change_to_payer": 25.020071971346624
+    },
+    "quoted_in_checks": {
+      "two_year_zero_rate": 0.052,
+      "two_year_zero_rate_compounded_twice_a_year": 0.05268189694688408,
+      "unweighted_mean_of_forward_rates": 0.052683564366499236,
+      "mean_of_zero_rates": 0.05025,
+      "floating_leg_if_every_payment_were_today_s_rate": 912124.1108253616,
+      "floating_leg_undiscounted": 1053671.2873299848,
+      "one_year_bucket_if_risk_were_spread_evenly": 481.0686453034271,
+      "second_floating_payment_pv_change_alone": 951.1818646149477,
+      "pv01_if_notional_times_years_undiscounted": 2000.0,
+      "two_year_bucket_share": 0.961329855109649
+    },
+    "oracle": {
+      "version": "1.43",
+      "par_rate": 0.05260838731736827,
+      "floating_leg_pv": 987747.0257879521,
+      "off_market_value": 48973.68929579295,
+      "buckets": [
+        12.840204092208296,
+        25.021323055261746,
+        36.55044960323721,
+        1849.8626043379772
+      ],
+      "errors": {
+        "par_rate": 2.0816681711721685e-16,
+        "floating_leg_pv": 0.0,
+        "off_market_value": 3.3760443329811096e-09,
+        "par_swap_value": 1.6298145055770874e-09,
+        "buckets": 1.1641532182693481e-08
+      }
+    }
+  },
+  "checks": [
+    {
+      "claim": "C1 the zero rates are page 1.0's, from that page's committed result",
+      "measured": 0.0,
+      "expected": 0.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 so are the discount factors (1e-12)",
+      "measured": 0.0,
+      "expected": 0.0,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 and the simple forward rate for each six months (1e-12)",
+      "measured": 0.0,
+      "expected": 0.0,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 the forward rates rise from period to period on this curve",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 each floating payment is worth N times the fall in the discount factor over its period (1e-9 on ten million)",
+      "measured": 7.275957614183426e-10,
+      "expected": 0.0,
+      "tolerance": 1e-09,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 the floating leg is worth N (1 - D(2)) (1e-9 relative)",
+      "measured": 987747.0257879521,
+      "expected": 987747.0257879517,
+      "tolerance": 1e-09,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C2 which is 987,747 on ten million",
+      "measured": 987747.0257879521,
+      "expected": 987747.0,
+      "tolerance": 0.5,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 with the notional at the end it is worth exactly the notional: par (1e-9 relative)",
+      "measured": 10000000.0,
+      "expected": 10000000.0,
+      "tolerance": 1e-09,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C4 the annuity is 1.877547",
+      "measured": 1.877546672984325,
+      "expected": 1.877547,
+      "tolerance": 5e-07,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 the par rate is 5.2608%",
+      "measured": 0.05260838731736806,
+      "expected": 0.052608,
+      "tolerance": 5e-07,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 at the par rate the swap is worth nothing (1e-8 on ten million)",
+      "measured": 4.656612873077393e-10,
+      "expected": 0.0,
+      "tolerance": 1e-08,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 the par rate is the forward rates averaged with the discount factors as weights (1e-12)",
+      "measured": 0.05260838731736809,
+      "expected": 0.05260838731736806,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 so it lies between the lowest forward rate and the highest",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 the fixed payment at par is 263,042 every six months",
+      "measured": 263041.9365868403,
+      "expected": 263042.0,
+      "tolerance": 0.5,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C5 paying 5.00% instead is worth 48,974 to the payer",
+      "measured": 48973.689295789576,
+      "expected": 48974.0,
+      "tolerance": 0.5,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C5 which is N (K* - K) A (1e-9 relative)",
+      "measured": 48973.689295789576,
+      "expected": 48973.68929578909,
+      "tolerance": 1e-09,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C5 and the same amount, with the other sign, to the receiver",
+      "measured": -48973.689295789576,
+      "expected": -48973.689295789576,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C6 the first floating rate is 4.8581%, known at the start",
+      "measured": 0.04858063578124305,
+      "expected": 0.048581,
+      "tolerance": 5e-07,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C6 the payer of fixed pays 20,139 net at six months",
+      "measured": 20138.757680625044,
+      "expected": 20139.0,
+      "tolerance": 0.5,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C6 which is the fixed payment less the floating payment (1e-9)",
+      "measured": 20138.757680625044,
+      "expected": 20138.757680625044,
+      "tolerance": 1e-09,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 the PV01 formula agrees with a bump of every zero rate (1e-6 relative)",
+      "measured": 1924.2745812137084,
+      "expected": 1924.2745810886845,
+      "tolerance": 1e-06,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C7 the payer of fixed gains about 1,924 a basis point on ten million",
+      "measured": 1924.2745812137084,
+      "expected": 1924.0,
+      "tolerance": 0.5,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 the payer gains when rates rise and the receiver loses the same",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C8 each bucket's formula agrees with a bump of that zero rate alone (1e-6 relative)",
+      "measured": 7.447749528211034e-09,
+      "expected": 0.0,
+      "tolerance": 1e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C8 the buckets sum to the PV01 (1e-6 relative)",
+      "measured": 1924.274581100326,
+      "expected": 1924.2745810886845,
+      "tolerance": 1e-06,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C8 the two-year bucket is 96% of the total",
+      "measured": 0.961329855109649,
+      "expected": 0.96,
+      "tolerance": 0.005,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C8 every other bucket is under 2% of it",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C8 one payment of the notional at two years has a PV01 of 1,802, close to the swap's",
+      "measured": 1802.4505948424098,
+      "expected": 1802.0,
+      "tolerance": 0.5,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C9 the one-year zero rate up: the second forward rate rises and the third falls, and the others do not move",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C9 the floating leg's value does not change (1e-6 on ten million)",
+      "measured": -1.4551915228366852e-10,
+      "expected": 0.0,
+      "tolerance": 1e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C9 the second and third floating payments' values move by the same amount, opposite ways (1e-6)",
+      "measured": -1.4551915228366852e-10,
+      "expected": 0.0,
+      "tolerance": 1e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C9 the swap moves by the fall in the value of the fixed payment at one year (1e-6)",
+      "measured": 25.020071971346624,
+      "expected": 25.02007197145128,
+      "tolerance": 1e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C9 which is 25 on ten million: the one-year bucket",
+      "measured": 25.020071971346624,
+      "expected": 25.021322995905344,
+      "tolerance": 0.01,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "the page's checks: the two-year zero rate is 5.2682% compounded twice a year, above the par rate",
+      "measured": 0.05268189694688408,
+      "expected": 0.052682,
+      "tolerance": 5e-07,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "the page's checks: the par rate is below it, and below the plain average of the forward rates",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "the page's checks: the plain average of the forward rates is 5.2684%",
+      "measured": 0.052683564366499236,
+      "expected": 0.052684,
+      "tolerance": 5e-07,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "the page's checks: four payments at today's six-month rate would be worth 912,124",
+      "measured": 912124.1108253616,
+      "expected": 912124.0,
+      "tolerance": 0.5,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "the page's checks: the four projected payments add up to 1,053,671 before discounting",
+      "measured": 1053671.2873299848,
+      "expected": 1053671.0,
+      "tolerance": 0.5,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C10 QuantLib's VanillaSwap gives the same par rate (1e-12)",
+      "measured": 2.0816681711721685e-16,
+      "expected": 0.0,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C10 the same floating-leg value (1e-6 on ten million)",
+      "measured": 0.0,
+      "expected": 0.0,
+      "tolerance": 1e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C10 the same value for the 5.00% swap (1e-6)",
+      "measured": 3.3760443329811096e-09,
+      "expected": 0.0,
+      "tolerance": 1e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C10 nothing for the par swap (1e-6)",
+      "measured": 1.6298145055770874e-09,
+      "expected": 0.0,
+      "tolerance": 1e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C10 and the same four buckets (1e-4)",
+      "measured": 1.1641532182693481e-08,
+      "expected": 0.0,
+      "tolerance": 0.0001,
+      "mode": "abs",
+      "pass": true
+    }
+  ]
+}
