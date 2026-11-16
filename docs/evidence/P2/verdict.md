@@ -152,7 +152,8 @@ Not defects, for the record.
 
 ## Amendments
 
-One proposed, for the owner to rule.
+One proposed. **The owner declined it on 2026-11-16:** P1 and P2 are the only portal
+milestones and both are done, so it would govern nothing still to come.
 
 - **A10 · P5, P7, §6.** Before: every milestone's evidence pack is
   `docs/evidence/<milestone>/` in the executing repository, and the tollgate reads its
@@ -171,3 +172,46 @@ One proposed, for the owner to rule.
 - **Next: the Part 1 drafts, 1.0–1.5,** which are L4b's entry and do not yet exist. First
   step: a fresh Fable session in the Project drafts 1.0 from `docs/quant-learn-index-v1.md`
   for the owner's review, by the L4a drafting session's pattern.
+
+## After the verdict
+
+**The defects are closed.** `garethcooke-portfolio` pull request #6: one commit, `b46cba9`,
+on `543d82a`. Re-checked here on 2026-11-16 from the commit, not from the session's report:
+
+- **The diff.** Seven files: the card's data, the write-up's page and diagrams, the menu,
+  a new `src/lib/touchstone.ts`, the P2 brief, and the defects brief, which is byte for byte
+  the one issued. Each replacement sentence is the one issued, character for character.
+- **The rendered text.** `543d82a` and `b46cba9` built side by side. The write-up differs in
+  two sentences: the opening one (defect 1) and §1's, which now reads "The other half is
+  touchstone.garethcooke.com, a tutorial whose demos…". The card's default view differs in
+  four: the description, "a named test or file", the timed option and the "Open the tool"
+  sentence. Key decisions 1 and 3 changed as issued. Both metadata descriptions changed as
+  issued. Nothing else moved.
+- **The address.** Written once, in `src/lib/touchstone.ts`, and read by the menu, the
+  card's button and the write-up's link. The menu and the button render the addresses they
+  had; the new link opens the tutorial's index in a new tab.
+- **The retired text.** None of the four old sentences, `cbbfd72` or `739ac3c` is left under
+  `src/`. The manifest is untouched and the drift check stays `ok` at `c7b8705`.
+- **Light and dark.** Both themes at 1,440 px and 390 px on the cloud build: no page
+  overflows sideways, and the same three tables and two figures scroll inside their cards.
+
+One check in the defects brief could not pass, and the fault was the brief's: a search of
+the whole repository for the old address finds P1's merged brief, which records that address
+by name. The session left that record alone. The session's screenshots are in its scratchpad
+and not in the repository; the brief's session log says so.
+
+**What the new session log shows.** P2's first build (`863d5b6`, pull request #3) and the
+shared write-up components (pull request #4) were committed by a Fable 5.2 cloud session,
+the one that wrote the brief, at the owner's request while he was away. ROADMAP gives P2's
+executor as Opus via a portal brief, and P8 says Fable does not execute implementation
+milestones. This tollgate built none of it and read the pages cold, so the review stands.
+The departure is the owner's to accept, and the tick's line records it, as T5's records its
+own.
+
+**Live.** Pull request #6 was merged and deployed the same day. At 14:53 UTC the live
+write-up's text was 26,661 characters, SHA-256 `46a987a9…8770c7` with whitespace collapsed,
+the same as a build of `b46cba9`. The live card carried all six new sentences and neither of
+the two old ones searched for.
+
+This section and the ruling on A10 were added after the tick (`2bea3e5`), which committed
+the verdict as first given.
