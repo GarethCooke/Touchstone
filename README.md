@@ -27,7 +27,7 @@ any pricer; and sample paths of Brownian motion and geometric Brownian motion, d
 same seeded stream the tutorial's demos use.
 
 Touchstone is one half of a pair. The other half is
-[learn.garethcooke.com](https://learn.garethcooke.com), a tutorial for developers who work
+[touchstone.garethcooke.com](https://touchstone.garethcooke.com), a tutorial for developers who work
 alongside quants, whose checks are this library's tests and whose demos are to run on it
 (they run on a TypeScript backend until the tutorial's milestone L5 moves them). The
 organising thesis of both: linear products are priced by discounting and no-arbitrage; only

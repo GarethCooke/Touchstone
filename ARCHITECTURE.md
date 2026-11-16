@@ -21,7 +21,7 @@ finite-difference grid also prices the American contract. Around the three sit i
 volatility by two solvers, Greeks by bumping any pricer, and sample paths of Brownian and
 geometric Brownian motion drawn from a frozen random-number generator.
 
-It is one half of a pair. The other half is learn.garethcooke.com, a tutorial whose demos
+It is one half of a pair. The other half is touchstone.garethcooke.com, a tutorial whose demos
 are to run on this library compiled to WebAssembly. At 1.0.0 they run on a TypeScript
 backend; moving them onto the WebAssembly build is the tutorial's milestone L5, not yet run.
 

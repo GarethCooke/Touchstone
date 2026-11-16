@@ -18,7 +18,7 @@ T2).
 ## §1 Purpose and reader
 
 The programme is one built thing and its explanatory layer: **Touchstone**, a C++20
-pricing-and-risk library, and **learn.garethcooke.com**, a tutorial for developers who work
+pricing-and-risk library, and **touchstone.garethcooke.com**, a tutorial for developers who work
 alongside quants. The tutorial's checks are the library's tests; the demos run on it.
 
 Organising thesis: linear products (forwards, futures, swaps) are priced by discounting and
@@ -226,3 +226,6 @@ or owner)`.
   check and its output · reason: three batches and two passes of L2 evidenced I22 with a
   committed Chromium check and no screenshots, which the tollgate raised as D3; L4b and L5
   may also run in batches · authority: tollgate L2, ruled by the owner 2026-11-15.
+- **A9** · 2026-11-16 · §1 · the tutorial is named **learn.garethcooke.com** → it is named
+  **touchstone.garethcooke.com** · reason: the owner renamed the site's address on the day of
+  first publication (L3), before the portal linked to it · authority: owner, 2026-11-16.
