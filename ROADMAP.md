@@ -265,13 +265,20 @@ brief and its session log. Self-verified; the owner merged pull request #5 and t
 on garethcooke.com as "Touchstone ↗", opening `touchstone.garethcooke.com`. The word is the
 owner's ruling of that day.
 
-### ☐ P2 — Card and architecture page
+### ☑ P2 — Card and architecture page
 **Entry:** T5.
 **Deliverables:** Touchstone project entry after Temper and before MorayGlow; `View source`,
 `Open the tool` (the site's D6), `Design & architecture` write-up rendered from
 `ARCHITECTURE.md` with a `writeup-sources` entry.
 **Exit:** page passes the site's drift check; claims bounded; light and dark verified.
 **Tollgate:** F. **Executor:** Opus via a portal brief. **Size:** one session.
+**Passed** 2026-11-16 — evidence: `garethcooke-portfolio/docs/briefs/P2-touchstone-portal.md`, the
+brief and its session log, with the verdict in `docs/evidence/P2/verdict.md`. Fable's verdict was
+PASS WITH DEFECTS: eight, two medium and six low, all wording or record on the card and the
+write-up, closed in the portfolio's pull request #6 (`b46cba9`), which the tollgate re-checked. By
+its ruling the write-up now names and links the tutorial. The first build was a Fable cloud
+session's at the owner's request, not Opus's as P8 and the Executor line above ask; the owner
+accepted it.
 
 ## Track S — Study (Fable + owner)
 
