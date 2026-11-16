@@ -254,12 +254,16 @@ comment that cites the roadmap or the constitution as its authority counts as hi
 
 ## Track P — Portal (portfolio repo)
 
-### ☐ P1 — Nav item
+### ☑ P1 — Nav item
 **Entry:** L3.
 **Deliverables:** a fourth nav item between Projects and Contact, external link with the
 `↗` marker, no active state; the sitemap untouched.
 **Exit:** live on garethcooke.com in light and dark; mobile menu verified.
 **Tollgate:** V, then owner. **Executor:** Opus via a portal brief. **Size:** under an hour.
+**Passed** 2026-11-16 — evidence: `garethcooke-portfolio/docs/briefs/P1-touchstone-nav.md`, the
+brief and its session log. Self-verified; the owner merged pull request #5 and the item is live
+on garethcooke.com as "Touchstone ↗", opening `touchstone.garethcooke.com`. The word is the
+owner's ruling of that day.
 
 ### ☐ P2 — Card and architecture page
 **Entry:** T5.
