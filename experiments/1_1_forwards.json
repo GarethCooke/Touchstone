@@ -1,0 +1,598 @@
+{
+  "page": "1.1",
+  "script": "1_1_forwards.py",
+  "params": {
+    "quick": false,
+    "random": "none -- arithmetic only, so no seed (I6 has nothing to seed)",
+    "fx": {
+      "pair": "GBP/USD",
+      "underlying": "one pound",
+      "price_unit": "dollars per pound",
+      "S": 1.25,
+      "r": 0.05,
+      "q": 0.03,
+      "T": 1.0,
+      "notional": 1000000.0,
+      "r_is": "the dollar rate, continuously compounded",
+      "q_is": "the sterling rate, continuously compounded",
+      "S_T_grid": [
+        1.0,
+        1.1,
+        1.2,
+        1.25,
+        1.3,
+        1.4,
+        1.5
+      ],
+      "mispriced_quotes": [
+        1.3,
+        1.26
+      ],
+      "after": {
+        "t": 0.5,
+        "spots": [
+          1.2,
+          1.25,
+          1.3
+        ]
+      },
+      "delta_bumps": [
+        0.0001,
+        0.01,
+        0.1,
+        0.5
+      ],
+      "rate_bump": 1e-06,
+      "money_market": {
+        "days": 365
+      },
+      "note": "illustrative levels, not a market's"
+    },
+    "share": {
+      "S": 100.0,
+      "r": 0.05,
+      "q": 0.03,
+      "T": 1.0,
+      "note": "page 2.9's dividend case"
+    }
+  },
+  "environment": {
+    "quantlib": "1.43"
+  },
+  "results": {
+    "fx": {
+      "F": 1.2752516750334446,
+      "forward_points": 252.51675033444607,
+      "delivery_dollars_on_notional": 1275251.6750334445,
+      "value_at_inception": 0.0,
+      "replication": {
+        "units_bought": 0.9704455335485082,
+        "borrowed": 1.213056916935635,
+        "net_cost_today": 0.0,
+        "units_at_T": 1.0,
+        "loan_repaid_at_T": 1.2752516750334448,
+        "rows": [
+          {
+            "S_T": 1.0,
+            "forward_payoff": -0.2752516750334446,
+            "unit_worth": 1.0,
+            "loan_repaid": 1.2752516750334448,
+            "replication_payoff": -0.27525167503344483
+          },
+          {
+            "S_T": 1.1,
+            "forward_payoff": -0.17525167503344452,
+            "unit_worth": 1.1,
+            "loan_repaid": 1.2752516750334448,
+            "replication_payoff": -0.17525167503344474
+          },
+          {
+            "S_T": 1.2,
+            "forward_payoff": -0.07525167503344465,
+            "unit_worth": 1.2,
+            "loan_repaid": 1.2752516750334448,
+            "replication_payoff": -0.07525167503344488
+          },
+          {
+            "S_T": 1.25,
+            "forward_payoff": -0.02525167503344461,
+            "unit_worth": 1.25,
+            "loan_repaid": 1.2752516750334448,
+            "replication_payoff": -0.02525167503344483
+          },
+          {
+            "S_T": 1.3,
+            "forward_payoff": 0.024748324966555435,
+            "unit_worth": 1.3,
+            "loan_repaid": 1.2752516750334448,
+            "replication_payoff": 0.024748324966555213
+          },
+          {
+            "S_T": 1.4,
+            "forward_payoff": 0.1247483249665553,
+            "unit_worth": 1.4,
+            "loan_repaid": 1.2752516750334448,
+            "replication_payoff": 0.12474832496655508
+          },
+          {
+            "S_T": 1.5,
+            "forward_payoff": 0.2247483249665554,
+            "unit_worth": 1.5,
+            "loan_repaid": 1.2752516750334448,
+            "replication_payoff": 0.22474832496655517
+          }
+        ],
+        "max_abs_difference": 2.220446049250313e-16
+      },
+      "arbitrage": [
+        {
+          "quoted": 1.3,
+          "action": "sell the forward, build the replication",
+          "profit_per_unit_at_T": 0.024748324966555435,
+          "profit_spread_across_S_T": 0.0,
+          "profit_on_notional": 24748.324966555436
+        },
+        {
+          "quoted": 1.26,
+          "action": "buy the forward, sell the replication",
+          "profit_per_unit_at_T": 0.0152516750334446,
+          "profit_spread_across_S_T": 0.0,
+          "profit_on_notional": 15251.6750334446
+        }
+      ],
+      "value_after_inception": {
+        "t": 0.5,
+        "tau": 0.5,
+        "rows": [
+          {
+            "S": 1.2,
+            "forward_price_now": 1.2120602005010015,
+            "points_now": 120.60200501001539,
+            "value_per_unit": -0.06163127146717762,
+            "value_via_forward": -0.061631271467177715,
+            "value_on_notional": -61631.27146717762
+          },
+          {
+            "S": 1.25,
+            "forward_price_now": 1.26256270885521,
+            "points_now": 125.62708855210047,
+            "value_per_unit": -0.01237567448702448,
+            "value_via_forward": -0.012375674487024438,
+            "value_on_notional": -12375.67448702448
+          },
+          {
+            "S": 1.3,
+            "forward_price_now": 1.3130652172094184,
+            "points_now": 130.65217209418333,
+            "value_per_unit": 0.03687992249312888,
+            "value_via_forward": 0.036879922493128624,
+            "value_on_notional": 36879.92249312888
+          }
+        ]
+      },
+      "delta": {
+        "at_inception": 0.9704455335485082,
+        "at_tau": 0.9851119396030626,
+        "with_no_yield": 1.0,
+        "bumps": [
+          {
+            "h": 0.0001,
+            "delta_by_bump": 0.9704455335501905
+          },
+          {
+            "h": 0.01,
+            "delta_by_bump": 0.9704455335485251
+          },
+          {
+            "h": 0.1,
+            "delta_by_bump": 0.9704455335485096
+          },
+          {
+            "h": 0.5,
+            "delta_by_bump": 0.9704455335485083
+          }
+        ],
+        "max_abs_bump_error": 1.6823209492144997e-12,
+        "on_notional": 970445.5335485082,
+        "toward_delivery": [
+          {
+            "tau": 1.0,
+            "delta": 0.9704455335485082
+          },
+          {
+            "tau": 0.5,
+            "delta": 0.9851119396030626
+          },
+          {
+            "tau": 0.25,
+            "delta": 0.9925280548191384
+          },
+          {
+            "tau": 0.08333333333333333,
+            "delta": 0.9975031223974601
+          },
+          {
+            "tau": 0.0,
+            "delta": 1.0
+          }
+        ]
+      },
+      "rates": {
+        "dV_dr_per_bp_on_notional": 121.30569169356352,
+        "dV_dq_per_bp_on_notional": -121.30569169356352,
+        "dV_dr_by_bump": 121.30569169155336,
+        "dV_dq_by_bump": -121.30569169155336,
+        "sum_at_inception": 0.0
+      },
+      "settlement": {
+        "rows": [
+          {
+            "S_T": 1.0,
+            "physical_pay_dollars": 1275251.6750334445,
+            "physical_receive_pounds": 1000000.0,
+            "physical_net_dollars_if_sold_at_S_T": -275251.6750334446,
+            "cash_settlement_dollars": -275251.6750334446
+          },
+          {
+            "S_T": 1.1,
+            "physical_pay_dollars": 1275251.6750334445,
+            "physical_receive_pounds": 1000000.0,
+            "physical_net_dollars_if_sold_at_S_T": -175251.6750334445,
+            "cash_settlement_dollars": -175251.6750334445
+          },
+          {
+            "S_T": 1.2,
+            "physical_pay_dollars": 1275251.6750334445,
+            "physical_receive_pounds": 1000000.0,
+            "physical_net_dollars_if_sold_at_S_T": -75251.67503344466,
+            "cash_settlement_dollars": -75251.67503344466
+          },
+          {
+            "S_T": 1.25,
+            "physical_pay_dollars": 1275251.6750334445,
+            "physical_receive_pounds": 1000000.0,
+            "physical_net_dollars_if_sold_at_S_T": -25251.675033444608,
+            "cash_settlement_dollars": -25251.675033444608
+          },
+          {
+            "S_T": 1.3,
+            "physical_pay_dollars": 1275251.6750334445,
+            "physical_receive_pounds": 1000000.0,
+            "physical_net_dollars_if_sold_at_S_T": 24748.324966555436,
+            "cash_settlement_dollars": 24748.324966555436
+          },
+          {
+            "S_T": 1.4,
+            "physical_pay_dollars": 1275251.6750334445,
+            "physical_receive_pounds": 1000000.0,
+            "physical_net_dollars_if_sold_at_S_T": 124748.3249665553,
+            "cash_settlement_dollars": 124748.3249665553
+          },
+          {
+            "S_T": 1.5,
+            "physical_pay_dollars": 1275251.6750334445,
+            "physical_receive_pounds": 1000000.0,
+            "physical_net_dollars_if_sold_at_S_T": 224748.3249665554,
+            "cash_settlement_dollars": 224748.3249665554
+          }
+        ],
+        "max_abs_difference": 0.0
+      },
+      "desk_spelling": {
+        "days": 365,
+        "R_usd_simple_act_360": 0.05056875259005118,
+        "R_gbp_simple_act_365": 0.030454533953516938,
+        "F": 1.2752516750334448,
+        "F_sterling_on_act_360": 1.2747284261653078,
+        "points": 252.5167503344483,
+        "points_sterling_on_act_360": 247.28426165307792,
+        "error_points": -5.232488681370384,
+        "error_on_notional": -523.2488681370385
+      }
+    },
+    "share": {
+      "F": 102.02013400267558,
+      "F_no_yield": 105.12710963760242,
+      "delta": 0.9704455335485082,
+      "delta_no_yield": 1.0,
+      "implied_carry": 0.019999999999999966
+    },
+    "quoted_in_checks": {
+      "value_change_for_one_cent_on_notional": 9704.455335485081,
+      "one_cent_at_delta_one": 10000.0,
+      "one_cent_at_F_over_S": 10202.013400267559,
+      "full_unit_bought_grows_to": 1.030454533953517,
+      "full_unit_loan_repaid": 1.3140888704700302,
+      "undiscounted_spot_less_K_on_notional": -25251.675033444608,
+      "points_run_off_in_six_months": 126.88966178234561
+    },
+    "oracle": {
+      "version": "1.43",
+      "forward_price": 1.2752516750334448,
+      "max_abs_error": 2.220446049250313e-16
+    },
+    "page_2_9_forward": 102.02013400267558
+  },
+  "checks": [
+    {
+      "claim": "C1 the forward price is 1.2753 dollars per pound",
+      "measured": 1.2752516750334446,
+      "expected": 1.2753,
+      "tolerance": 5e-05,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 which is 252.5 points over spot",
+      "measured": 252.51675033444607,
+      "expected": 252.5,
+      "tolerance": 0.05,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 the replication costs nothing today",
+      "measured": 0.0,
+      "expected": 0.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 it holds exactly one pound at T (1e-12)",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 and owes exactly F dollars at T (1e-12)",
+      "measured": 1.2752516750334448,
+      "expected": 1.2752516750334446,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 forward and replication pay the same at every final spot on the grid (1e-12)",
+      "measured": 2.220446049250313e-16,
+      "expected": 0.0,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 a forward struck at F is worth nothing at inception (1e-12)",
+      "measured": 0.0,
+      "expected": 0.0,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 quoted at 1.3: the profit is the quote less F in size",
+      "measured": 0.024748324966555435,
+      "expected": 0.024748324966555435,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 quoted at 1.3: the profit is the same at every final spot (1e-12)",
+      "measured": 0.0,
+      "expected": 0.0,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 quoted at 1.26: the profit is the quote less F in size",
+      "measured": 0.0152516750334446,
+      "expected": 0.0152516750334446,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 quoted at 1.26: the profit is the same at every final spot (1e-12)",
+      "measured": 0.0,
+      "expected": 0.0,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 the two spellings of the value agree at every spot (1e-12)",
+      "measured": 2.5673907444456745e-16,
+      "expected": 0.0,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 the value rises with spot",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 by the same amount per unit of spot between each pair of spots: a straight line (1e-12)",
+      "measured": 4.440892098500626e-15,
+      "expected": 0.0,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 that slope is the delta with six months left, e^(-q tau)",
+      "measured": 0.9851119396030619,
+      "expected": 0.9851119396030626,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 delta at inception is e^(-qT) = 0.970",
+      "measured": 0.9704455335485082,
+      "expected": 0.97,
+      "tolerance": 0.0005,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 with no yield it is exactly one",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 a bump of any size gives the same delta: no gamma (1e-10)",
+      "measured": 1.6823209492144997e-12,
+      "expected": 0.0,
+      "tolerance": 1e-10,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 delta rises to exactly one as delivery approaches",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C5 dV/dr agrees with a central bump (1e-6 relative)",
+      "measured": 121.30569169155336,
+      "expected": 121.30569169356352,
+      "tolerance": 1e-06,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C5 dV/dq agrees with a central bump (1e-6 relative)",
+      "measured": -121.30569169155336,
+      "expected": -121.30569169356352,
+      "tolerance": 1e-06,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C5 at inception the two rate sensitivities are equal and opposite (1e-9)",
+      "measured": 0.0,
+      "expected": 0.0,
+      "tolerance": 1e-09,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C5 each is 121.31 dollars a basis point on one million pounds",
+      "measured": 121.30569169356352,
+      "expected": 121.31,
+      "tolerance": 0.005,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C6 physical delivery and cash settlement leave the same dollars at every final spot (1e-9 on a million)",
+      "measured": 0.0,
+      "expected": 0.0,
+      "tolerance": 1e-09,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 simple rates on each currency's own day count give the same F (1e-12)",
+      "measured": 1.2752516750334448,
+      "expected": 1.2752516750334446,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 sterling counted on Actual/360 by mistake moves the forward by 5.2 points",
+      "measured": 5.232488681370384,
+      "expected": 5.2,
+      "tolerance": 0.05,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 and lowers it: more sterling interest assumed, so fewer dollars per pound forward",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "the page's checks: one cent on spot moves the value by 9,704 dollars on a million pounds, not 10,000",
+      "measured": 9704.455335485081,
+      "expected": 9704.46,
+      "tolerance": 0.005,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "the page's checks: buying a whole pound today leaves 1.0305 pounds at T, more than the forward delivers",
+      "measured": 1.030454533953517,
+      "expected": 1.0305,
+      "tolerance": 5e-05,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C8 the share's forward is 102.02",
+      "measured": 102.02013400267558,
+      "expected": 102.02,
+      "tolerance": 0.005,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C8 with no dividend it is 105.13",
+      "measured": 105.12710963760242,
+      "expected": 105.13,
+      "tolerance": 0.005,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C8 the carry implied by the share's forward is r - q = 0.02",
+      "measured": 0.019999999999999966,
+      "expected": 0.020000000000000004,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C8 the share's carry is the pound's: F / S is the same in both examples",
+      "measured": 1.0202013400267558,
+      "expected": 1.0202013400267558,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C8 it is the forward on page 2.9, from that page's committed result (1e-12)",
+      "measured": 102.02013400267558,
+      "expected": 102.02013400267558,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C9 QuantLib's discount factors give the same forward price and contract values (1e-12)",
+      "measured": 2.220446049250313e-16,
+      "expected": 0.0,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    }
+  ]
+}

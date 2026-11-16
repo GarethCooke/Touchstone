@@ -1,0 +1,515 @@
+{
+  "page": "1.0",
+  "script": "1_0_cash_and_discounting.py",
+  "params": {
+    "quick": false,
+    "random": "none -- arithmetic only, so no seed (I6 has nothing to seed)",
+    "compounding": {
+      "principal": 100.0,
+      "rate": 0.05,
+      "years": 1.0
+    },
+    "curve": {
+      "T": [
+        0.5,
+        1.0,
+        1.5,
+        2.0
+      ],
+      "zero_rates": [
+        0.048,
+        0.05,
+        0.051,
+        0.052
+      ],
+      "note": "continuously compounded zero rates; illustrative, not a market's"
+    },
+    "deposit": {
+      "currency": "GBP",
+      "notional": 10000000.0,
+      "rate": 0.05,
+      "start": "2027-03-01",
+      "end": "2027-09-01",
+      "right_convention": "ACT/365F",
+      "wrong_convention": "ACT/360",
+      "note": "simple interest paid at maturity; both dates are weekdays, so no date is adjusted"
+    },
+    "pv01": {
+      "notional": 1000000.0,
+      "bump": 1e-06
+    },
+    "oracle_grid_years": [
+      2026,
+      2029
+    ]
+  },
+  "environment": {
+    "quantlib": "1.43"
+  },
+  "results": {
+    "compounding": {
+      "table": [
+        {
+          "per_year": 1,
+          "label": "annual",
+          "amount": 105.0
+        },
+        {
+          "per_year": 2,
+          "label": "semi-annual",
+          "amount": 105.06249999999999
+        },
+        {
+          "per_year": 4,
+          "label": "quarterly",
+          "amount": 105.09453369140623
+        },
+        {
+          "per_year": 12,
+          "label": "monthly",
+          "amount": 105.1161897881733
+        },
+        {
+          "per_year": 365,
+          "label": "daily",
+          "amount": 105.12674964674473
+        },
+        {
+          "per_year": null,
+          "label": "continuous",
+          "amount": 105.12710963760242
+        }
+      ],
+      "limit": 105.12710963760242,
+      "conversions": {
+        "annual_to_continuous": 0.04879016416943205,
+        "continuous_to_annual": 0.05127109637602412,
+        "semiannual_to_continuous": 0.04938522518074283,
+        "continuous_to_semiannual": 0.050630241048857716,
+        "round_trip_max_abs_error": 1.4391265956703592e-14
+      }
+    },
+    "curve": {
+      "rows": [
+        {
+          "T": 0.5,
+          "zero_rate": 0.048,
+          "discount_factor": 0.9762857097579093,
+          "forward_from": 0.0,
+          "forward_rate_from_previous": 0.048,
+          "forward_discount_factor": 0.9762857097579093,
+          "simple_forward_rate": 0.04858063578124305,
+          "roll_matches_direct_abs_error": 0.0
+        },
+        {
+          "T": 1.0,
+          "zero_rate": 0.05,
+          "discount_factor": 0.951229424500714,
+          "forward_from": 0.5,
+          "forward_rate_from_previous": 0.052000000000000005,
+          "forward_discount_factor": 0.9743350896087494,
+          "simple_forward_rate": 0.05268189694688408,
+          "roll_matches_direct_abs_error": 2.220446049250313e-16
+        },
+        {
+          "T": 1.5,
+          "zero_rate": 0.051,
+          "discount_factor": 0.9263529142888222,
+          "forward_from": 1.0,
+          "forward_rate_from_previous": 0.05299999999999999,
+          "forward_discount_factor": 0.9738480438355351,
+          "simple_forward_rate": 0.05370849452336435,
+          "roll_matches_direct_abs_error": 0.0
+        },
+        {
+          "T": 2.0,
+          "zero_rate": 0.052,
+          "discount_factor": 0.9012252974212048,
+          "forward_from": 1.5,
+          "forward_rate_from_previous": 0.05499999999999999,
+          "forward_discount_factor": 0.972874682553454,
+          "simple_forward_rate": 0.055763230214505466,
+          "roll_matches_direct_abs_error": 2.220446049250313e-16
+        }
+      ],
+      "product_of_forward_discount_factors": 0.9012252974212048,
+      "every_forward_above_its_zero_rate": true
+    },
+    "deposit": {
+      "start_weekday": "Monday",
+      "end_weekday": "Wednesday",
+      "actual_days": 184,
+      "by_convention": {
+        "ACT/365F": {
+          "days": 184,
+          "year_fraction": 0.5041095890410959,
+          "interest": 252054.79452054796
+        },
+        "ACT/360": {
+          "days": 184,
+          "year_fraction": 0.5111111111111111,
+          "interest": 255555.55555555553
+        },
+        "30/360": {
+          "days": 180,
+          "year_fraction": 0.5,
+          "interest": 250000.0
+        }
+      },
+      "error": 3500.76103500757,
+      "error_as_fraction_of_interest": 0.013888888888888618,
+      "error_as_rate_basis_points": 6.94444444444442,
+      "error_30_360": -2054.7945205479627,
+      "repayment": 10252054.794520548,
+      "repayment_wrong": 10255555.555555556,
+      "discount_factor": 0.9754142169962586,
+      "continuous_zero_rate": 0.04938025540210159,
+      "discount_factor_wrong_convention": 0.9750812567713976
+    },
+    "pv01": {
+      "rows": [
+        {
+          "T": 0.5,
+          "zero_rate": 0.048,
+          "present_value": 976285.7097579093,
+          "pv01": -48.81428548789547,
+          "pv01_by_bump": -48.81428548251279,
+          "pv01_per_unit_pv": -5e-05
+        },
+        {
+          "T": 1.0,
+          "zero_rate": 0.05,
+          "present_value": 951229.424500714,
+          "pv01": -95.1229424500714,
+          "pv01_by_bump": -95.12294245068915,
+          "pv01_per_unit_pv": -0.0001
+        },
+        {
+          "T": 1.5,
+          "zero_rate": 0.051,
+          "present_value": 926352.9142888222,
+          "pv01": -138.9529371433233,
+          "pv01_by_bump": -138.9529371401295,
+          "pv01_per_unit_pv": -0.00015
+        },
+        {
+          "T": 2.0,
+          "zero_rate": 0.052,
+          "present_value": 901225.2974212049,
+          "pv01": -180.24505948424098,
+          "pv01_by_bump": -180.24505948415026,
+          "pv01_per_unit_pv": -0.0002
+        }
+      ]
+    },
+    "quoted_in_checks": {
+      "error_on_a_book_100_times_the_deposit": 350076.103500757,
+      "five_days_of_interest": 6849.315068493151,
+      "wrong_rate_equivalent": 0.05069444444444444,
+      "annual_read_as_continuous_basis_points": 12.710963760241139,
+      "pv_100_in_a_year_continuous": 95.1229424500714,
+      "pv_100_in_a_year_annual": 95.23809523809524,
+      "fv_100_in_a_year_continuous": 105.12710963760242,
+      "average_of_last_two_zero_rates": 0.0515,
+      "pv01_ratio_2y_to_6m": 3.6924653855465435
+    },
+    "oracle": {
+      "version": "1.43",
+      "deposit_year_fraction_max_abs_error": {
+        "ACT/365F": 0.0,
+        "ACT/360": 0.0,
+        "30/360": 0.0
+      },
+      "grid": {
+        "years": [
+          2026,
+          2029
+        ],
+        "dates": 124,
+        "pairs": 7626,
+        "max_abs_error": {
+          "ACT/365F": 0.0,
+          "ACT/360": 0.0,
+          "30/360": 0.0
+        }
+      },
+      "conversion_max_abs_error": 9.71445146547012e-17,
+      "curve_max_abs_error": 1.5959455978986625e-16,
+      "deposit_discount_factor_abs_error": 0.0
+    }
+  },
+  "checks": [
+    {
+      "claim": "C1 the amount rises with the compounding frequency, annual to continuous",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 annual compounding at 5 % turns 100 into 105.00",
+      "measured": 105.0,
+      "expected": 105.0,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 continuous compounding at 5 % turns 100 into 105.13 (100 e^0.05)",
+      "measured": 105.12710963760242,
+      "expected": 105.12710963760242,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 daily compounding is within half a penny of continuous on 100",
+      "measured": 0.0003599908576887856,
+      "expected": 0.0,
+      "tolerance": 0.005,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 5 % annual = 4.879 % continuous",
+      "measured": 0.04879016416943205,
+      "expected": 0.04879,
+      "tolerance": 5e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 5 % continuous = 5.127 % annual",
+      "measured": 0.05127109637602412,
+      "expected": 0.05127,
+      "tolerance": 5e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 the conversions invert each other (1e-13)",
+      "measured": 1.4391265956703592e-14,
+      "expected": 0.0,
+      "tolerance": 1e-13,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 the forward discount factors multiply back to DF(2) (1e-12)",
+      "measured": 0.9012252974212048,
+      "expected": 0.9012252974212048,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 invest-then-roll equals invest-direct at every pillar (1e-12)",
+      "measured": 2.220446049250313e-16,
+      "expected": 0.0,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 on a rising curve every forward rate is at or above the zero rate at its end date",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 the forward rate from 1.5 to 2 years is 5.50 %",
+      "measured": 0.05499999999999999,
+      "expected": 0.055,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 the deposit starts and ends on a weekday",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 the deposit runs 184 actual days",
+      "measured": 184.0,
+      "expected": 184.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 30/360 counts the same six months as 180 days",
+      "measured": 180.0,
+      "expected": 180.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 interest on Actual/365 Fixed is 252,054.79",
+      "measured": 252054.79452054796,
+      "expected": 252054.79,
+      "tolerance": 0.005,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 interest on Actual/360 is 255,555.56",
+      "measured": 255555.55555555553,
+      "expected": 255555.56,
+      "tolerance": 0.005,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 interest on 30/360 is 250,000.00",
+      "measured": 250000.0,
+      "expected": 250000.0,
+      "tolerance": 0.005,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 the Actual/360 figure is too high by 3,500.76",
+      "measured": 3500.76103500757,
+      "expected": 3500.76,
+      "tolerance": 0.005,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 the error is 1/72 of the interest, whatever the rate, the amount or the dates",
+      "measured": 0.013888888888888618,
+      "expected": 0.013888888888888888,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 the error is the same as a rate 6.94 basis points too high",
+      "measured": 6.94444444444442,
+      "expected": 6.94,
+      "tolerance": 0.005,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 the deposit implies a discount factor of 0.97541",
+      "measured": 0.9754142169962586,
+      "expected": 0.97541,
+      "tolerance": 5e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 and a continuous zero rate of 4.938 %",
+      "measured": 0.04938025540210159,
+      "expected": 0.04938,
+      "tolerance": 5e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 the discount factor repays to exactly 1: DF x (1 + R tau) = 1",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C5 analytic PV01 agrees with a central bump at every pillar (1e-6 relative)",
+      "measured": 1.1026857205109764e-10,
+      "expected": 0.0,
+      "tolerance": 1e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C5 PV01 per unit of present value is -T basis points: proportional to the time to payment",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C5 1,000,000 due in two years is worth 901,225.30 and loses 180.25 for a basis point",
+      "measured": -180.24505948424098,
+      "expected": -180.25,
+      "tolerance": 0.005,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "the page's checks: 100 at 5 % continuous for a year is worth 95.12 today",
+      "measured": 95.1229424500714,
+      "expected": 95.12,
+      "tolerance": 0.005,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "the page's checks: two payments of 1,000,000, at 2 years and at 6 months: the PV01s are 3.69 to 1, not 4 to 1",
+      "measured": 3.6924653855465435,
+      "expected": 3.69,
+      "tolerance": 0.005,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "the page's checks: reading 5 % annual as continuous overstates the rate by 12.7 basis points",
+      "measured": 12.710963760241139,
+      "expected": 12.7,
+      "tolerance": 0.05,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C6 QuantLib's day counters agree on the deposit's dates (1e-12)",
+      "measured": 0.0,
+      "expected": 0.0,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C6 and on 7626 pairs of month-starts, 30ths and month-ends (1e-12)",
+      "measured": 0.0,
+      "expected": 0.0,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C6 QuantLib's InterestRate gives the same conversions (1e-12)",
+      "measured": 9.71445146547012e-17,
+      "expected": 0.0,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C6 and the same discount factors and forward rates (1e-12)",
+      "measured": 1.5959455978986625e-16,
+      "expected": 0.0,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C6 and the same discount factor for the deposit (1e-12)",
+      "measured": 0.0,
+      "expected": 0.0,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    }
+  ]
+}
