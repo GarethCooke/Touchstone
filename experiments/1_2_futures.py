@@ -11,7 +11,7 @@ the price is quoted in, q the yield the underlying pays its holder, T the
 delivery date in years, F the forward price. Rates are continuously compounded
 decimals (page 0.3).
 
-Session decisions (owner, 2026-11-16): the contract is a pound future, the
+Setup: the contract is a pound future, the
 contract of page 1.1 put on an exchange -- 62,500 pounds a contract, priced in
 dollars per pound to four decimal places, 16 contracts for 1.1's one million
 pounds, with 1.1's spot and rates, so its price starts at 1.1's forward price.

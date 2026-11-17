@@ -8,17 +8,17 @@ lognormal returns (2.6, whose test battery checked the moments of log S_T). This
 page breaks each one in turn, measures what breaks with it, and shows why the
 formula survives anyway: as the quoting convention -- "vol is the unit of price".
 
-Session S11's setup decisions (owner, 2026-11-08, all the recommendations):
-(Q1/a) the synthetic market is a two-component lognormal mixture -- the stock
+Setup, four choices:
+(1) the synthetic market is a two-component lognormal mixture -- the stock
 is GBM at sigma_low with probability p and at sigma_high with probability 1 - p,
 the component forwards tied so the mixture's forward is F = S_0 e^(rT); every
 price is p C(sigma_low, F_low) + (1 - p) C(sigma_high, F_high), closed form. A
 second, asymmetric mixture (the high-vol component with the lower forward)
-gives skew. (Q2/a) one hedging break measured -- 2.7's hedge with Black-Scholes
+gives skew. (2) one hedging break measured -- 2.7's hedge with Black-Scholes
 deltas at the implied vol on the mixture's paths, the spread against N -- and
 the transaction-cost break in one table (cost ~ sqrt N); Leland is v2's.
-(Q3/a) one expiry's smile on the page; the four-tau smiles are D9 fixtures only;
-vanna and volga named, not computed. (Q4/a) the page ends Part 2 with a bridge.
+(3) one expiry's smile on the page; the four-tau smiles are D9 fixtures only;
+vanna and volga named, not computed. (4) the page ends Part 2 with a bridge.
 
   C1  The implied-vol solver. Newton on sigma with 2.10's vega, safeguarded by
       bisection on [1e-6, 5]: round-trips 2.9's formula on the 216-point grid
@@ -64,7 +64,7 @@ vanna and volga named, not computed. (Q4/a) the page ends Part 2 with a bridge.
       within-state spread does fall like 1/sqrt N, leaving exactly the between-
       state piece: the two-point distribution C(sigma_j) - C_mix, sd sqrt(p(1-p))
       |C(sigma_high) - C(sigma_low)| = 7.54. Paths are drawn under the pricing
-      drift mu = r (Decision -- owner may overrule: under it the mean hedged P&L
+      drift mu = r (a choice: under it the mean hedged P&L
       is zero for every N and every hedge, 2.8's argument, so the spread is the
       whole story; 2.7 showed the hedge is drift-blind in the limit, so the
       choice costs nothing); per-state means are C(sigma_j) - C_mix at every N.

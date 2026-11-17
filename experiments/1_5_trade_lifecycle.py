@@ -6,11 +6,11 @@ risk and P&L explain as system components; why the batch reruns everything
 overnight; and the page's check -- order the events of a swap's life and name
 the system that owns each.
 
-The page is about systems, and most of it is the owner's account of them. This
+The page is about systems, and most of it is description, not arithmetic. This
 file backs the numbers it carries. Part 1 is arithmetic. Nothing here is
 random, so there is no seed.
 
-Session decision (owner, 2026-11-16): the page follows one trade, page 1.3's
+Setup: the page follows one trade, page 1.3's
 swap -- two years, 10,000,000 euros, both legs every six months, on page 1.0's
 curve, at the par rate, seen from the side that pays fixed. The swap's
 functions are page 1.3's and are imported from its script, so that each is
@@ -155,24 +155,24 @@ def run(params: dict) -> dict:
     times, z, tau, N, h = C["times"], C["zero_rates"], S["tau"], S["notional"], params["bump"]
     n = len(times)
     D = swaps.discount_factors(times, z)
-    L = swaps.simple_forward_rates(D, tau)
+    R = swaps.simple_forward_rates(D, tau)
     K = swaps.par_rate(D, tau)
     fixed_payment = N * K * tau
 
     # C1 the swap
-    swap = {"par_rate": K, "fixed_payment": fixed_payment, "first_fixing": L[0], "forward_rates": L,
+    swap = {"par_rate": K, "fixed_payment": fixed_payment, "first_fixing": R[0], "forward_rates": R,
             "value_when_agreed": swaps.payer_swap_value(times, z, tau, N, K)}
 
     # C2 the schedule: what the contract fixes in advance, in order
     events = [{"at": 0.0, "event": "the swap is agreed", "amount": None},
-              {"at": 0.0, "event": "reset 1: the fixing for the first period is read", "rate": L[0], "amount": None}]
+              {"at": 0.0, "event": "reset 1: the fixing for the first period is read", "rate": R[0], "amount": None}]
     for i in range(n):
-        floating = N * L[i] * tau
+        floating = N * R[i] * tau
         events.append({"at": times[i], "event": f"payment {i + 1}: the two legs are netted and one amount is paid",
                        "fixed": fixed_payment, "floating_if_the_fixing_is_the_forward": floating,
                        "amount": fixed_payment - floating, "known_when_agreed": i == 0})
         if i < n - 1:
-            events.append({"at": times[i], "event": f"reset {i + 2}: the fixing for the next period is read", "rate_if_the_forward": L[i + 1], "amount": None})
+            events.append({"at": times[i], "event": f"reset {i + 2}: the fixing for the next period is read", "rate_if_the_forward": R[i + 1], "amount": None})
     events.append({"at": times[-1], "event": "the swap matures", "amount": None})
     schedule = {"events": events, "resets": sum(e["event"].startswith("reset") for e in events),
                 "payments": sum(e["event"].startswith("payment") for e in events),
@@ -183,35 +183,35 @@ def run(params: dict) -> dict:
         return swaps.payer_swap_value(times, rates, tau, N, K)
 
     def after(rates):
-        return payer_value_after_first_fixing(times, rates, tau, N, K, L[0])
+        return payer_value_after_first_fixing(times, rates, tau, N, K, R[0])
 
     ladder_before, ladder_after = buckets(before, z, h), buckets(after, z, h)
     fixing = {"buckets": [{"T": t, "before_first_fixing": a, "after_first_fixing": b, "change": b - a}
                           for t, a, b in zip(times, ladder_before, ladder_after)],
               "pv01_before": sum(ladder_before), "pv01_after": sum(ladder_after),
               "value_before": before(z), "value_after": after(z),
-              "a_deposit_of_the_notional_and_first_interest_to_six_months": -N * (1 + L[0] * tau) * times[0] * D[0] * BASIS_POINT}
+              "a_deposit_of_the_notional_and_first_interest_to_six_months": -N * (1 + R[0] * tau) * times[0] * D[0] * BASIS_POINT}
 
     # C4 one day's P&L, explained from last night's risk
     day = params["day"]
     elapsed, moves_bp = day["elapsed"], day["moves_bp"]
     z_after = [zi + m * BASIS_POINT for zi, m in zip(z, moves_bp)]
     v0 = after(z)
-    v_time = payer_value_after_first_fixing(times, z, tau, N, K, L[0], elapsed)
-    v1 = payer_value_after_first_fixing(times, z_after, tau, N, K, L[0], elapsed)
+    v_time = payer_value_after_first_fixing(times, z, tau, N, K, R[0], elapsed)
+    v1 = payer_value_after_first_fixing(times, z_after, tau, N, K, R[0], elapsed)
     by_bucket = [{"T": t, "bucket": b, "move_bp": m, "explained": b * m} for t, b, m in zip(times, ladder_after, moves_bp)]
     rates_explained = sum(row["explained"] for row in by_bucket)
     explain = {"zero_rates_after": z_after, "value_last_night": v0, "value_next_day_same_rates": v_time, "value_next_day_new_rates": v1,
                "actual": v1 - v0, "time": v_time - v0, "rates_by_bucket": by_bucket, "rates": rates_explained,
                "explained": (v_time - v0) + rates_explained, "unexplained": (v1 - v0) - (v_time - v0) - rates_explained,
-               "accrual_for_the_day": N * (L[0] - K) * elapsed}
+               "accrual_for_the_day": N * (R[0] - K) * elapsed}
     explain["unexplained_share_of_actual"] = explain["unexplained"] / explain["actual"]
 
     # C5 a fixing that differs from its forward
     alt = params["second_fixing_if_different"]
-    surprise = {"forward": L[1], "fixing": alt, "floating_payment_projected": N * L[1] * tau, "floating_payment_fixed": N * alt * tau,
-                "net_paid_by_fixed_payer_projected": fixed_payment - N * L[1] * tau, "net_paid_by_fixed_payer_fixed": fixed_payment - N * alt * tau,
-                "change_in_the_payment": N * (L[1] - alt) * tau}
+    surprise = {"forward": R[1], "fixing": alt, "floating_payment_projected": N * R[1] * tau, "floating_payment_fixed": N * alt * tau,
+                "net_paid_by_fixed_payer_projected": fixed_payment - N * R[1] * tau, "net_paid_by_fixed_payer_fixed": fixed_payment - N * alt * tau,
+                "change_in_the_payment": N * (R[1] - alt) * tau}
 
     # C6 linear risk changes slowly
     shift = params["large_shift_bp"]
@@ -224,7 +224,7 @@ def run(params: dict) -> dict:
         "pv01_if_the_fixing_changed_nothing": fixing["pv01_before"],
         "rates_explained_if_last_night_s_risk_ignored_the_fixing": sum(a * m for a, m in zip(ladder_before, moves_bp)),
         "rates_explained_if_the_pv01_times_the_average_move": fixing["pv01_after"] * sum(moves_bp) / n,
-        "second_payment_if_the_forward_were_paid": fixed_payment - N * L[1] * tau,
+        "second_payment_if_the_forward_were_paid": fixed_payment - N * R[1] * tau,
         "pv01_if_each_floating_payment_carried_a_quarter_of_it": fixing["pv01_before"] * (n - 1) / n,
         "actual_p_and_l": explain["actual"],
     }
@@ -249,14 +249,14 @@ def build_checks(res: dict, params: dict, oracle: dict | None, r13: dict | None,
         if not params["quick"]:
             truth("C1 1.3's committed JSON is beside this script for the full run", False)
     else:
-        R = r13["results"]
+        swap13 = r13["results"]
         truth("C1 the curve and the swap are page 1.3's", r13["params"]["curve"]["zero_rates"] == params["curve"]["zero_rates"]
               and r13["params"]["curve"]["times"] == params["curve"]["times"]
               and all(abs(r13["params"]["swap"][k] - params["swap"][k]) <= 1e-12 for k in ("notional", "tau")))
-        add("C1 the par rate is 1.3's committed 5.2608% (1e-12)", sw["par_rate"], R["par"]["par_rate"], 1e-12)
-        add("C1 the first net payment is 1.3's 20,139 (1e-6)", res["schedule"]["events"][2]["amount"], R["first_exchange"]["net_paid_by_fixed_payer"], 1e-6)
+        add("C1 the par rate is 1.3's committed 5.2608% (1e-12)", sw["par_rate"], swap13["par"]["par_rate"], 1e-12)
+        add("C1 the first net payment is 1.3's 20,139 (1e-6)", res["schedule"]["events"][2]["amount"], swap13["first_exchange"]["net_paid_by_fixed_payer"], 1e-6)
         add("C3 before the first fixing the buckets are 1.3's committed four (1e-6)",
-            max(abs(b["before_first_fixing"] - c["by_bump"]) for b, c in zip(fx["buckets"], R["risk"]["buckets"])), 0.0, 1e-6)
+            max(abs(b["before_first_fixing"] - c["by_bump"]) for b, c in zip(fx["buckets"], swap13["risk"]["buckets"])), 0.0, 1e-6)
     add("C1 the swap is worth nothing when it is agreed (1e-8 on ten million)", sw["value_when_agreed"], 0.0, 1e-8)
 
     events = sch["events"]

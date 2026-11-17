@@ -25,7 +25,7 @@ means the closed form above, built from the SAME normals.
       median is S_0 e^((mu - 1/2 sigma^2) T); E[log S_T] - log E[S_T] =
       -1/2 sigma^2 T -- the volatility drag as a number; and the fraction of
       paths that end below the mean is Phi(1/2 sigma sqrt T) > 1/2. The
-      same for the owner's P1 case mu = 0.
+      same for the case mu = 0.
   C2  Euler against exact on the same normals, the same paths read on
       n = 10^2 .. 10^6 (2.5's nested grids): the pathwise gap in log S_T has
       rms 1/2 sigma^2 T sqrt(2/n) -- it shrinks like 1/sqrt n (slope -1/2),

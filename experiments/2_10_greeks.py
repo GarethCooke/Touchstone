@@ -27,20 +27,20 @@ phi the standard normal density and w = +1 for a call, -1 for a put:
     rho   = w K T e^(-rT) N(w d_2)
     dV/dq = -w T S e^(-qT) N(w d_1)
 
-Units are raw partials, as the golden file and the T0 decision have them: vega
-per 1.00 of volatility, Theta per year, rho per 1.00 of rate (the owner's
-ruling Q2/a at S10; desk conventions -- per vol point, per day, per basis
+Units are raw partials, as the golden file and the library have them: vega
+per 1.00 of volatility, Theta per year, rho per 1.00 of rate (the desk
+conventions -- per vol point, per day, per basis
 point -- are a display scaling the page names once). The PDE of page 2.7,
 
     Theta + 1/2 sigma^2 S^2 Gamma + r S Delta - r V = 0,
 
 is re-read on this page as a statement about a delta-hedged book's P&L: theta
-pays for gamma. Session S10's setup decisions (owner, 2026-11-05): (Q1/a) the
+pays for gamma. Setup, three choices: (1) the
 gamma P&L -- hedged at sigma_i while the stock moves at sigma_r the mean P&L is
 (sigma_r^2 - sigma_i^2) x E[Sum e^(-rt) 1/2 Gamma S^2 dt] -- is 2.7's measured
 result (-3.76 +- 0.02, 0.00 +- 0.003, +3.74 +- 0.03 at sigma_r = 0.3, 0.4, 0.5),
 cited and re-read, not re-measured; what is new here is the per-step attribution
-of the option's change on the hedged book (C3). (Q2/a) raw units, above. (Q3/a)
+of the option's change on the hedged book (C3). (2) raw units, above. (3)
 the put's Greeks beside the call's, through parity (C5).
 
   C1  Analytic against bump-and-revalue. Delta, Gamma, vega, Theta, rho and the

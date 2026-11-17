@@ -18,13 +18,13 @@ formula
     C = S_0 N(d_1) - K e^(-rT) N(d_2),
     d_1 = (ln(S_0/K) + (r + 1/2 sigma^2) T) / (sigma sqrt T),   d_2 = d_1 - sigma sqrt T,
 
-where N(.) is the cumulative normal -- written Phi on 2.6, N from this page on
-(the S6 ruling). 2.8 borrowed this formula as its benchmark because 2.7 had
+where N(.) is the cumulative normal -- written Phi on 2.6 and N from this page
+on. 2.8 borrowed this formula as its benchmark because 2.7 had
 checked that it satisfies the PDE; here it is derived from the expectation, so
 the Monte Carlo pricer, the integral and the closed form become three views of
 one value.
 
-Session S9's setup decisions (owner, 2026-11-05): (a) the page covers the call,
+Setup, two choices: (a) the page covers the call,
 the put, put-call parity, a continuous dividend yield q and Black-76 -- one
 integral done once, three substitutions; (b) N(d_1) is explained as the
 probability of exercise under the measure that uses the stock as numeraire,

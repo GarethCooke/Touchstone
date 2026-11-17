@@ -219,7 +219,7 @@ def martingale_markov(at, cond_centre, cond_half_width):
     # W_2 on W_1 and W_0.5 -- Markov: the earlier point earns a zero coefficient
     X = np.column_stack([w_s, w_r, np.ones_like(w_s)])
     coef, *_ = np.linalg.lstsq(X, w_t, rcond=None)
-    # the owner's question: paths at W_1 ~ 1.5
+    # the conditional question: paths at W_1 ~ 1.5
     sel = np.abs(w_s - cond_centre) <= cond_half_width
     cond = w_t[sel]
     # momentum: paths that rose over [0,1]

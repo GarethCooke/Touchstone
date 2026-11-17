@@ -19,7 +19,7 @@ riskless, must earn r, and that is the Black-Scholes PDE
 
     dV/dt + 1/2 sigma^2 S^2 d2V/dS2 + r S dV/dS - r V = 0.
 
-Session S7's setup decision (owner, 2026-11-01): the call's V and Delta are
+Setup: the call's V and Delta are
 taken from the closed-form formula as a black box -- the course derives it
 only at 2.9 -- and the experiment measures only what 2.7 claims: the hedged
 P&L. A forward, whose value S - K e^(-r tau) needs no stochastic calculus,

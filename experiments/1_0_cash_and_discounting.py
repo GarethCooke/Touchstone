@@ -8,7 +8,7 @@ Part 1 is arithmetic. Nothing here is random, so there is no seed; the same
 inputs give the same file. Rates follow page 0.3: decimals, and continuously
 compounded unless a row says otherwise. A discount factor is written DF.
 
-Session decisions (owner, 2026-11-16): the scripts that back Part 1 live here,
+Setup: the scripts that back Part 1 live here,
 one per page, as Part 2's do; the day-count bug is a sterling deposit, right on
 Actual/365 Fixed, priced by a system that defaults to Actual/360.
 

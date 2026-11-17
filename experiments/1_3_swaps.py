@@ -11,7 +11,7 @@ the notation ledger's and page 1.0's: z(T) the continuously compounded zero
 rate, D(T) = e^(-z(T) T) the discount factor, tau the year fraction of a
 period, K the fixed rate in the contract, N the notional. Rates are decimals.
 
-Session decision (owner, 2026-11-16): the swap is the simplest that shows the
+Setup: the swap is the simplest that shows the
 floating leg at par on a reset date. Two years; both legs paid every six
 months; every period counted as exactly half a year; each floating payment set
 at the start of its period at the six-month simple rate, and paid at the end.
@@ -21,9 +21,9 @@ discounts both legs; a desk discounts on a second curve, and the page says so
 and does not.
 
   C1  The curve. The discount factors and the simple forward rate for each
-      six months, L_i = (D(T_{i-1}) / D(T_i) - 1) / tau: page 1.0's, read from
+      six months, R_i = (D(T_{i-1}) / D(T_i) - 1) / tau: page 1.0's, read from
       its committed result where it is present.
-  C2  The floating leg. Each payment N L_i tau, projected at the forward rate
+  C2  The floating leg. Each payment N R_i tau, projected at the forward rate
       and discounted, is worth N (D(T_{i-1}) - D(T_i)). The sum telescopes to
       N (1 - D(T_n)): it needs the last discount factor and no forecast.
   C3  Par at a reset. Add the notional at the end and the floating leg is
@@ -97,7 +97,7 @@ def annuity(discounts: list[float], tau: float) -> float:
 def floating_leg_pv(discounts: list[float], tau: float, notional: float) -> float:
     """Each payment projected at its forward rate and discounted, then summed."""
     forwards = simple_forward_rates(discounts, tau)
-    return sum(notional * L * tau * d for L, d in zip(forwards, discounts))
+    return sum(notional * R_i * tau * d for R_i, d in zip(forwards, discounts))
 
 
 def fixed_leg_pv(discounts: list[float], tau: float, notional: float, K: float) -> float:
@@ -184,7 +184,7 @@ def run(params: dict) -> dict:
     times, z, tau, N = C["times"], C["zero_rates"], S["tau"], S["notional"]
     n = len(times)
     D = discount_factors(times, z)
-    L = simple_forward_rates(D, tau)
+    R = simple_forward_rates(D, tau)
     A = annuity(D, tau)
     K_star = par_rate(D, tau)
 
@@ -192,10 +192,10 @@ def run(params: dict) -> dict:
     starts = [1.0] + D[:-1]
     periods = []
     for i in range(n):
-        floating_payment = N * L[i] * tau
+        floating_payment = N * R[i] * tau
         fixed_payment = N * K_star * tau
         periods.append({"period": i + 1, "start": times[i] - tau, "end": times[i], "zero_rate": z[i], "discount_factor": D[i],
-                        "forward_rate": L[i], "floating_payment": floating_payment, "floating_pv": floating_payment * D[i],
+                        "forward_rate": R[i], "floating_payment": floating_payment, "floating_pv": floating_payment * D[i],
                         "floating_pv_as_difference_of_discount_factors": N * (starts[i] - D[i]),
                         "fixed_payment_at_par": fixed_payment, "fixed_pv_at_par": fixed_payment * D[i],
                         "net_paid_by_fixed_payer_if_fixings_are_the_forwards": fixed_payment - floating_payment})
@@ -208,11 +208,11 @@ def run(params: dict) -> dict:
 
     # C4 the par rate
     par = {"annuity": A, "sum_of_discount_factors": sum(D), "par_rate": K_star,
-           "par_rate_as_weighted_average_of_forwards": sum(l * d for l, d in zip(L, D)) / sum(D),
+           "par_rate_as_weighted_average_of_forwards": sum(R_i * d for R_i, d in zip(R, D)) / sum(D),
            "fixed_payment": N * K_star * tau, "fixed_leg_pv": fixed_leg_pv(D, tau, N, K_star),
            "value_to_payer": payer_swap_value(times, z, tau, N, K_star),
            "par_rate_continuously_compounded": (1 / tau) * log(1 + K_star * tau),
-           "lowest_forward": min(L), "highest_forward": max(L)}
+           "lowest_forward": min(R), "highest_forward": max(R)}
 
     # C5 a swap that is not at par
     K = S["off_market_fixed_rate"]
@@ -221,8 +221,8 @@ def run(params: dict) -> dict:
            "value_via_par_rate": N * (K_star - K) * A}
 
     # C6 the first exchange is known at the start
-    first = {"floating_rate_fixed_at_start": L[0], "fixed_payment": N * K_star * tau, "floating_payment": N * L[0] * tau,
-             "net_paid_by_fixed_payer": N * (K_star - L[0]) * tau, "gross_payments_netted_into_one": 2}
+    first = {"floating_rate_fixed_at_start": R[0], "fixed_payment": N * K_star * tau, "floating_payment": N * R[0] * tau,
+             "net_paid_by_fixed_payer": N * (K_star - R[0]) * tau, "gross_payments_netted_into_one": 2}
 
     # C7 PV01, C8 buckets: the par swap, from the side that pays fixed
     h = params["bump"]
@@ -251,11 +251,11 @@ def run(params: dict) -> dict:
     i = S["perturbed_pillar"]
     z_up = bumped(z, BASIS_POINT, i)
     D_up = discount_factors(times, z_up)
-    L_up = simple_forward_rates(D_up, tau)
+    R_up = simple_forward_rates(D_up, tau)
     rows = []
     for j in range(n):
-        pay0, pay1 = N * L[j] * tau, N * L_up[j] * tau
-        rows.append({"period": j + 1, "forward_rate_change_bp": (L_up[j] - L[j]) / BASIS_POINT, "floating_payment_change": pay1 - pay0,
+        pay0, pay1 = N * R[j] * tau, N * R_up[j] * tau
+        rows.append({"period": j + 1, "forward_rate_change_bp": (R_up[j] - R[j]) / BASIS_POINT, "floating_payment_change": pay1 - pay0,
                      "floating_pv_change": pay1 * D_up[j] - pay0 * D[j],
                      "fixed_pv_change": N * K_star * tau * (D_up[j] - D[j])})
     perturb = {"pillar_T": times[i], "bump_bp": 1.0, "rows": rows,
@@ -268,9 +268,9 @@ def run(params: dict) -> dict:
     quoted = {
         "two_year_zero_rate": z[-1],
         "two_year_zero_rate_compounded_twice_a_year": (exp(z[-1] * tau) - 1) / tau,
-        "unweighted_mean_of_forward_rates": sum(L) / n,
+        "unweighted_mean_of_forward_rates": sum(R) / n,
         "mean_of_zero_rates": sum(z) / n,
-        "floating_leg_if_every_payment_were_today_s_rate": N * L[0] * A,
+        "floating_leg_if_every_payment_were_today_s_rate": N * R[0] * A,
         "floating_leg_undiscounted": sum(p["floating_payment"] for p in periods),
         "one_year_bucket_if_risk_were_spread_evenly": total / n,
         "second_floating_payment_pv_change_alone": rows[1]["floating_pv_change"],

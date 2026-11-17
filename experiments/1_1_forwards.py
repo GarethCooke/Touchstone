@@ -11,7 +11,7 @@ rate in the currency the price is quoted in, q the yield the underlying pays
 its holder, T the delivery date in years, K the delivery price, F the forward
 price. Rates are continuously compounded decimals (page 0.3).
 
-Session decision (owner, 2026-11-16): the worked forward is an FX forward.
+Setup: the worked forward is an FX forward.
 The underlying is one pound; its price S is in dollars per pound; r is the
 dollar rate; q is the sterling rate, the yield a pound earns while it is
 held. A share with a dividend yield is the same formula and is the aside. All

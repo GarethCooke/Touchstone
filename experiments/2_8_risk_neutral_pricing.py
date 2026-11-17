@@ -16,11 +16,11 @@ stock drifted at r:
 
     V = e^(-rT) E^Q[payoff],
 
-the expectation under a measure Q in which dS = r S dt + sigma S dW~. Session
-S8's setup decision (owner, 2026-11-04, "a"): the "PDE price" the Monte Carlo
+the expectation under a measure Q in which dS = r S dt + sigma S dW~. Setup:
+the "PDE price" the Monte Carlo
 is compared against is the closed form, which 2.7 checked against the PDE at
 1e-15 on a grid and 2e-13 at every point its hedges visited; 2.9 derives it.
-Girsanov is measured, not quoted (decision "b"): the mu-paths reweighted by
+Girsanov is measured, not quoted: the mu-paths reweighted by
 the likelihood ratio reproduce the Q-price.
 
   C1  The index's check, both halves. The discounted average payoff over

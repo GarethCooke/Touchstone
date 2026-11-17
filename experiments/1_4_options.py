@@ -11,7 +11,7 @@ r the continuously compounded rate, sigma the volatility, C and P the prices
 of the call and the put, N(.) the cumulative normal. S_T is the share price at
 expiry.
 
-Session decisions (owner, 2026-11-16): the option is Part 2's -- a share at
+Setup: the option is Part 2's -- a share at
 100, strike 100, one year, r = 0.05, sigma = 0.4, no dividend -- so the
 premiums on the page are the numbers page 2.9 derives. A leg's premium is a
 stated number: the page shows payoffs at expiry and prices nothing itself.
