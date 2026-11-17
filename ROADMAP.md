@@ -128,6 +128,9 @@ margin-account walk for 1.2 as a worked table; the day-count example for 1.0 as 
 snippet.
 **Exit:** pages `published`; snippets run; checks meet I5; owner review.
 **Tollgate:** V. **Executor:** Opus. **Size:** two sessions.
+By the owner's ruling of 2026-11-17, 0.2's map and its sections on reading a demo and a
+check become page 0.0 "How to use this site", with no check (A11), built as one more batch
+on `m/L4b` before the close — brief: `touchstone-learn/docs/briefs/L4b-page-0.0.md`.
 
 ### ☐ L5 — Part 3 and demos D7–D10 on the WASM backend
 **Entry:** L3, T3, T4.

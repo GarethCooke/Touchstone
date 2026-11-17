@@ -18,9 +18,11 @@ has misunderstood the page.
 
 ## Part 0 — Orientation
 
+- **0.0 How to use this site.** A map of the parts, how to read a demo and a check, where to start.
 - **0.1 Why derivatives exist.** Risk transfer; hedgers, speculators, market makers; OTC vs
   exchange-traded.
-- **0.2 Linear vs nonlinear.** The thesis, a map of the parts, how to use the demos and checks.
+- **0.2 Linear vs nonlinear.** The thesis: linear products are priced by discounting and
+  no-arbitrage; only options need stochastic calculus. What that predicts about the systems.
 - **0.3 Conventions.** Notation, units (annualised vol, continuous vs simple rates, day
   counts), prerequisites, how to run the code.
 
