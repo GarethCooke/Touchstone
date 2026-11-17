@@ -1,0 +1,567 @@
+{
+  "page": "1.5",
+  "script": "1_5_trade_lifecycle.py",
+  "params": {
+    "quick": false,
+    "random": "none -- arithmetic only, so no seed (I6 has nothing to seed)",
+    "curve": {
+      "times": [
+        0.5,
+        1.0,
+        1.5,
+        2.0
+      ],
+      "zero_rates": [
+        0.048,
+        0.05,
+        0.051,
+        0.052
+      ],
+      "note": "page 1.0's curve: continuously compounded zero rates, illustrative, not a market's"
+    },
+    "swap": {
+      "notional": 10000000.0,
+      "tau": 0.5,
+      "side": "the payer of fixed, at the par rate",
+      "note": "page 1.3's swap; its functions are imported from 1_3_swaps.py"
+    },
+    "day": {
+      "elapsed": 0.002777777777777778,
+      "moves_bp": [
+        1.0,
+        2.0,
+        3.0,
+        4.0
+      ],
+      "note": "one day is 1/360 of a year, as every period is half a year; the moves are made up"
+    },
+    "second_fixing_if_different": 0.051,
+    "large_shift_bp": 100.0,
+    "business_days_a_year": 250,
+    "bump": 1e-06
+  },
+  "environment": {
+    "quantlib": "1.43"
+  },
+  "results": {
+    "swap": {
+      "par_rate": 0.05260838731736806,
+      "fixed_payment": 263041.9365868403,
+      "first_fixing": 0.04858063578124305,
+      "forward_rates": [
+        0.04858063578124305,
+        0.05268189694688408,
+        0.05370849452336435,
+        0.055763230214505466
+      ],
+      "value_when_agreed": 4.656612873077393e-10
+    },
+    "schedule": {
+      "events": [
+        {
+          "at": 0.0,
+          "event": "the swap is agreed",
+          "amount": null
+        },
+        {
+          "at": 0.0,
+          "event": "reset 1: the fixing for the first period is read",
+          "rate": 0.04858063578124305,
+          "amount": null
+        },
+        {
+          "at": 0.5,
+          "event": "payment 1: the two legs are netted and one amount is paid",
+          "fixed": 263041.9365868403,
+          "floating_if_the_fixing_is_the_forward": 242903.17890621527,
+          "amount": 20138.757680625044,
+          "known_when_agreed": true
+        },
+        {
+          "at": 0.5,
+          "event": "reset 2: the fixing for the next period is read",
+          "rate_if_the_forward": 0.05268189694688408,
+          "amount": null
+        },
+        {
+          "at": 1.0,
+          "event": "payment 2: the two legs are netted and one amount is paid",
+          "fixed": 263041.9365868403,
+          "floating_if_the_fixing_is_the_forward": 263409.4847344204,
+          "amount": -367.5481475800625,
+          "known_when_agreed": false
+        },
+        {
+          "at": 1.0,
+          "event": "reset 3: the fixing for the next period is read",
+          "rate_if_the_forward": 0.05370849452336435,
+          "amount": null
+        },
+        {
+          "at": 1.5,
+          "event": "payment 3: the two legs are netted and one amount is paid",
+          "fixed": 263041.9365868403,
+          "floating_if_the_fixing_is_the_forward": 268542.47261682176,
+          "amount": -5500.536029981449,
+          "known_when_agreed": false
+        },
+        {
+          "at": 1.5,
+          "event": "reset 4: the fixing for the next period is read",
+          "rate_if_the_forward": 0.055763230214505466,
+          "amount": null
+        },
+        {
+          "at": 2.0,
+          "event": "payment 4: the two legs are netted and one amount is paid",
+          "fixed": 263041.9365868403,
+          "floating_if_the_fixing_is_the_forward": 278816.15107252734,
+          "amount": -15774.214485687029,
+          "known_when_agreed": false
+        },
+        {
+          "at": 2.0,
+          "event": "the swap matures",
+          "amount": null
+        }
+      ],
+      "resets": 4,
+      "payments": 4,
+      "business_days": 500
+    },
+    "fixing_changes_risk": {
+      "buckets": [
+        {
+          "T": 0.5,
+          "before_first_fixing": 12.840204092208296,
+          "after_first_fixing": -487.1597957913764,
+          "change": -499.9999998835847
+        },
+        {
+          "T": 1.0,
+          "before_first_fixing": 25.021323043620214,
+          "after_first_fixing": 25.021322997054085,
+          "change": -4.6566128730773926e-08
+        },
+        {
+          "T": 1.5,
+          "before_first_fixing": 36.550449614878744,
+          "after_first_fixing": 36.55044968472794,
+          "change": 6.984919309616089e-08
+        },
+        {
+          "T": 2.0,
+          "before_first_fixing": 1849.8626043496188,
+          "after_first_fixing": 1849.862604343798,
+          "change": -5.820766091346741e-09
+        }
+      ],
+      "pv01_before": 1924.274581100326,
+      "pv01_after": 1424.2745812342037,
+      "value_before": 4.656612873077393e-10,
+      "value_after": -2.3283064365386963e-10,
+      "a_deposit_of_the_notional_and_first_interest_to_six_months": -500.0
+    },
+    "explain": {
+      "zero_rates_after": [
+        0.048100000000000004,
+        0.0502,
+        0.0513,
+        0.052399999999999995
+      ],
+      "value_last_night": -2.3283064365386963e-10,
+      "value_next_day_same_rates": -106.20554178778548,
+      "value_next_day_new_rates": 6955.922963976627,
+      "actual": 6955.92296397686,
+      "time": -106.20554178755265,
+      "rates_by_bucket": [
+        {
+          "T": 0.5,
+          "bucket": -487.1597957913764,
+          "move_bp": 1.0,
+          "explained": -487.1597957913764
+        },
+        {
+          "T": 1.0,
+          "bucket": 25.021322997054085,
+          "move_bp": 2.0,
+          "explained": 50.04264599410817
+        },
+        {
+          "T": 1.5,
+          "bucket": 36.55044968472794,
+          "move_bp": 3.0,
+          "explained": 109.65134905418381
+        },
+        {
+          "T": 2.0,
+          "bucket": 1849.862604343798,
+          "move_bp": 4.0,
+          "explained": 7399.450417375192
+        }
+      ],
+      "rates": 7071.984616632108,
+      "explained": 6965.779074844555,
+      "unexplained": -9.856110867694952,
+      "accrual_for_the_day": -111.88198711458358,
+      "unexplained_share_of_actual": -0.00141693789864228
+    },
+    "second_fixing": {
+      "forward": 0.05268189694688408,
+      "fixing": 0.051,
+      "floating_payment_projected": 263409.4847344204,
+      "floating_payment_fixed": 254999.99999999997,
+      "net_paid_by_fixed_payer_projected": -367.5481475800625,
+      "net_paid_by_fixed_payer_fixed": 8041.93658684034,
+      "change_in_the_payment": 8409.4847344204
+    },
+    "linear_risk_changes_slowly": {
+      "shift_bp": 100.0,
+      "pv01": 1424.2745812342037,
+      "pv01_after_shift": 1389.2814354330767,
+      "relative_change": -0.024569100833635393,
+      "call_delta_at_100": 0.627409464153284,
+      "call_delta_at_120": 0.7825410776838333
+    },
+    "quoted_in_checks": {
+      "pv01_if_the_fixing_changed_nothing": 1924.274581100326,
+      "rates_explained_if_last_night_s_risk_ignored_the_fixing": 7571.98461642256,
+      "rates_explained_if_the_pv01_times_the_average_move": 3560.686453085509,
+      "second_payment_if_the_forward_were_paid": -367.5481475800625,
+      "pv01_if_each_floating_payment_carried_a_quarter_of_it": 1443.2059358252445,
+      "actual_p_and_l": 6955.92296397686
+    },
+    "oracle": {
+      "version": "1.43",
+      "value_when_agreed": -1.6298145055770874e-09,
+      "value_next_day_same_rates": -106.20554179162718,
+      "value_next_day_new_rates": 6955.922963974765,
+      "buckets_after_first_fixing": [
+        -487.1597958030179,
+        25.021323055261746,
+        36.55044960323721,
+        1849.8626043379772
+      ],
+      "errors": {
+        "value_when_agreed": 1.6298145055770874e-09,
+        "value_next_day_same_rates": 3.841705620288849e-09,
+        "value_next_day_new_rates": 1.862645149230957e-09,
+        "buckets": 8.149072527885437e-08
+      }
+    }
+  },
+  "checks": [
+    {
+      "claim": "C1 the curve and the swap are page 1.3's",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 the par rate is 1.3's committed 5.2608% (1e-12)",
+      "measured": 0.05260838731736806,
+      "expected": 0.05260838731736806,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 the first net payment is 1.3's 20,139 (1e-6)",
+      "measured": 20138.757680625044,
+      "expected": 20138.757680625044,
+      "tolerance": 1e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 before the first fixing the buckets are 1.3's committed four (1e-6)",
+      "measured": 0.0,
+      "expected": 0.0,
+      "tolerance": 1e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 the swap is worth nothing when it is agreed (1e-8 on ten million)",
+      "measured": 4.656612873077393e-10,
+      "expected": 0.0,
+      "tolerance": 1e-08,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 the events are in date order",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 four resets and four payments",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 every reset comes before the payment it sets, by one period",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 only the first payment is known when the swap is agreed",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 about five hundred business days in two years",
+      "measured": 500.0,
+      "expected": 500.0,
+      "tolerance": 10.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 reading the fixing does not change the value (1e-8)",
+      "measured": -2.3283064365386963e-10,
+      "expected": 4.656612873077393e-10,
+      "tolerance": 1e-08,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 before it, the six-month bucket is +12.84",
+      "measured": 12.840204092208296,
+      "expected": 12.84,
+      "tolerance": 0.005,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 after it, the six-month bucket is -487.16",
+      "measured": -487.1597957913764,
+      "expected": -487.16,
+      "tolerance": 0.005,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 the other three buckets do not change (1e-4)",
+      "measured": 6.984919309616089e-08,
+      "expected": 0.0,
+      "tolerance": 0.0001,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 the PV01 goes from 1,924",
+      "measured": 1924.274581100326,
+      "expected": 1924.0,
+      "tolerance": 0.5,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 to 1,424",
+      "measured": 1424.2745812342037,
+      "expected": 1424.0,
+      "tolerance": 0.5,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 the change is the PV01 of the notional and the first interest paid at six months: -500",
+      "measured": -499.9999998835847,
+      "expected": -500.0,
+      "tolerance": 0.001,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 the actual P&L for the day is 6,956",
+      "measured": 6955.92296397686,
+      "expected": 6956.0,
+      "tolerance": 0.5,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 the passing of the day explains -106",
+      "measured": -106.20554178755265,
+      "expected": -106.0,
+      "tolerance": 0.5,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 the rate moves explain 7,072, from last night's buckets",
+      "measured": 7071.984616632108,
+      "expected": 7072.0,
+      "tolerance": 0.5,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 the two-year bucket alone explains 7,399",
+      "measured": 7399.450417375192,
+      "expected": 7399.0,
+      "tolerance": 0.5,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 and the six-month bucket -487",
+      "measured": -487.1597957913764,
+      "expected": -487.0,
+      "tolerance": 0.5,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 actual = time + rates + unexplained (1e-6)",
+      "measured": 6955.92296397686,
+      "expected": 6955.92296397686,
+      "tolerance": 1e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 the unexplained is under two parts in a thousand of the actual",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 the unexplained is about -10",
+      "measured": -9.856110867694952,
+      "expected": -10.0,
+      "tolerance": 0.5,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 the day's accrual, floating at 4.8581% less fixed at 5.2608%, is -112",
+      "measured": -111.88198711458358,
+      "expected": -112.0,
+      "tolerance": 0.5,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C5 a second fixing of 5.10% makes the floating payment 255,000",
+      "measured": 254999.99999999997,
+      "expected": 255000.0,
+      "tolerance": 1e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C5 and the net payment at one year 8,042 from the payer of fixed",
+      "measured": 8041.93658684034,
+      "expected": 8042.0,
+      "tolerance": 0.5,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C5 where the forward had it receiving 368",
+      "measured": -367.5481475800625,
+      "expected": -368.0,
+      "tolerance": 0.5,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C6 a hundred basis points on every rate changes the swap's PV01 by under 3%",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C6 by -2.5%",
+      "measured": -0.024569100833635393,
+      "expected": -0.025,
+      "tolerance": 0.0005,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C6 1.4's call changes its delta by 25% when the share goes from 100 to 120",
+      "measured": 0.2472573692204436,
+      "expected": 0.25,
+      "tolerance": 0.005,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "the page's checks: risk that ignored the fixing would explain 7,572",
+      "measured": 7571.98461642256,
+      "expected": 7572.0,
+      "tolerance": 0.5,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "the page's checks: the PV01 times the average move would explain 3,561",
+      "measured": 3560.686453085509,
+      "expected": 3561.0,
+      "tolerance": 0.5,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "the page's checks: three quarters of 1,924 is 1,443",
+      "measured": 1443.2059358252445,
+      "expected": 1443.0,
+      "tolerance": 0.5,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 QuantLib's swap with the fixing stored is worth nothing when agreed (1e-6)",
+      "measured": 1.6298145055770874e-09,
+      "expected": 0.0,
+      "tolerance": 1e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 the same value a day later on the same rates (1e-6)",
+      "measured": 3.841705620288849e-09,
+      "expected": 0.0,
+      "tolerance": 1e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 the same value a day later on the moved rates (1e-6)",
+      "measured": 1.862645149230957e-09,
+      "expected": 0.0,
+      "tolerance": 1e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 and the same four buckets after the fixing (1e-4)",
+      "measured": 8.149072527885437e-08,
+      "expected": 0.0,
+      "tolerance": 0.0001,
+      "mode": "abs",
+      "pass": true
+    }
+  ]
+}
