@@ -146,6 +146,7 @@ depth · counterparty risk (CVA) · credit (CDS).
 - **D8** PDE grid heatmap of V(S, t) (3.3)
 - **D9** Implied vol solver and smile viewer (2.11, 3.4)
 - **D10** Bump-and-revalue risk table (3.5)
+- **D11** Payoff-diagram builder: option legs, their total, break-evens (1.4)
 
 TypeScript first. From L5 every demo runs on the WASM build of the library, and the
 TypeScript numerics are retired (constitution I15, amendment A6).
