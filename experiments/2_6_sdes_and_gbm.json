@@ -45,7 +45,7 @@
     },
     "p1_case": {
       "mu": 0.0,
-      "note": "the owner's P1 as posed: mu = 0, sigma = 0.4, T = 1"
+      "note": "the driftless case: mu = 0, sigma = 0.4, T = 1"
     }
   },
   "environment": {

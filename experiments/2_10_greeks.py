@@ -626,7 +626,7 @@ def main() -> int:
         "greeks": {"delta": "w e^(-qT) N(w d_1)", "gamma": "e^(-qT) phi(d_1) / (S sigma sqrt T)", "vega": "S e^(-qT) phi(d_1) sqrt T -- per 1.00 of volatility",
                    "theta": "-S e^(-qT) phi(d_1) sigma / (2 sqrt T) - w r K e^(-rT) N(w d_2) + w q S e^(-qT) N(w d_1) -- per year, d/dt at fixed S",
                    "rho": "w K T e^(-rT) N(w d_2) -- per 1.00 of rate", "dividend_rho": "-w T S e^(-qT) N(w d_1) -- per 1.00 of yield",
-                   "units": "raw partials (the golden file's and T0's convention; owner's ruling Q2/a); desk scalings -- per vol point /100, per day /365, per basis point /10000 -- at display only"},
+                   "units": "raw partials (the golden file's and the library's convention); desk scalings -- per vol point /100, per day /365, per basis point /10000 -- at display only"},
         "pde": "Theta + 1/2 sigma^2 S^2 Gamma + r S Delta - r V = 0 (2.7), re-read as: theta cost + carry = -(gamma gain the price assumes)",
         "grid": {"S0": [80.0, 100.0, 120.0], "K": [90.0, 100.0, 110.0], "r": [0.0, 0.05], "q": [0.0, 0.03], "sigma": [0.2, 0.4], "T": [0.25, 1.0, 2.0]},
         "bump_h_rel": {"first": 5e-5, "rate": 1e-5, "gamma": 1e-4,

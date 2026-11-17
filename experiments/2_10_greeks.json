@@ -18,7 +18,7 @@
       "theta": "-S e^(-qT) phi(d_1) sigma / (2 sqrt T) - w r K e^(-rT) N(w d_2) + w q S e^(-qT) N(w d_1) -- per year, d/dt at fixed S",
       "rho": "w K T e^(-rT) N(w d_2) -- per 1.00 of rate",
       "dividend_rho": "-w T S e^(-qT) N(w d_1) -- per 1.00 of yield",
-      "units": "raw partials (the golden file's and T0's convention; owner's ruling Q2/a); desk scalings -- per vol point /100, per day /365, per basis point /10000 -- at display only"
+      "units": "raw partials (the golden file's and the library's convention); desk scalings -- per vol point /100, per day /365, per basis point /10000 -- at display only"
     },
     "pde": "Theta + 1/2 sigma^2 S^2 Gamma + r S Delta - r V = 0 (2.7), re-read as: theta cost + carry = -(gamma gain the price assumes)",
     "grid": {

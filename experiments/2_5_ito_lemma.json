@@ -2131,7 +2131,7 @@
             "mean": 0.765755710639648,
             "se": 0.0017690288591984214,
             "expected": 0.7662645785927089,
-            "note": "the owner's P2, c t = sqrt t: not constant"
+            "note": "the guess c t = sqrt t: not constant"
           },
           "growth_split": {
             "exp_W_minus_1": {
@@ -2180,7 +2180,7 @@
             "mean": 0.6900818091640271,
             "se": 0.0025959280338171808,
             "expected": 0.6872892787909722,
-            "note": "the owner's P2, c t = sqrt t: not constant"
+            "note": "the guess c t = sqrt t: not constant"
           },
           "growth_split": {
             "exp_W_minus_1": {
@@ -2229,7 +2229,7 @@
             "mean": 0.6408894325757243,
             "se": 0.0036579422317209523,
             "expected": 0.6331127319244522,
-            "note": "the owner's P2, c t = sqrt t: not constant"
+            "note": "the guess c t = sqrt t: not constant"
           },
           "growth_split": {
             "exp_W_minus_1": {
@@ -2278,7 +2278,7 @@
             "mean": 0.6176530586814534,
             "se": 0.004602534446306672,
             "expected": 0.6119985267252213,
-            "note": "the owner's P2, c t = sqrt t: not constant"
+            "note": "the guess c t = sqrt t: not constant"
           },
           "growth_split": {
             "exp_W_minus_1": {
@@ -2327,7 +2327,7 @@
             "mean": 0.6087012708494791,
             "se": 0.005472168744923269,
             "expected": 0.6065306597126334,
-            "note": "the owner's P2, c t = sqrt t: not constant"
+            "note": "the guess c t = sqrt t: not constant"
           },
           "growth_split": {
             "exp_W_minus_1": {

@@ -477,7 +477,7 @@ def main() -> int:
         "euler_many": {"n": 10_000, "n_paths": 2_000 if q else 20_000, "chunk_paths": 500},
         "ou": {"theta": 2.0, "sigma": 0.40, "X0": 1.0, "n": 10_000, "n_paths": 2_000 if q else 20_000,
                "checkpoints": [0.1, 0.25, 0.5, 0.75, 1.0]},
-        "p1_case": {"mu": 0.0, "note": "the owner's P1 as posed: mu = 0, sigma = 0.4, T = 1"},
+        "p1_case": {"mu": 0.0, "note": "the driftless case: mu = 0, sigma = 0.4, T = 1"},
     }
     T, S0, mu, sigma = params["T"], params["S0"], params["mu"], params["sigma"]
     rng = np.random.default_rng(args.seed)

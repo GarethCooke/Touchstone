@@ -340,7 +340,7 @@ def expectations(rng, n, T, n_paths, chunk_paths, checkpoints):
             "exp_W_minus_t": {**mean_se(ew * exp(-t)), "expected": exp(-0.5 * t),
                               "note": "the c = 1 candidate: mean falls like e^(-t/2)"},
             "exp_W_minus_sqrt_t": {**mean_se(ew * exp(-sqrt(t))), "expected": exp(0.5 * t - sqrt(t)),
-                                   "note": "the owner's P2, c t = sqrt t: not constant"},
+                                   "note": "the guess c t = sqrt t: not constant"},
             "growth_split": {
                 "exp_W_minus_1": mean_se(ew - 1.0),
                 "ito_sum_S": {**mean_se(S_at[:, j]), "expected": 0.0},

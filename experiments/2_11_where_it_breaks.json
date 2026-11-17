@@ -120,7 +120,7 @@
       "chunk_paths": 500,
       "fee_k": 0.001,
       "fee_note": "10 basis points of the value of every share traded, at setup, at each rebalance and at the unwind",
-      "drift": "mu = r for every path set (Decision -- owner may overrule): under the pricing drift the discounted stock is a martingale, so E[hedged P&L] = E^Q[e^(-rT) payoff] - P_0 = 0 for every N and every hedge (2.8), and the spread carries the whole story; 2.7 showed the hedge is drift-blind in the limit"
+      "drift": "mu = r for every path set (a choice): under the pricing drift the discounted stock is a martingale, so E[hedged P&L] = E^Q[e^(-rT) payoff] - P_0 = 0 for every N and every hedge (2.8), and the spread carries the whole story; 2.7 showed the hedge is drift-blind in the limit"
     },
     "cited_from_2_7": {
       "source": "experiments/2_7_delta_hedging.json, scenario base (sigma_r = sigma_i = 0.4, mu = 0, seed 20261101, 4000 paths), per_N call.hedged_pnl_discounted",

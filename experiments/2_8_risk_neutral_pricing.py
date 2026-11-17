@@ -531,7 +531,7 @@ def main() -> int:
         "seed": args.seed,
         "T": 1.0, "S0": 100.0, "K": 100.0, "r": 0.05, "sigma": 0.40,
         "model": "dS = mu S dt + sigma S dW (drift first); S_T drawn exactly: S_T = S_0 exp((mu - 1/2 sigma^2) T + sigma W_T); paths stepped exactly where needed (C3, C4)",
-        "price": "V = e^(-rT) E^Q[payoff], Q the measure with dS = r S dt + sigma S dW~; compared against the closed form, which 2.7 checked against the PDE (setup decision a)",
+        "price": "V = e^(-rT) E^Q[payoff], Q the measure with dS = r S dt + sigma S dW~; compared against the closed form, which 2.7 checked against the PDE",
         "drifts": [-0.2, 0.0, 0.05, 0.1, 0.3, 0.6],
         "n_terminal": n_term, "n_terminal_full": 1_000_000,
         # The nested estimates stop at the draws there are: under --quick the one at 10^6 is the full

@@ -965,7 +965,7 @@ def main() -> int:
         "daily": {"n_paths": 2_000 if q else 20_000, "steps": 252},
         "hedging": {"n_fine": 4096, "Ns": [4, 16, 64, 256] if q else [4, 16, 64, 256, 1024, 4096], "n_paths": 400 if q else 4000, "chunk_paths": 400 if q else 500,
                     "fee_k": 0.001, "fee_note": "10 basis points of the value of every share traded, at setup, at each rebalance and at the unwind",
-                    "drift": "mu = r for every path set (Decision -- owner may overrule): under the pricing drift the discounted stock is a martingale, so E[hedged P&L] = E^Q[e^(-rT) payoff] - P_0 = 0 for every N and every hedge (2.8), and the spread carries the whole story; 2.7 showed the hedge is drift-blind in the limit"},
+                    "drift": "mu = r for every path set (a choice): under the pricing drift the discounted stock is a martingale, so E[hedged P&L] = E^Q[e^(-rT) payoff] - P_0 = 0 for every N and every hedge (2.8), and the spread carries the whole story; 2.7 showed the hedge is drift-blind in the limit"},
         "cited_from_2_7": {"source": "experiments/2_7_delta_hedging.json, scenario base (sigma_r = sigma_i = 0.4, mu = 0, seed 20261101, 4000 paths), per_N call.hedged_pnl_discounted",
                            "sd_by_N": {"4": 6.1818, "16": 3.2407, "64": 1.6382, "256": 0.8309, "1024": 0.4183, "4096": 0.2116}, "sd_sqrtN_4096": 13.543,
                            "vol_low_sd_4096": 1.245, "vol_high_sd_4096": 1.619, "note": "2.7's off-vol scenarios (sigma_r = 0.3 / 0.5 at sigma_i = 0.4) had spreads that stopped falling at about 1.2 and 1.6 -- the same floor, seen one vol at a time"},
