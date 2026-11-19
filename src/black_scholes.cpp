@@ -365,12 +365,11 @@ PriceAndGreeksColumns price_and_greeks(const ClosedFormSweep& sweep,
                                        std::span<const double> spots,
                                        std::span<const double> times_to_expiry)
 {
+    require_valid(sweep, spots, times_to_expiry);
     PriceAndGreeksColumns out;
     for (const auto& [column, output] : price_and_greeks_columns) {
         (out.*column).reserve(spots.size());
     }
-    // Each point is validated as it is built, which is what `require_valid`
-    // checks; a refusal throws away the columns filled so far.
     at_each_point(sweep, spots, times_to_expiry,
                   [&out](const EuropeanVanilla& option, const BlackScholesMarket& market) {
                       const PriceAndGreeks point = price_and_greeks(option, market);

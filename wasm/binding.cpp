@@ -259,8 +259,9 @@ void require_numbers(const val& value, const std::string& path)
 }
 
 /// An array argument: a `Float64Array`, or an array whose every element is a
-/// number. NaN and the infinities are numbers, and reach the library, which
-/// refuses them where it refuses them for one value.
+/// number. NaN and the infinities are numbers, and reach the library as they
+/// would at one value: the closed form and the paths refuse them, and the payoff
+/// and the normal functions, which refuse nothing, answer them.
 [[nodiscard]] std::vector<double> read_numbers(const val& value, const std::string& path)
 {
     if (value.instanceof(val::global("Float64Array"))) {
@@ -322,46 +323,47 @@ struct Fields<EuropeanVanilla> {
 /// payoff is not made to supply one.
 constexpr auto payoff_fields = std::tuple{option_strike, option_type};
 
+constexpr Field market_spot{"spot", &BlackScholesMarket::spot};
+constexpr Field market_vol{"vol", &BlackScholesMarket::vol};
+constexpr Field market_rate{"rate", &BlackScholesMarket::rate};
+constexpr Field market_dividend_yield{"dividendYield", &BlackScholesMarket::dividend_yield};
+
 template <>
 struct Fields<BlackScholesMarket> {
-    static constexpr auto list = std::tuple{
-        Field{"spot", &BlackScholesMarket::spot},
-        Field{"vol", &BlackScholesMarket::vol},
-        Field{"rate", &BlackScholesMarket::rate},
-        Field{"dividendYield", &BlackScholesMarket::dividend_yield},
-    };
+    static constexpr auto list = std::tuple{market_spot, market_vol, market_rate, market_dividend_yield};
 };
 
+/// The market's fields, less the volatility, under the market's names.
 template <>
 struct Fields<QuotedMarket> {
     static constexpr auto list = std::tuple{
-        Field{"spot", &QuotedMarket::spot},
-        Field{"rate", &QuotedMarket::rate},
-        Field{"dividendYield", &QuotedMarket::dividend_yield},
+        Field{market_spot.name, &QuotedMarket::spot},
+        Field{market_rate.name, &QuotedMarket::rate},
+        Field{market_dividend_yield.name, &QuotedMarket::dividend_yield},
     };
 };
+
+/// The seven outputs' names, in the order `price_and_greeks_columns` pairs each
+/// output with its column, which says which member each name is.
+constexpr std::array greek_names{"price", "delta", "gamma", "vega", "theta", "rho", "dividendRho"};
+static_assert(greek_names.size() == price_and_greeks_columns.size());
 
 template <>
 struct Fields<PriceAndGreeks> {
-    static constexpr auto list = std::tuple{
-        Field{"price", &PriceAndGreeks::price},
-        Field{"delta", &PriceAndGreeks::delta},
-        Field{"gamma", &PriceAndGreeks::gamma},
-        Field{"vega", &PriceAndGreeks::vega},
-        Field{"theta", &PriceAndGreeks::theta},
-        Field{"rho", &PriceAndGreeks::rho},
-        Field{"dividendRho", &PriceAndGreeks::dividend_rho},
-    };
+    static constexpr auto list = []<std::size_t... I>(std::index_sequence<I...>) {
+        return std::tuple{Field{greek_names[I], price_and_greeks_columns[I].second}...};
+    }(std::make_index_sequence<greek_names.size()>{});
 };
 
+/// What a sweep holds fixed, under the option's and the market's names.
 template <>
 struct Fields<ClosedFormSweep> {
     static constexpr auto list = std::tuple{
-        Field{"strike", &ClosedFormSweep::strike},
-        Field{"type", &ClosedFormSweep::type},
-        Field{"vol", &ClosedFormSweep::vol},
-        Field{"rate", &ClosedFormSweep::rate},
-        Field{"dividendYield", &ClosedFormSweep::dividend_yield},
+        Field{option_strike.name, &ClosedFormSweep::strike},
+        Field{option_type.name, &ClosedFormSweep::type},
+        Field{market_vol.name, &ClosedFormSweep::vol},
+        Field{market_rate.name, &ClosedFormSweep::rate},
+        Field{market_dividend_yield.name, &ClosedFormSweep::dividend_yield},
     };
 };
 
@@ -581,25 +583,14 @@ template <class S>
     return out;
 }
 
-/// The column that holds `output` at every point.
-[[nodiscard]] std::vector<double> PriceAndGreeksColumns::* column_of(double PriceAndGreeks::* output)
-{
-    for (const auto& [column, held] : price_and_greeks_columns) {
-        if (held == output) {
-            return column;
-        }
-    }
-    throw std::logic_error("an output of the closed form with no column");
-}
-
 /// The columns as `priceAndGreeks`'s object, with a `Float64Array` in place of
-/// each number: the same names, read from the same table.
+/// each number: the same names, against the same pairing.
 [[nodiscard]] val write(const PriceAndGreeksColumns& columns)
 {
     val out = val::object();
-    std::apply(
-        [&](const auto&... field) { (out.set(field.name, float64_array(columns.*column_of(field.member))), ...); },
-        Fields<PriceAndGreeks>::list);
+    for (std::size_t f = 0; f < greek_names.size(); ++f) {
+        out.set(greek_names[f], float64_array(columns.*(price_and_greeks_columns[f].first)));
+    }
     return out;
 }
 
@@ -928,11 +919,7 @@ template <auto Function>
         const auto dynamics = read<GbmDynamics>(spec, "spec", Presence::Required);
         Scheme scheme{};
         read_value(spec["scheme"], "spec.scheme", scheme);
-        const std::vector<double> draws = read_numbers(normals, "normals");
-
-        std::vector<double> out(sample_values(grid, draws.size()));
-        gbm_paths(grid, dynamics, scheme, draws, out);
-        return float64_array(out);
+        return float64_array(gbm_paths(grid, dynamics, scheme, read_numbers(normals, "normals")));
     });
 }
 

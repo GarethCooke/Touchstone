@@ -30,6 +30,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 #ifndef TOUCHSTONE_PATHS_FIXTURE_PATH
@@ -85,11 +86,26 @@ struct Agreement {
             ++values;
         }
     }
+
+    /// `header`, then how many values over `over` agreed and the worst of them.
+    [[nodiscard]] std::string report(const std::string& header, const std::string& over, double tolerance) const
+    {
+        std::ostringstream out;
+        out << header << "\n    " << values << " values over " << over << "; " << exact
+            << " agree to the bit\n    worst scaled difference " << std::scientific << std::setprecision(3)
+            << worst << " (tolerance " << tolerance << ")\n        at " << worst_at;
+        return out.str();
+    }
 };
 
 [[nodiscard]] PathGrid grid_of(const nlohmann::json& row)
 {
     return PathGrid{row.at("seed").get<std::uint32_t>(), row.at("horizon").get<double>()};
+}
+
+[[nodiscard]] GbmDynamics dynamics_of(const nlohmann::json& row)
+{
+    return GbmDynamics{row.at("spot").get<double>(), row.at("drift").get<double>(), row.at("vol").get<double>()};
 }
 
 [[nodiscard]] std::vector<double> path_of(const nlohmann::json& row)
@@ -127,8 +143,7 @@ TEST_SUITE("paths")
                               "brownian seed " + std::to_string(row.at("seed").get<std::uint32_t>()));
         }
         for (const auto& row : fixture.at("gbm")) {
-            const GbmDynamics dynamics{row.at("spot").get<double>(), row.at("drift").get<double>(),
-                                       row.at("vol").get<double>()};
+            const GbmDynamics dynamics = dynamics_of(row);
             const Scheme scheme = read_scheme(row);
             std::vector<double> computed = path_of(row);
             touchstone::gbm_path(grid_of(row), dynamics, scheme, computed);
@@ -146,28 +161,24 @@ TEST_SUITE("paths")
             }
         }
 
-        std::ostringstream report;
-        report << "paths fixture " << path << "\n    " << agreement.values << " values over "
-               << fixture.at("counts").at("brownian").get<std::size_t>() << " Brownian and "
-               << fixture.at("counts").at("gbm").get<std::size_t>() << " GBM paths; "
-               << agreement.exact << " agree to the bit\n    worst scaled difference "
-               << std::scientific << std::setprecision(3) << agreement.worst << " (tolerance "
-               << tolerance << ")\n        at " << agreement.worst_at;
-        MESSAGE(report.str());
+        MESSAGE(agreement.report("paths fixture " + path,
+                                 std::to_string(fixture.at("counts").at("brownian").get<std::size_t>())
+                                     + " Brownian and "
+                                     + std::to_string(fixture.at("counts").at("gbm").get<std::size_t>())
+                                     + " GBM paths",
+                                 tolerance));
 
         // The samples: many paths from one stream, stepped from that stream's
         // normals, held to the same tolerance and reported apart.
         Agreement sampled;
         for (const auto& row : fixture.at("samples")) {
             const StepGrid grid{row.at("horizon").get<double>(), row.at("steps").get<std::size_t>()};
-            const GbmDynamics dynamics{row.at("spot").get<double>(), row.at("drift").get<double>(),
-                                       row.at("vol").get<double>()};
             const auto expected = row.at("paths").get<std::vector<std::vector<double>>>();
             REQUIRE(expected.size() == row.at("path_count").get<std::size_t>());
             const std::vector<double> normals = touchstone::testing::normals_from(
                 row.at("seed").get<std::uint32_t>(), expected.size() * grid.steps);
-            std::vector<double> computed(touchstone::sample_values(grid, normals.size()), 0.0);
-            touchstone::gbm_paths(grid, dynamics, read_scheme(row), normals, computed);
+            const std::vector<double> computed =
+                touchstone::gbm_paths(grid, dynamics_of(row), read_scheme(row), normals);
             for (std::size_t p = 0; p < expected.size(); ++p) {
                 sampled.compare(slice(computed, p, grid.steps + 1), expected[p],
                                 "sample " + row.at("scheme").get<std::string>() + " seed "
@@ -175,13 +186,9 @@ TEST_SUITE("paths")
                                     + std::to_string(p));
             }
         }
-        std::ostringstream samples_report;
-        samples_report << "paths fixture samples: " << sampled.values << " values over "
-                       << fixture.at("counts").at("samples").get<std::size_t>() << " samples; "
-                       << sampled.exact << " agree to the bit\n    worst scaled difference "
-                       << std::scientific << std::setprecision(3) << sampled.worst << " (tolerance "
-                       << tolerance << ")\n        at " << sampled.worst_at;
-        MESSAGE(samples_report.str());
+        MESSAGE(sampled.report("paths fixture samples",
+                               std::to_string(fixture.at("counts").at("samples").get<std::size_t>()) + " samples",
+                               tolerance));
 
         CHECK(negative_euler_seen);
         CHECK_MESSAGE(agreement.worst <= tolerance, agreement.worst_at);
@@ -335,15 +342,21 @@ TEST_SUITE("paths")
             {0.0, 0.05, 0.2},        // zero, which stays zero
             {1.0, 0.0, 1e150},       // Euler factors of order 1e150, signs mixed
         };
+        // Each as one path and as a sample of four from the same stream.
+        const std::vector<double> normals = touchstone::testing::normals_from(3u, 4 * 256);
         std::size_t saturated = 0;
         for (const GbmDynamics& dynamics : extremes) {
             for (const Scheme scheme : {Scheme::ExactTerminal, Scheme::EulerMaruyama}) {
                 std::vector<double> path(257, 0.0);
                 touchstone::gbm_path(PathGrid{3u, 1.0}, dynamics, scheme, path);
-                for (const double value : path) {
-                    REQUIRE_FALSE(std::isnan(value));
-                    if (std::isinf(value) || (value == 0.0 && dynamics.spot != 0.0)) {
-                        ++saturated;
+                const std::vector<double> sample =
+                    touchstone::gbm_paths(StepGrid{1.0, 256}, dynamics, scheme, normals);
+                for (const std::vector<double>* values : {&std::as_const(path), &sample}) {
+                    for (const double value : *values) {
+                        REQUIRE_FALSE(std::isnan(value));
+                        if (std::isinf(value) || (value == 0.0 && dynamics.spot != 0.0)) {
+                            ++saturated;
+                        }
                     }
                 }
             }
@@ -367,9 +380,8 @@ TEST_SUITE("paths")
             for (const std::uint32_t seed : {1u, 42u, 2147483647u}) {
                 CAPTURE(seed);
                 const std::vector<double> normals = touchstone::testing::normals_from(seed, count * steps);
-                std::vector<double> sample(touchstone::sample_values(grid, normals.size()), -1.0);
+                const std::vector<double> sample = touchstone::gbm_paths(grid, dynamics, scheme, normals);
                 REQUIRE(sample.size() == count * (steps + 1));
-                touchstone::gbm_paths(grid, dynamics, scheme, normals, sample);
 
                 std::vector<double> single(steps + 1, 0.0);
                 touchstone::gbm_path(PathGrid{seed, grid.horizon}, dynamics, scheme, single);
@@ -395,9 +407,7 @@ TEST_SUITE("paths")
         constexpr std::size_t count = 3;
         const std::vector<double> normals = touchstone::testing::normals_from(7u, count * grid.steps);
         const auto sample = [&](double vol, Scheme scheme) {
-            std::vector<double> out(touchstone::sample_values(grid, normals.size()), 0.0);
-            touchstone::gbm_paths(grid, GbmDynamics{50.0, 0.04, vol}, scheme, normals, out);
-            return out;
+            return touchstone::gbm_paths(grid, GbmDynamics{50.0, 0.04, vol}, scheme, normals);
         };
 
         const std::vector<double> exact = sample(0.0, Scheme::ExactTerminal);
@@ -422,10 +432,9 @@ TEST_SUITE("paths")
         const double nan = std::numeric_limits<double>::quiet_NaN();
 
         // No normals, no paths.
-        CHECK(touchstone::sample_values(grid, 0) == 0u);
+        CHECK(touchstone::gbm_paths(grid, fine, Scheme::ExactTerminal, std::span<const double>{}).empty());
         std::vector<double> none;
         touchstone::gbm_paths(grid, fine, Scheme::ExactTerminal, std::span<const double>{}, none);
-        CHECK(none.empty());
 
         const std::vector<double> eight = touchstone::testing::normals_from(3u, 8);
         std::vector<double> ten(10, 0.0);
@@ -433,8 +442,10 @@ TEST_SUITE("paths")
 
         // The shape: at least one step, a whole number of runs, and room for
         // exactly the values the runs make.
-        CHECK_THROWS_AS(touchstone::sample_values(StepGrid{1.0, 0}, 8), std::invalid_argument);
-        CHECK_THROWS_AS(touchstone::sample_values(grid, 7), std::invalid_argument);
+        CHECK_THROWS_AS(touchstone::gbm_paths(StepGrid{1.0, 0}, fine, Scheme::ExactTerminal, eight),
+                        std::invalid_argument);
+        CHECK_THROWS_AS(touchstone::gbm_paths(grid, fine, Scheme::ExactTerminal, std::span<const double>(eight).first(7)),
+                        std::invalid_argument);
         CHECK_THROWS_AS(touchstone::gbm_paths(StepGrid{1.0, 0}, fine, Scheme::ExactTerminal, eight, ten),
                         std::invalid_argument);
         CHECK_THROWS_AS(touchstone::gbm_paths(grid, fine, Scheme::ExactTerminal,

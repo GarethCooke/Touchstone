@@ -1,0 +1,54 @@
+{
+  "schema": "touchstone/golden/normal@1",
+  "references": "Correctly rounded doubles for N(x) = erfc(-x/sqrt(2))/2 and phi(x) = exp(-x^2/2)/sqrt(2 pi), computed at 60 decimal digits with mpmath and rounded once. Reference values, not the output of the code under test.",
+  "tolerance_rule": "relative error. For N: zero at x = 0, where the value is exact, and otherwise (4 + x^2) times machine epsilon, the rounding of x carried into N through phi/N, with a floor of four ulps for erfc's own rounding; tests/test_normal.cpp gives the derivation. For phi: as stated on each row.",
+  "cdf": [
+    {
+      "x": 0.0,
+      "value": 0.5,
+      "relative_tolerance": 0.0
+    },
+    {
+      "x": 1.0,
+      "value": 0.8413447460685429,
+      "relative_tolerance": 1.1102230246251565e-15
+    },
+    {
+      "x": -1.0,
+      "value": 0.15865525393145705,
+      "relative_tolerance": 1.1102230246251565e-15
+    },
+    {
+      "x": 1.96,
+      "value": 0.9750021048517795,
+      "relative_tolerance": 1.7411849739801254e-15
+    },
+    {
+      "x": -3.0,
+      "value": 0.0013498980316300946,
+      "relative_tolerance": 2.886579864025407e-15
+    },
+    {
+      "x": -10.0,
+      "value": 7.619853024160525e-24,
+      "relative_tolerance": 2.3092638912203256e-14
+    },
+    {
+      "x": -30.0,
+      "value": 4.906713927148187e-198,
+      "relative_tolerance": 2.007283228522283e-13
+    }
+  ],
+  "pdf": [
+    {
+      "x": 0.0,
+      "value": 0.3989422804014327,
+      "relative_tolerance": 1e-16
+    },
+    {
+      "x": 1.0,
+      "value": 0.24197072451914334,
+      "relative_tolerance": 4e-16
+    }
+  ]
+}

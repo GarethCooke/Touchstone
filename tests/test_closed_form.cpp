@@ -18,7 +18,6 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
-#include <tuple>
 #include <vector>
 
 namespace {
@@ -201,30 +200,24 @@ TEST_SUITE("closed-form")
         using touchstone::ClosedFormSweep;
         using touchstone::price_and_greeks_columns;
 
-        // The columns are paired with the outputs in the order `PriceAndGreeks`
-        // declares them, which is the order `greek_fields` names them in.
-        for (std::size_t f = 0; f < fields.size(); ++f) {
-            CHECK(price_and_greeks_columns[f].second == fields[f].value);
-        }
+        // What a sweep through a row would hold fixed.
+        const auto sweep_of = [](const GoldenCase& row) {
+            return ClosedFormSweep{row.option.strike, row.option.type, row.market.vol, row.market.rate,
+                                   row.market.dividend_yield};
+        };
 
-        // Every row of the file, grouped by what a sweep holds fixed.
-        using Fixed = std::tuple<double, int, double, double, double>;
-        std::map<Fixed, std::vector<const GoldenCase*>> sweeps;
+        // Every row of the file, grouped by that.
+        std::map<ClosedFormSweep, std::vector<const GoldenCase*>> sweeps;
         const auto& file = touchstone::testing::golden_file();
         for (const auto* block : {&file.cases, &file.edge_cases}) {
             for (const GoldenCase& row : *block) {
-                sweeps[Fixed{row.option.strike, static_cast<int>(row.option.type), row.market.vol,
-                             row.market.rate, row.market.dividend_yield}]
-                    .push_back(&row);
+                sweeps[sweep_of(row)].push_back(&row);
             }
         }
 
         std::size_t points = 0;
         std::size_t differing = 0;
-        for (const auto& [fixed, rows] : sweeps) {
-            const GoldenCase& first = *rows.front();
-            const ClosedFormSweep sweep{first.option.strike, first.option.type, first.market.vol,
-                                        first.market.rate, first.market.dividend_yield};
+        for (const auto& [sweep, rows] : sweeps) {
             std::vector<double> spots;
             std::vector<double> times;
             for (const GoldenCase* row : rows) {

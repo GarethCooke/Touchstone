@@ -125,32 +125,61 @@ void require_valid(const PathGrid& grid, const GbmDynamics& dynamics, std::size_
     require_valid_process(dynamics, step_of(grid, values));
 }
 
-std::size_t sample_values(const StepGrid& grid, std::size_t normals)
+namespace {
+
+/// The values one path of a sample holds: its start and one per step.
+[[nodiscard]] std::size_t path_values(const StepGrid& grid) noexcept
+{
+    return grid.steps + 1;
+}
+
+/// Everything `require_valid` checks but the room the caller made, and the
+/// room the sample needs.
+[[nodiscard]] std::size_t validated_values(const StepGrid& grid,
+                                           const GbmDynamics& dynamics,
+                                           std::span<const double> normals)
 {
     if (grid.steps < 1) {
         throw std::invalid_argument("paths: a sample needs at least one step per path");
     }
-    if (normals % grid.steps != 0) {
+    require_valid_horizon(grid.horizon);
+    require_valid_process(dynamics, step_of(grid));
+    if (normals.size() % grid.steps != 0) {
         throw std::invalid_argument(
             "paths: the normals must be a whole number of runs of steps, one run per path");
     }
-    return (normals / grid.steps) * (grid.steps + 1);
+    for (const double z : normals) {
+        if (!std::isfinite(z)) {
+            throw std::invalid_argument("paths: every normal must be finite");
+        }
+    }
+    return (normals.size() / grid.steps) * path_values(grid);
 }
+
+/// Path `p` of the sample from the `p`-th run of normals, for every run. The
+/// inputs have been validated.
+void step_sample(const StepGrid& grid,
+                 const GbmDynamics& dynamics,
+                 Scheme scheme,
+                 std::span<const double> normals,
+                 std::span<double> paths) noexcept
+{
+    const detail::GbmStep step(scheme, dynamics.drift, dynamics.vol, step_of(grid));
+    const std::size_t values = path_values(grid);
+    for (std::size_t p = 0; p * grid.steps < normals.size(); ++p) {
+        detail::write_gbm_steps(step, dynamics.spot, normals.subspan(p * grid.steps, grid.steps),
+                                paths.subspan(p * values, values));
+    }
+}
+
+}  // namespace
 
 void require_valid(const StepGrid& grid,
                    const GbmDynamics& dynamics,
                    std::span<const double> normals,
                    std::size_t values)
 {
-    const std::size_t expected = sample_values(grid, normals.size());
-    require_valid_horizon(grid.horizon);
-    require_valid_process(dynamics, step_of(grid));
-    for (const double z : normals) {
-        if (!std::isfinite(z)) {
-            throw std::invalid_argument("paths: every normal must be finite");
-        }
-    }
-    if (values != expected) {
+    if (values != validated_values(grid, dynamics, normals)) {
         throw std::invalid_argument(
             "paths: the sample needs steps + 1 values for each run of steps normals");
     }
@@ -185,12 +214,17 @@ void gbm_paths(const StepGrid& grid,
                std::span<double> paths)
 {
     require_valid(grid, dynamics, normals, paths.size());
-    const detail::GbmStep step(scheme, dynamics.drift, dynamics.vol, step_of(grid));
-    const std::size_t values = grid.steps + 1;
-    for (std::size_t p = 0; p * grid.steps < normals.size(); ++p) {
-        detail::write_gbm_steps(step, dynamics.spot, normals.subspan(p * grid.steps, grid.steps),
-                                paths.subspan(p * values, values));
-    }
+    step_sample(grid, dynamics, scheme, normals, paths);
+}
+
+std::vector<double> gbm_paths(const StepGrid& grid,
+                              const GbmDynamics& dynamics,
+                              Scheme scheme,
+                              std::span<const double> normals)
+{
+    std::vector<double> paths(validated_values(grid, dynamics, normals));
+    step_sample(grid, dynamics, scheme, normals, paths);
+    return paths;
 }
 
 }  // namespace touchstone

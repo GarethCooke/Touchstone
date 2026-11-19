@@ -40,7 +40,7 @@ const report = (label, { median, least, most }, per) => {
     `  (${least.toFixed(3)} to ${most.toFixed(3)})${each}`)
 }
 
-// D5's live sample at 256 rebalances: 781 paths, a delta at each of the 256
+// A hedge sample at 256 rebalances: 781 paths, a delta at each of the 256
 // dates before expiry. The spots are the paths of one sample, as `gbmPaths`
 // returns them; the times to expiry are the time left at each date.
 const expiry = 1

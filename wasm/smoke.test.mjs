@@ -31,18 +31,24 @@ const rng = fixture('golden/rng-known-answers.json')
 const golden = fixture('golden/bs_vanilla.json')
 const paths = fixture('golden/paths-known-answers.json')
 const experiment = fixture('experiments/2_11_where_it_breaks.json')
+const normal = fixture('golden/normal-known-answers.json')
 
-const greekFields = ['price', 'delta', 'gamma', 'vega', 'theta', 'rho', 'dividendRho']
 const goldenField = { dividendRho: 'dividend_rho' }
 
 const option = (row) => ({ strike: row.strike, expiryYears: row.expiry_years, type: row.type })
-const market = (row) => ({ spot: row.spot, vol: row.vol, rate: row.rate, dividendYield: row.dividend_yield })
+const quoted = (row) => ({ spot: row.spot, rate: row.rate, dividendYield: row.dividend_yield })
+const market = (row) => ({ ...quoted(row), vol: row.vol })
+/** What a sweep through the row holds fixed. */
+const sweepOf = (row) => ({ strike: row.strike, type: row.type, vol: row.vol, rate: row.rate, dividendYield: row.dividend_yield })
 
 /** One golden row reproduced on its own, chosen by label so it reads as itself. */
 const namedRow = golden.edge_cases.find((row) => row.label === 'one-day-atm')
 
 const base = { strike: 100, expiryYears: 1, type: 'call' }
 const baseMarket = { spot: 100, vol: 0.2, rate: 0.05, dividendYield: 0.02 }
+
+/** The closed form's seven outputs, by the module's own names for them. */
+const greekFields = Object.keys(touchstone.priceAndGreeks(base, baseMarket))
 
 /** Worst scaled error of the seven closed-form outputs on one golden row. */
 const rowError = (row) => {
@@ -223,18 +229,13 @@ test('the payoff at many spots, either direction, below zero included', () => {
   assert.equal(touchstone.payoff({ strike: 100, type: 'put' }, []).length, 0)
 })
 
-test('N(x) and the density, at the native suite\'s reference values', () => {
-  // tests/test_normal.cpp's correctly rounded references and its bound,
-  // (4 + x^2) eps relative.
-  const tolerance = (x) => (4 + x * x) * Number.EPSILON
+test('N(x) and the density, to the references and tolerances the native suite reads', () => {
   const relative = (actual, reference) => Math.abs(actual - reference) / Math.abs(reference)
-  assert.equal(touchstone.normCdf(0), 0.5)
-  for (const [x, n] of [[1, 0.8413447460685429], [-1, 0.15865525393145705], [1.96, 0.9750021048517795],
-    [-3, 0.0013498980316300946], [-10, 7.619853024160526e-24], [-30, 4.906713927148187e-198]]) {
-    assert.ok(relative(touchstone.normCdf(x), n) <= tolerance(x), `N(${x}) = ${touchstone.normCdf(x)}`)
-  }
-  for (const [x, phi] of [[0, 0.3989422804014326779399461], [1, 0.2419707245191433497978302]]) {
-    assert.ok(relative(touchstone.normPdf(x), phi) <= 2 * Number.EPSILON, `phi(${x}) = ${touchstone.normPdf(x)}`)
+  for (const [block, fn] of [['cdf', touchstone.normCdf], ['pdf', touchstone.normPdf]]) {
+    assert.ok(normal[block].length > 0)
+    for (const { x, value, relative_tolerance: tolerance } of normal[block]) {
+      assert.ok(relative(fn(x), value) <= tolerance, `${block}(${x}) = ${fn(x)} against ${value}`)
+    }
   }
   assert.ok(Number.isNaN(touchstone.normCdf(NaN)) && Number.isNaN(touchstone.normPdf(NaN)))
 })
@@ -260,14 +261,13 @@ test('the closed form at many points is priceAndGreeks at each, over the golden 
   // groups them, each point held to the one-point export to the bit.
   const sweeps = new Map()
   for (const row of [...golden.cases, ...golden.edge_cases]) {
-    const key = [row.strike, row.type, row.vol, row.rate, row.dividend_yield].join()
+    const key = JSON.stringify(sweepOf(row))
     if (!sweeps.has(key)) sweeps.set(key, [])
     sweeps.get(key).push(row)
   }
   let points = 0
   for (const rows of sweeps.values()) {
-    const { strike, type, vol, rate, dividend_yield: dividendYield } = rows[0]
-    const columns = touchstone.priceAndGreeksAt({ strike, type, vol, rate, dividendYield },
+    const columns = touchstone.priceAndGreeksAt(sweepOf(rows[0]),
       rows.map((row) => row.spot), new Float64Array(rows.map((row) => row.expiry_years)))
     rows.forEach((row, i) => {
       const one = touchstone.priceAndGreeks(option(row), market(row))
@@ -282,15 +282,15 @@ test('the closed form at many points is priceAndGreeks at each, over the golden 
 test('Newton then Brent: the price round trip over the golden file, and Brent alone', () => {
   // tests/test_implied_vol.cpp's exit criterion, through the module: every row
   // with a solution repriced inside 1e-8; the rest refused as a RangeError.
+  const repriceError = (row, vol) => scaledError(touchstone.priceAndGreeks(option(row), { ...quoted(row), vol }).price, row.price)
   let worst = 0
   let solved = 0
   let refused = 0
   const methods = { newton: 0, brent: 0, exact: 0 }
   for (const row of [...golden.cases, ...golden.edge_cases]) {
-    const quoted = { spot: row.spot, rate: row.rate, dividendYield: row.dividend_yield }
     let found
     try {
-      found = touchstone.impliedVolNewtonBrent(option(row), quoted, row.price)
+      found = touchstone.impliedVolNewtonBrent(option(row), quoted(row), row.price)
     } catch (error) {
       assert.ok(error instanceof RangeError, error.message)
       refused++
@@ -299,7 +299,7 @@ test('Newton then Brent: the price round trip over the golden file, and Brent al
     assert.equal(found.converged, true)
     methods[found.method]++
     solved++
-    worst = Math.max(worst, scaledError(touchstone.priceAndGreeks(option(row), { ...quoted, vol: found.vol }).price, row.price))
+    worst = Math.max(worst, repriceError(row, found.vol))
   }
   assert.ok(solved > 7000 && worst <= 1e-8, `${solved} solved, worst ${worst}`)
 
@@ -309,12 +309,11 @@ test('Newton then Brent: the price round trip over the golden file, and Brent al
   let worstBrent = 0
   for (let i = 0; i < golden.cases.length; i += 7) {
     const row = golden.cases[i]
-    const quoted = { spot: row.spot, rate: row.rate, dividendYield: row.dividend_yield }
     let found
-    try { found = touchstone.impliedVolNewtonBrent(option(row), quoted, row.price, { maxIterations: 1 }) } catch { continue }
+    try { found = touchstone.impliedVolNewtonBrent(option(row), quoted(row), row.price, { maxIterations: 1 }) } catch { continue }
     rows++
     if (found.method === 'brent') fellBack++
-    worstBrent = Math.max(worstBrent, scaledError(touchstone.priceAndGreeks(option(row), { ...quoted, vol: found.vol }).price, row.price))
+    worstBrent = Math.max(worstBrent, repriceError(row, found.vol))
   }
   assert.ok(fellBack > rows * 0.9 && worstBrent <= 1e-8, `${fellBack} of ${rows} in Brent, worst ${worstBrent}`)
   console.log(`# impliedVolNewtonBrent: ${solved} rows solved (${refused} refused), worst scaled reprice ${worst};` +

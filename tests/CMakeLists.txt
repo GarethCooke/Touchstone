@@ -45,6 +45,7 @@ target_compile_definitions(touchstone_tests
             TOUCHSTONE_RNG_FIXTURE_PATH="${PROJECT_SOURCE_DIR}/golden/rng-known-answers.json"
             TOUCHSTONE_AMERICAN_PATH="${PROJECT_SOURCE_DIR}/golden/american_vanilla.json"
             TOUCHSTONE_PATHS_FIXTURE_PATH="${PROJECT_SOURCE_DIR}/golden/paths-known-answers.json"
+            TOUCHSTONE_NORMAL_FIXTURE_PATH="${PROJECT_SOURCE_DIR}/golden/normal-known-answers.json"
             TOUCHSTONE_EXPERIMENT_2_11_PATH="${PROJECT_SOURCE_DIR}/experiments/2_11_where_it_breaks.json")
 
 # One ctest entry per suite, so a red run names the misunderstanding rather than

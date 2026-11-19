@@ -12,6 +12,7 @@
 #include <touchstone/contract.hpp>
 
 #include <array>
+#include <compare>
 #include <span>
 #include <utility>
 #include <vector>
@@ -234,6 +235,10 @@ struct ClosedFormSweep {
     double vol{};
     double rate{};
     double dividend_yield{};
+
+    /// Field by field, in the order above: two sweeps are the same sweep when
+    /// they hold the same things fixed.
+    auto operator<=>(const ClosedFormSweep&) const = default;
 };
 
 /// The seven outputs of `PriceAndGreeks`, one array each, in the points' order.
@@ -269,9 +274,9 @@ void require_valid(const ClosedFormSweep& sweep,
                    std::span<const double> spots,
                    std::span<const double> times_to_expiry);
 
-/// `price_and_greeks` at each point, in order. A refused point refuses the whole
-/// call, as `require_valid` would, and no point is returned. No points is an
-/// empty result.
+/// `price_and_greeks` at each point, in order. Every point is validated, as
+/// `require_valid` validates them, before any is computed, so a refused point
+/// refuses the whole call. No points is an empty result.
 [[nodiscard]] PriceAndGreeksColumns price_and_greeks(const ClosedFormSweep& sweep,
                                                      std::span<const double> spots,
                                                      std::span<const double> times_to_expiry);

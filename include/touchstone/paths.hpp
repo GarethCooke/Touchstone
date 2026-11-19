@@ -26,6 +26,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <span>
+#include <vector>
 
 namespace touchstone {
 
@@ -106,16 +107,10 @@ struct StepGrid {
     std::size_t steps{1};  ///< Steps per path; dt = T / steps.
 };
 
-/// How many values `gbm_paths` writes from `normals` normals on this grid:
-/// `steps + 1` for each run of `steps`, the start included. Throws
-/// `std::invalid_argument` unless `steps >= 1` and `normals` is a whole number
-/// of runs.
-[[nodiscard]] std::size_t sample_values(const StepGrid& grid, std::size_t normals);
-
 /// Throws `std::invalid_argument` unless: `steps >= 1`; the horizon is finite and
 /// positive; the process is one `require_valid(PathGrid, GbmDynamics, steps + 1)`
 /// accepts; `normals.size()` is a whole number of runs of `steps`; every normal
-/// is finite; and `values == sample_values(grid, normals.size())`.
+/// is finite; and `values` is `steps + 1` for each run, the start included.
 ///
 /// The normals must be finite because an accepted input never produces a NaN:
 /// at a volatility of zero an infinite normal would make a step's exponent
@@ -134,5 +129,12 @@ void gbm_paths(const StepGrid& grid,
                Scheme scheme,
                std::span<const double> normals,
                std::span<double> paths);
+
+/// The same sample, in a vector of the size it needs, validated before anything
+/// is allocated.
+[[nodiscard]] std::vector<double> gbm_paths(const StepGrid& grid,
+                                            const GbmDynamics& dynamics,
+                                            Scheme scheme,
+                                            std::span<const double> normals);
 
 }  // namespace touchstone
