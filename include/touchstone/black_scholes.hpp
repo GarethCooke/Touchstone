@@ -11,6 +11,11 @@
 
 #include <touchstone/contract.hpp>
 
+#include <array>
+#include <span>
+#include <utility>
+#include <vector>
+
 namespace touchstone {
 
 /// The market. What is observed, independent of any particular contract.
@@ -211,5 +216,64 @@ private:
     double vega_{};   ///< dV/dsigma. Type-independent.
     double decay_{};  ///< -S e^{-qT} phi(d1) sigma / (2 sqrt(T)). Type-independent.
 };
+
+// --- The closed form at many points ------------------------------------------
+//
+// A chart's curve, or a delta at every rebalance date of every path of a hedge,
+// is the closed form at many (spot, time to expiry) points with the contract's
+// strike and direction and the market's volatility, rate and dividend yield held
+// fixed. Each point is the `ClosedForm` above, built and read once.
+
+/// What a sweep of the closed form holds fixed. The spot and the time to expiry
+/// are the sweep's coordinates and so are not fields here, for the reason
+/// `QuotedMarket` has no volatility: a field the function overrode would be a
+/// trap.
+struct ClosedFormSweep {
+    double strike{};
+    OptionType type{OptionType::Call};
+    double vol{};
+    double rate{};
+    double dividend_yield{};
+};
+
+/// The seven outputs of `PriceAndGreeks`, one array each, in the points' order.
+struct PriceAndGreeksColumns {
+    std::vector<double> price;
+    std::vector<double> delta;
+    std::vector<double> gamma;
+    std::vector<double> vega;
+    std::vector<double> theta;
+    std::vector<double> rho;
+    std::vector<double> dividend_rho;
+};
+
+/// Each column beside the output of one point it holds: the one place the two
+/// structs are paired, read by the sweep that fills the columns and by anything
+/// that reads them out by the name of the output.
+inline constexpr std::array price_and_greeks_columns{
+    std::pair{&PriceAndGreeksColumns::price, &PriceAndGreeks::price},
+    std::pair{&PriceAndGreeksColumns::delta, &PriceAndGreeks::delta},
+    std::pair{&PriceAndGreeksColumns::gamma, &PriceAndGreeks::gamma},
+    std::pair{&PriceAndGreeksColumns::vega, &PriceAndGreeks::vega},
+    std::pair{&PriceAndGreeksColumns::theta, &PriceAndGreeks::theta},
+    std::pair{&PriceAndGreeksColumns::rho, &PriceAndGreeks::rho},
+    std::pair{&PriceAndGreeksColumns::dividend_rho, &PriceAndGreeks::dividend_rho},
+};
+
+/// Throws `std::invalid_argument` unless the two spans have the same length and
+/// each point — `EuropeanVanilla{strike, times_to_expiry[i], type}` in
+/// `BlackScholesMarket{spots[i], vol, rate, dividend_yield}` — is one
+/// `require_valid` above accepts. The message is that function's for the first
+/// point refused, with the point's index.
+void require_valid(const ClosedFormSweep& sweep,
+                   std::span<const double> spots,
+                   std::span<const double> times_to_expiry);
+
+/// `price_and_greeks` at each point, in order. A refused point refuses the whole
+/// call, as `require_valid` would, and no point is returned. No points is an
+/// empty result.
+[[nodiscard]] PriceAndGreeksColumns price_and_greeks(const ClosedFormSweep& sweep,
+                                                     std::span<const double> spots,
+                                                     std::span<const double> times_to_expiry);
 
 }  // namespace touchstone

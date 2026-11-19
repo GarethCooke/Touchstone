@@ -14,6 +14,9 @@
 // caller that wants a coarse path and its own midpoints asks for the fine grid
 // and strides through it.
 //
+// `gbm_paths`, at the end, steps a whole sample from normals the caller
+// supplies, one run of them per path, by the same step.
+//
 // The demos draw their paths from these functions, so a path on the page and a
 // path in a test are the same numbers: same seed, same path.
 // `golden/paths-known-answers.json` is what holds the two to each other.
@@ -85,5 +88,51 @@ void gbm_path(const PathGrid& grid,
               const GbmDynamics& dynamics,
               Scheme scheme,
               std::span<double> path);
+
+// --- A sample of paths, from normals the caller supplies ----------------------
+//
+// A sample is many paths stepped from one stream: path `p` takes the `p`-th run
+// of `steps` normals. Drawn from the shared generator — `steps * P` normals from
+// one seed — path 0 is therefore `gbm_path`'s path at that seed, and another
+// seed moves every path of the sample rather than shifting it along by one.
+// The normals are an argument rather than a seed so that both schemes can be
+// stepped from the same draws, and so that increments recorded elsewhere — an
+// experiment's, say — can be stepped by this library and compared.
+
+/// The grid a sample is stepped on: a horizon and a step count, and no seed,
+/// because nothing is drawn.
+struct StepGrid {
+    double horizon{1.0};   ///< T: each path runs over [0, T].
+    std::size_t steps{1};  ///< Steps per path; dt = T / steps.
+};
+
+/// How many values `gbm_paths` writes from `normals` normals on this grid:
+/// `steps + 1` for each run of `steps`, the start included. Throws
+/// `std::invalid_argument` unless `steps >= 1` and `normals` is a whole number
+/// of runs.
+[[nodiscard]] std::size_t sample_values(const StepGrid& grid, std::size_t normals);
+
+/// Throws `std::invalid_argument` unless: `steps >= 1`; the horizon is finite and
+/// positive; the process is one `require_valid(PathGrid, GbmDynamics, steps + 1)`
+/// accepts; `normals.size()` is a whole number of runs of `steps`; every normal
+/// is finite; and `values == sample_values(grid, normals.size())`.
+///
+/// The normals must be finite because an accepted input never produces a NaN:
+/// at a volatility of zero an infinite normal would make a step's exponent
+/// `0 * inf`.
+void require_valid(const StepGrid& grid,
+                   const GbmDynamics& dynamics,
+                   std::span<const double> normals,
+                   std::size_t values);
+
+/// A sample of paths of `S`, path-major. Path `p` is `S` stepped under `scheme`
+/// from `S_0` by `normals[p*steps, (p+1)*steps)` and written to
+/// `paths[p*(steps+1), (p+1)*(steps+1))`, exactly as `gbm_path` steps its one
+/// path from the normals it draws. No normals is an empty sample.
+void gbm_paths(const StepGrid& grid,
+               const GbmDynamics& dynamics,
+               Scheme scheme,
+               std::span<const double> normals,
+               std::span<double> paths);
 
 }  // namespace touchstone
