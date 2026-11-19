@@ -206,10 +206,162 @@ test('bump Greeks over each pricer', () => {
 test('the library\'s defaults are the module\'s', () => {
   const defaults = touchstone.defaults()
   assert.deepEqual(Object.keys(defaults).sort(),
-    ['bumpSizes', 'crankNicolson', 'impliedVol', 'monteCarlo', 'surfaceSampling'])
+    ['bumpSizes', 'crankNicolson', 'impliedVol', 'impliedVolNewtonBrent', 'monteCarlo', 'surfaceSampling'])
   assert.deepEqual(defaults.surfaceSampling, { everySteps: 1 })
   assert.equal(defaults.impliedVol.initialVol, experiment.params.solver.sigma0)
   assert.equal(defaults.impliedVol.maxIterations, experiment.params.solver.max_iter)
+  assert.deepEqual(Object.keys(defaults.impliedVolNewtonBrent).sort(), ['maxIterations', 'maxVol', 'priceTolerance'])
+})
+
+// --- What the demos draw from: the payoff, N(x), a sample of paths, the closed
+// form at many points, and the second solver ---------------------------------
+
+test('the payoff at many spots, either direction, below zero included', () => {
+  assert.deepEqual(Array.from(touchstone.payoff({ strike: 100, type: 'call' }, [80, 100, 120])), [0, 0, 20])
+  assert.deepEqual(Array.from(touchstone.payoff({ strike: 100, type: 'put' }, new Float64Array([-5, 80, 120]))), [105, 20, 0])
+  assert.ok(touchstone.payoff(base, [1]) instanceof Float64Array)
+  assert.equal(touchstone.payoff({ strike: 100, type: 'put' }, []).length, 0)
+})
+
+test('N(x) and the density, at the native suite\'s reference values', () => {
+  // tests/test_normal.cpp's correctly rounded references and its bound,
+  // (4 + x^2) eps relative.
+  const tolerance = (x) => (4 + x * x) * Number.EPSILON
+  const relative = (actual, reference) => Math.abs(actual - reference) / Math.abs(reference)
+  assert.equal(touchstone.normCdf(0), 0.5)
+  for (const [x, n] of [[1, 0.8413447460685429], [-1, 0.15865525393145705], [1.96, 0.9750021048517795],
+    [-3, 0.0013498980316300946], [-10, 7.619853024160526e-24], [-30, 4.906713927148187e-198]]) {
+    assert.ok(relative(touchstone.normCdf(x), n) <= tolerance(x), `N(${x}) = ${touchstone.normCdf(x)}`)
+  }
+  for (const [x, phi] of [[0, 0.3989422804014326779399461], [1, 0.2419707245191433497978302]]) {
+    assert.ok(relative(touchstone.normPdf(x), phi) <= 2 * Number.EPSILON, `phi(${x}) = ${touchstone.normPdf(x)}`)
+  }
+  assert.ok(Number.isNaN(touchstone.normCdf(NaN)) && Number.isNaN(touchstone.normPdf(NaN)))
+})
+
+test('a sample of paths: the fixture\'s samples, and path 0 is gbmPath\'s at the seed', () => {
+  let worst = 0
+  for (const sample of paths.samples) {
+    const { seed, path_count: count, steps, horizon, spot, drift, vol, scheme } = sample
+    const flat = touchstone.gbmPaths({ horizon, steps, spot, drift, vol, scheme }, touchstone.normals(seed, count * steps))
+    assert.equal(flat.length, count * (steps + 1))
+    sample.paths.forEach((reference, p) => {
+      reference.forEach((value, k) => { worst = Math.max(worst, scaledError(flat[p * (steps + 1) + k], value)) })
+    })
+    assert.deepEqual(flat.subarray(0, steps + 1), touchstone.gbmPath({ seed, horizon, steps, spot, drift, vol, scheme }))
+  }
+  assert.ok(paths.samples.length > 0)
+  assert.ok(worst <= paths.tolerance.value, `worst ${worst}`)
+  console.log(`# samples: ${paths.samples.length}; worst scaled difference ${worst}`)
+})
+
+test('the closed form at many points is priceAndGreeks at each, over the golden file', () => {
+  // The file's rows, grouped by what a sweep holds fixed, as the native suite
+  // groups them, each point held to the one-point export to the bit.
+  const sweeps = new Map()
+  for (const row of [...golden.cases, ...golden.edge_cases]) {
+    const key = [row.strike, row.type, row.vol, row.rate, row.dividend_yield].join()
+    if (!sweeps.has(key)) sweeps.set(key, [])
+    sweeps.get(key).push(row)
+  }
+  let points = 0
+  for (const rows of sweeps.values()) {
+    const { strike, type, vol, rate, dividend_yield: dividendYield } = rows[0]
+    const columns = touchstone.priceAndGreeksAt({ strike, type, vol, rate, dividendYield },
+      rows.map((row) => row.spot), new Float64Array(rows.map((row) => row.expiry_years)))
+    rows.forEach((row, i) => {
+      const one = touchstone.priceAndGreeks(option(row), market(row))
+      for (const field of greekFields) assert.equal(columns[field][i], one[field], `${row.label ?? ''} ${field}`)
+      points++
+    })
+  }
+  assert.equal(points, golden.cases.length + golden.edge_cases.length)
+  console.log(`# priceAndGreeksAt: ${sweeps.size} sweeps of ${points} points, each identical to priceAndGreeks`)
+})
+
+test('Newton then Brent: the price round trip over the golden file, and Brent alone', () => {
+  // tests/test_implied_vol.cpp's exit criterion, through the module: every row
+  // with a solution repriced inside 1e-8; the rest refused as a RangeError.
+  let worst = 0
+  let solved = 0
+  let refused = 0
+  const methods = { newton: 0, brent: 0, exact: 0 }
+  for (const row of [...golden.cases, ...golden.edge_cases]) {
+    const quoted = { spot: row.spot, rate: row.rate, dividendYield: row.dividend_yield }
+    let found
+    try {
+      found = touchstone.impliedVolNewtonBrent(option(row), quoted, row.price)
+    } catch (error) {
+      assert.ok(error instanceof RangeError, error.message)
+      refused++
+      continue
+    }
+    assert.equal(found.converged, true)
+    methods[found.method]++
+    solved++
+    worst = Math.max(worst, scaledError(touchstone.priceAndGreeks(option(row), { ...quoted, vol: found.vol }).price, row.price))
+  }
+  assert.ok(solved > 7000 && worst <= 1e-8, `${solved} solved, worst ${worst}`)
+
+  // One Newton step allowed: Brent finishes, inside the same criterion.
+  let fellBack = 0
+  let rows = 0
+  let worstBrent = 0
+  for (let i = 0; i < golden.cases.length; i += 7) {
+    const row = golden.cases[i]
+    const quoted = { spot: row.spot, rate: row.rate, dividendYield: row.dividend_yield }
+    let found
+    try { found = touchstone.impliedVolNewtonBrent(option(row), quoted, row.price, { maxIterations: 1 }) } catch { continue }
+    rows++
+    if (found.method === 'brent') fellBack++
+    worstBrent = Math.max(worstBrent, scaledError(touchstone.priceAndGreeks(option(row), { ...quoted, vol: found.vol }).price, row.price))
+  }
+  assert.ok(fellBack > rows * 0.9 && worstBrent <= 1e-8, `${fellBack} of ${rows} in Brent, worst ${worstBrent}`)
+  console.log(`# impliedVolNewtonBrent: ${solved} rows solved (${refused} refused), worst scaled reprice ${worst};` +
+    ` Newton ${methods.newton}, Brent ${methods.brent}, exact ${methods.exact};` +
+    ` with one Newton step ${fellBack} of ${rows} in Brent, worst ${worstBrent}`)
+})
+
+// --- An array argument costs its own length -----------------------------------
+
+test('a slice of a larger array is handed over as itself, and costs its own length', () => {
+  // A demo hands one path's spots to the module as a subarray of a whole
+  // sample. The clone that keeps a throwing getter out of the module copies a
+  // view's whole buffer, so the view is first given a buffer of its own: what
+  // reaches the clone is the slice's bytes and no more.
+  const whole = touchstone.gbmPaths({ horizon: 1, steps: 255, spot: 100, drift: 0.05, vol: 0.2, scheme: 'exact' },
+    touchstone.normals(1, 255 * 784))
+  const third = whole.subarray(2 * 256, 3 * 256)
+  const own = Float64Array.from(third)
+  const sweep = { strike: 100, type: 'call', vol: 0.2, rate: 0.05, dividendYield: 0 }
+  const times = new Float64Array(whole.length).fill(0.5)
+
+  const cloned = []
+  const clone = globalThis.structuredClone
+  globalThis.structuredClone = (value) => {
+    for (const argument of value) if (ArrayBuffer.isView(argument)) cloned.push(argument.buffer.byteLength)
+    return clone(value)
+  }
+  let fromSlice
+  try {
+    fromSlice = touchstone.priceAndGreeksAt(sweep, third, times.subarray(0, 256))
+  } finally {
+    globalThis.structuredClone = clone
+  }
+  assert.deepEqual(cloned, [256 * 8, 256 * 8], 'each slice reached the clone in a buffer of its own length')
+  assert.deepEqual(fromSlice, touchstone.priceAndGreeksAt(sweep, own, new Float64Array(256).fill(0.5)))
+  assert.deepEqual(touchstone.payoff(base, third), touchstone.payoff(base, own))
+  assert.equal(third.length, 256, 'the caller\'s view is untouched')
+})
+
+test('a getter on an array argument still throws before the module is entered', () => {
+  const sentinel = new SyntaxError('from the getter')
+  const view = new Float64Array(1024).subarray(10, 20)
+  Object.defineProperty(view, 'byteLength', { get () { throw sentinel } })
+  assert.throws(() => touchstone.payoff(base, view), (error) => error === sentinel)
+  const proxied = new Proxy([1, 2, 3], { get () { throw sentinel } })
+  assert.throws(() => touchstone.payoff(base, proxied), (error) => error === sentinel || error instanceof DOMException)
+  assert.deepEqual(Array.from(touchstone.payoff(base, [90, 110])), [0, 10])
 })
 
 // --- Refusals ---------------------------------------------------------------
@@ -230,6 +382,21 @@ test('an input the library rejects is a RangeError with the library\'s reason', 
   refuses(() => touchstone.uniforms(-1, 3), RangeError, 'seed')
   refuses(() => touchstone.uniforms(1.5, 3), RangeError, 'seed')
   refuses(() => touchstone.normals(1, 2 ** 32), RangeError, 'n')
+
+  const sweep = { strike: 100, type: 'call', vol: 0.2, rate: 0.05, dividendYield: 0.02 }
+  refuses(() => touchstone.priceAndGreeksAt(sweep, [90, 100, -1], [1, 1, 1]), RangeError, 'at point 2 ')
+  refuses(() => touchstone.priceAndGreeksAt(sweep, [90, 100], [1]), RangeError, 'one time to expiry for each spot')
+  refuses(() => touchstone.priceAndGreeksAt({ ...sweep, vol: -0.2 }, [90], [1]), RangeError, 'vol')
+  const spec = { horizon: 1, steps: 4, spot: 100, drift: 0.05, vol: 0.2, scheme: 'exact' }
+  refuses(() => touchstone.gbmPaths(spec, touchstone.normals(1, 7)), RangeError, 'whole number of runs')
+  refuses(() => touchstone.gbmPaths({ ...spec, steps: 0 }, []), RangeError, 'at least one step')
+  refuses(() => touchstone.gbmPaths({ ...spec, vol: 0 }, [0, 0, Infinity, 0]), RangeError, 'finite')
+  refuses(() => touchstone.impliedVolNewtonBrent(base, baseMarket, 1000), RangeError, 'no finite volatility')
+  refuses(() => touchstone.impliedVolNewtonBrent(base, baseMarket, NaN), RangeError, '')
+
+  // No points, no normals: an empty result rather than a refusal.
+  assert.deepEqual(touchstone.priceAndGreeksAt(sweep, [], []).price, new Float64Array(0))
+  assert.equal(touchstone.gbmPaths(spec, []).length, 0)
 })
 
 test('an argument of the wrong shape is a TypeError naming the field', () => {
@@ -239,6 +406,22 @@ test('an argument of the wrong shape is a TypeError naming the field', () => {
   refuses(() => touchstone.priceAndGreeks({ strike: 100, type: 'call' }, baseMarket), TypeError, 'option.expiryYears is required')
   refuses(() => touchstone.monteCarlo({ ...base, exercise: 'american' }, baseMarket), TypeError, 'European')
   refuses(() => touchstone.bumpGreeks(base, baseMarket, {}, { method: 'lattice' }), TypeError, 'pricer.method')
+
+  refuses(() => touchstone.payoff(base, [1, '2']), TypeError, 'spots[1] must be a number')
+  refuses(() => touchstone.payoff(base, [1, , 3]), TypeError, 'spots[1] must be a number')
+  refuses(() => touchstone.payoff(base, [1, 2n]), TypeError, 'spots[1] must be a number')
+  refuses(() => touchstone.payoff(base, new Float32Array(2)), TypeError, 'spots must be a Float64Array or an array of numbers')
+  refuses(() => touchstone.payoff(base, 100), TypeError, 'spots must be')
+  refuses(() => touchstone.payoff({ strike: 100 }, [1]), TypeError, 'option.type is required')
+  refuses(() => touchstone.normCdf('1'), TypeError, 'x must be a number')
+  const spec = { horizon: 1, steps: 4, spot: 100, drift: 0.05, vol: 0.2, scheme: 'exact' }
+  refuses(() => touchstone.gbmPaths({ ...spec, seed: 1 }, touchstone.normals(1, 4)), TypeError, 'normals(seed')
+  refuses(() => touchstone.gbmPaths({ ...spec, scheme: 'milstein' }, touchstone.normals(1, 4)), TypeError, 'spec.scheme')
+  refuses(() => touchstone.priceAndGreeksAt({ strike: 100, type: 'call', vol: 0.2, rate: 0.05, dividendYield: 0, exercise: 'american' },
+    [100], [1]), TypeError, 'European')
+  refuses(() => touchstone.priceAndGreeksAt({ strike: 100, type: 'call', vol: 0.2, rate: 0.05 }, [100], [1]), TypeError,
+    'sweep.dividendYield is required')
+  refuses(() => touchstone.impliedVolNewtonBrent({ ...base, exercise: 'american' }, baseMarket, 10), TypeError, 'European')
 })
 
 test('a thrown getter on an argument reaches the caller as itself', () => {
@@ -253,6 +436,8 @@ test('the module survives a hundred thousand refusals of each kind, and then sti
     () => touchstone.priceAndGreeks({ ...base, strike: -1 }, baseMarket),
     () => touchstone.priceAndGreeks({ ...base, type: 'straddle' }, baseMarket),
     () => touchstone.priceAndGreeks({ get strike () { throw new Error('getter') }, expiryYears: 1, type: 'call' }, baseMarket),
+    () => touchstone.payoff(base, [100, 'one hundred']),
+    () => touchstone.priceAndGreeksAt({ strike: 100, type: 'call', vol: 0.2, rate: 0.05, dividendYield: 0 }, [100, -1], [1, 1]),
   ]
   const rounds = 100_000
   for (const kind of kinds) {
