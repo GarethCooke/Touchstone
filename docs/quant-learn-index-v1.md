@@ -114,6 +114,8 @@ experiments while learning; the same invariants become library tests.
 - **3.6 In the system.** Pricing library ↔ market data ↔ trade store ↔ risk engine; the EOD
   batch; P&L explain; model validation; why the quant's library has separate model and
   calibration layers.
+- **3.7 Reading QuantLib.** How the QuantLib-Python oracle generates the golden values, and how
+  to read the library those values come from.
 
 Checks throughout: each page's test suite plus one spot-the-bug.
 

@@ -12,13 +12,13 @@ evidenced by screenshots.
 
 - **S — Study** (teaching sessions, Fable + owner): S1–S11 → pages 2.1–2.11.
 - **L — Learn site** (`touchstone-learn`, Opus): L0–L6.
-- **T — Touchstone library** (`touchstone`, Opus): T0–T5.
+- **T — Touchstone library** (`touchstone`, Opus): T0–T6.
 - **P — Portal** (portfolio repo, Opus via a portal brief): P1–P2.
 
 ## Suggested order
 
 L0 → T0 → S1… (owner's cadence, in parallel with everything below) → T1 → L1 → T2 → T3 →
-L2 (once S11 is done) → L4a → L3 → P1 → L4b → T3a → T4 → T5 → L5 → P2 → L6.
+L2 (once S11 is done) → L4a → L3 → P1 → L4b → T3a → T4 → T5 → T6 → L5 → P2 → L6.
 
 Fable-review tollgates, eight in total: L0, L1, L2, T1, T5, L5, P2, L6.
 
@@ -31,7 +31,7 @@ Fable-review tollgates, eight in total: L0, L1, L2, T1, T5, L5, P2, L6.
 | L3 | L2 |
 | L4a | L2 batch 1's draft-routing fix; Fable drafts for 0.1–0.3 |
 | L4b | L3, Fable drafts for 1.0–1.5 |
-| L5 | L3, T3, T4 |
+| L5 | L3, T3, T4, T6 |
 | L6 | L4, L5, P1, P2 |
 | T1 | T0 |
 | T2 | T1, L0 (RNG fixture) |
@@ -39,6 +39,7 @@ Fable-review tollgates, eight in total: L0, L1, L2, T1, T5, L5, P2, L6.
 | T3a | T3 |
 | T4 | T3a |
 | T5 | T4 |
+| T6 | T5 |
 | P1 | L3 |
 | P2 | T5 |
 
@@ -138,15 +139,22 @@ read the six pages and the payoff-diagram builder on the preview and approved th
 says who decided something or when, the experiment scripts included.
 
 ### ☐ L5 — Part 3 and demos D7–D10 on the WASM backend
-**Entry:** L3, T3, T4.
-**Deliverables:** `wasmBackend` behind `PricingBackend` (I15), carrying every demo: D1–D6
-and D9 move onto it from the TypeScript backend; D7 Monte Carlo convergence
-with error bars; D8 PDE grid heatmap; D9 implied-vol solver and smile viewer with a Deribit
-fixture (I7); D10 bump-and-revalue risk table; pages 3.1–3.7, drafted with the owner per I2.
+**Entry:** L3, T3, T4, T6; Fable drafts for 3.1–3.7.
+**Deliverables:** `wasmBackend` behind `PricingBackend` (I15), on the `v1.1.0` artifact,
+carrying every demo: D1–D6, D9 and D11 move onto it from the TypeScript numerics; D7 Monte
+Carlo convergence with error bars; D8 PDE grid heatmap, European and American; D9 implied-vol
+solver and smile viewer on its generated fixture; D10 bump-and-revalue risk table; pages
+3.1–3.7 from the Fable drafts, reviewed by the owner (I2).
 **Exit:** TS and WASM backends agree on every known-answer and demo test within tolerance;
 the TypeScript numerics are then removed and the suite runs on WASM alone (A6);
-D9's fixture carries source and date; pages `published` after owner review.
+D9's fixture carries its source and that source's hash; pages `published` after owner review.
 **Tollgate:** F. **Executor:** Opus. **Size:** three sessions.
+By the owner's rulings of 2026-11-19: Fable sessions draft Part 3 as they drafted Part 1; a
+Part 3 page shows the library's own C++, copied at the pinned release, and its numbers are held
+by a site test that runs the browser build, with an experiment script only for a number the
+library cannot produce; 3.3 covers early exercise on the grid (A12); D9 keeps its generated
+smiles and takes no Deribit snapshot, because Deribit's terms do not allow its market data to
+be published without written approval; numpy is pinned in the site's build.
 
 ### ☐ L6 — Launch v1
 **Entry:** L4, L5, P1, P2.
@@ -259,6 +267,24 @@ had audited T3a and T4, not a fresh one as §6 asks; the owner accepted it. The 
 decisions stand: the three exercise-style pairs in `pde.hpp` stay as overloads, since a
 template would let an untyped `{}` settle silently on the bump sizes; no `.clang-format`; a
 comment that cites the roadmap or the constitution as its authority counts as history.
+
+### ☐ T6 — What the demos need from the browser build
+**Entry:** T5; the owner's ruling of 2026-11-19 in `docs/briefs/T6-browser-build-needs.md`, from
+which the session derives its work order.
+**Deliverables:** the binding exports the payoff, N(x) and the normal density; the library
+steps a sample of geometric Brownian motion paths, exact and Euler, path by path from one
+stream, and the binding carries it; a closed-form entry point that takes many spots and times
+to expiry in one call, and its binding; the binding exports `implied_vol` (Newton, then Brent)
+beside the safeguarded solver; the signatures proposed by the session and ruled on by the owner
+before any is built; `ARCHITECTURE.md`, its claims list and the README current; version 1.1.0.
+**Exit:** every test that was green is green, on both compilers and under the sanitizers;
+nothing `v1.0.0` exports has changed its signature or its numbers; each new piece has its test,
+and the smoke test calls each new export through the module; the cost of one closed-form point
+through the module is measured and reported; no arithmetic in the binding; a review for
+repeated code by a session that did not write the change, its findings closed; artifact under
+500 KB, reported; no new dependency; released as `v1.1.0`.
+**Tollgate:** V. **Executor:** Opus. **Size:** one session, two at most.
+Unlocks L5.
 
 ## Track P — Portal (portfolio repo)
 
