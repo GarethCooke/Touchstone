@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(touchstone
-    VERSION 1.0.0
+    VERSION 1.1.0
     DESCRIPTION "A C++20 pricing-and-risk library for European vanilla options"
     HOMEPAGE_URL "https://github.com/GarethCooke/Touchstone"
     LANGUAGES CXX)
