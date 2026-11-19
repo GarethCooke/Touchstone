@@ -1,0 +1,32 @@
+git diff --stat fbf90f9 (the branch base), taken before diff.txt itself was committed
+
+ ARCHITECTURE.md                      |  64 +++++--
+ CMakeLists.txt                       |   2 +-
+ README.md                            |  31 +++-
+ docs/evidence/T6/build.txt           | 122 ++++++++++++++
+ docs/evidence/T6/claims.md           |  78 +++++++++
+ docs/evidence/T6/review.md           |  38 +++++
+ docs/evidence/T6/signatures.md       | 309 ++++++++++++++++++++++++++++++++++
+ docs/evidence/T6/summary.md          | 197 ++++++++++++++++++++++
+ docs/evidence/T6/tests.txt           | 232 ++++++++++++++++++++++++++
+ docs/evidence/T6/timing.txt          | 164 ++++++++++++++++++
+ golden/README.md                     |   6 +-
+ golden/generate_paths.py             |  50 +++++-
+ golden/normal-known-answers.json     |  54 ++++++
+ golden/paths-known-answers.json      | 270 +++++++++++++++++++++++++++++-
+ include/touchstone/black_scholes.hpp |  69 ++++++++
+ include/touchstone/contract.hpp      |  17 ++
+ include/touchstone/paths.hpp         |  51 ++++++
+ src/black_scholes.cpp                |  62 +++++++
+ src/paths.cpp                        | 150 +++++++++++++++--
+ tests/CMakeLists.txt                 |   1 +
+ tests/greek_fields.hpp               |  29 ++--
+ tests/test_closed_form.cpp           | 100 +++++++++++
+ tests/test_contract.cpp              |  27 +++
+ tests/test_normal.cpp                |  88 ++++++----
+ tests/test_paths.cpp                 | 218 ++++++++++++++++++++++--
+ wasm/binding.cpp                     | 315 ++++++++++++++++++++++++++++++-----
+ wasm/errors.post.js                  |  12 ++
+ wasm/smoke.test.mjs                  | 190 ++++++++++++++++++++-
+ wasm/timing.mjs                      |  99 +++++++++++
+ 29 files changed, 2885 insertions(+), 160 deletions(-)
