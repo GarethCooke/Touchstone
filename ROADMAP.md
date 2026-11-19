@@ -121,7 +121,7 @@ precedes it rather than to compensate for nothing preceding it.
 read the three pages on the preview and approved them. By his rulings of that day 0.1 and 0.2
 carry four static figures, which are neither demos nor snippets.
 
-### ☐ L4b — Part 1
+### ☑ L4b — Part 1
 **Entry:** L3; Fable drafts for 1.0–1.5.
 **Deliverables:** pages with checks; the payoff-diagram builder (new demo, D11) for 1.4; the
 margin-account walk for 1.2 as a worked table; the day-count example for 1.0 as a runnable
@@ -131,6 +131,11 @@ snippet.
 By the owner's ruling of 2026-11-17, 0.2's map and its sections on reading a demo and a
 check become page 0.0 "How to use this site", with no check (A11), built as one more batch
 on `m/L4b` before the close — brief: `touchstone-learn/docs/briefs/L4b-page-0.0.md`.
+**Passed** 2026-11-19 — evidence: `touchstone-learn/docs/evidence/L4b/`. Self-verified; the owner
+read the six pages and the payoff-diagram builder on the preview and approved them, merged
+`m/L4b` (pull request #8), and production shows Parts 0, 1 and 2 end to end. By his rulings of
+2026-11-17, 1.5 says its swap must be cleared and is margined, and nothing a reader can see
+says who decided something or when, the experiment scripts included.
 
 ### ☐ L5 — Part 3 and demos D7–D10 on the WASM backend
 **Entry:** L3, T3, T4.
