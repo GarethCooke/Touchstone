@@ -38,11 +38,16 @@ the roadmap the same way.
    each with its native test. `gbm_path` and `gbm_paths` share one per-path loop in `detail`.
    `generate_paths.py` and its fixture are extended by the same independent transcription.
 4. The binding: the ruled exports, translation only, and the new solver's settings in
-   `defaults()`. `smoke.test.mjs` calls each new export and holds it to a number the native
-   tests hold.
+   `defaults()`. An array argument costs its own length whatever larger array it is a slice
+   of (ruling 12), and a getter or proxy that throws still does so before the module is
+   entered. `smoke.test.mjs` calls each new export and holds it to a number the native tests
+   hold, and holds ruling 12.
 5. Measurement: the cost of one closed-form point through the module in Node, measured beside
-   the brief's two figures. If 200,000 points take more than 200 ms, stop and return to the
-   owner. Size is reported with and without exception catching, against 500,000 bytes.
+   the brief's two figures, and 200,000 points taken twice: as one call, and as 781 calls of
+   256 points, each a slice of one array (ruling 12). The audit's four `structuredClone`
+   timings are rerun on this machine and reported beside the result. If 200,000 points take
+   more than 200 ms in either pattern, stop and return to the owner. Size is reported with and
+   without exception catching, against 500,000 bytes.
 6. A review for repeated code by a session that did not write the change; its findings closed.
 7. `ARCHITECTURE.md` (the status line, §1's version, §4, §5, §10.1, §11), the claims list, the
    README, and 1.1.0 in `CMakeLists.txt`. No tag is pushed: the owner tags `v1.1.0` after the

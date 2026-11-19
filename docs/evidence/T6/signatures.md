@@ -1,5 +1,63 @@
 # T6 — proposed signatures, for the owner's ruling
 
+## The owner's ruling
+
+The owner answered twelve items on the page "T6 signature rulings" at 17:08 UTC on
+2026-11-19. His answer, verbatim:
+
+```text
+T6 signature rulings, 19 November 2026
+payoff-many-spots: A
+payoff-option-fields: A
+normal-one-value: A
+normal-nan: A
+paths-from-normals: A
+paths-seed-field: A
+many-points-outputs: A
+many-points-inputs: A
+solver-name: A
+defaults-new-key: A
+empty-input: A
+array-slices: A
+```
+
+The first eleven are questions 1 to 11 of the table at the end of this file, in order, and A
+is "Proposed" on each, so all eleven stand as proposed below:
+
+| Item | Question | Ruled |
+|---|---|---|
+| `payoff-many-spots` | 1 | Array only: `payoff(option, spots)` |
+| `payoff-option-fields` | 2 | `strike` and `type` only |
+| `normal-one-value` | 3 | Scalar only; no library change |
+| `normal-nan` | 4 | `normCdf(NaN)` returns NaN |
+| `paths-from-normals` | 5 | By normals only (`gbm_paths` / `gbmPaths`) |
+| `paths-seed-field` | 6 | A `seed` field is refused with a `TypeError` |
+| `many-points-outputs` | 7 | All seven columns |
+| `many-points-inputs` | 8 | A new `ClosedFormSweep` with no spot and no expiry |
+| `solver-name` | 9 | `impliedVolNewtonBrent` |
+| `defaults-new-key` | 10 | `defaults()` gains the key |
+| `empty-input` | 11 | An empty result, not a refusal |
+
+The twelfth, `array-slices`, was not in this proposal. The audit of the proposal raised it.
+The owner chose:
+
+> Yes. An array argument costs its own length whatever larger array it is a slice of. The
+> session chooses how. The smoke test holds it, and the 200,000-point timing is taken twice:
+> as one call, and as 781 calls of 256 points, each a slice of one array.
+
+What it rests on: `wasm/errors.post.js` passes every argument through `structuredClone`, and
+a typed-array view clones its whole underlying buffer. The audit timed this in Node 22.23.5 in
+a cloud container, one run: `structuredClone` of a 256-value subarray of a 200,704-value
+`Float64Array`, 329 µs; of a 256-value `Float64Array` of its own, 5.5 µs; of the whole
+200,704-value `Float64Array`, 369 µs; of the same values as a plain array, 3.4 ms. The site's
+D5 will take one flat array of paths from `gbmPaths` and hand each path's spots to
+`priceAndGreeksAt` as a subarray: 781 calls for its live sample, about 257 ms in cloning
+alone. Whatever is done must keep what the clone is there for: a getter or proxy that throws
+does so before the module is entered. The four timings are rerun on the build session's
+machine and reported beside the result.
+
+---
+
 2026-11-19 · claude-opus-5-5 · at `fbf90f9` on `m/T6`. Nothing below is built. The brief
 (`docs/briefs/T6-browser-build-needs.md`, "The session proposes the signatures, and stops")
 asks for the C++ and the JavaScript signature of each need with one line of reasoning each.
