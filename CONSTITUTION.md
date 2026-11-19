@@ -102,7 +102,8 @@ tell within thirty seconds that nothing is claimed beyond what is demonstrated.
   differences MUST agree within stated tolerances; analytic and bump Greeks likewise; Monte
   Carlo standard error is reported, never hidden.
 - **I21 — v1 scope is fixed.** European vanillas, one underlying, constant rate and
-  volatility, dividend yield. Anything else is Part 4 and enters only by amendment.
+  volatility, dividend yield; and American exercise of the same vanillas on the
+  finite-difference grid alone. Anything else is Part 4 and enters only by amendment.
 - **I22 — Mobile is a first-class reader.** Prose, maths, code and checks MUST be fully
   usable at a 390 px viewport: no horizontal page overflow; display maths and code blocks
   scroll within their own box rather than shrinking or wrapping; checks are answerable by
@@ -235,3 +236,9 @@ or owner)`.
   reading a demo and a check became page 0.0 "How to use this site", and the owner ruled
   that a page about using the site is not quizzed · authority: owner, 2026-11-17. A10 was
   proposed by tollgate P2 and declined by the owner on 2026-11-16; the number is not reused.
+- **A12** · 2026-11-19 · I21 · European vanillas, one underlying, constant rate and volatility,
+  dividend yield → the same, and American exercise of the same vanillas on the
+  finite-difference grid alone · reason: the library's grid has priced the American contract
+  since T3, held to QuantLib's lattices in `golden/american_vanilla.json`; the index's line for
+  3.3 names early exercise; and page 3.3 and D8 are to show it. The closed form, the Monte
+  Carlo, implied volatility and every other page stay European · authority: owner, 2026-11-19.
