@@ -1,0 +1,164 @@
+T6 · timing evidence
+====================
+
+One machine, one date (2026-11-19), in Node, not in a browser. Nothing here is asserted by
+a test, and nothing was tuned to it. ARCHITECTURE.md §9 says the document claims none of
+these numbers.
+
+  Machine   AMD Ryzen 7 3800X 8-Core Processor, 16 logical processors, 32 GB;
+            Windows 11 Pro 10.0.26300; the session's own builds and tests ran at other times
+  Node      v24.13.1 (the machine's install). CI and the brief ran Node 22; no Node 22 was
+            installed here, and none was installed for this.
+  Artifact  Emscripten 6.0.13, wasm/build.sh, -O3, exception catching on: the shipped build.
+            v1.0.0's is main's build at fbf90f9, taken before any edit.
+  Method    Each figure is the median of 9 timed runs after one untimed run, with the least
+            and most in brackets. performance.now().
+
+1. The closed form through the module (wasm/timing.mjs, committed)
+------------------------------------------------------------------
+
+  The points: a hedge sample at 256 rebalances, 781 paths stepped by gbmPaths from
+  normals(1, 781 * 256), a call struck at 100, vol 0.2, rate 0.05, no dividend yield; at each
+  date the spot on the path and the time left. 200,000 points for the first two lines;
+  781 x 256 = 199,936 for the third, each call handed path p's 256 spots and their 256
+  times to expiry as subarrays of two 200,717-value arrays.
+
+  Node v24.13.1; AMD Ryzen 7 3800X 8-Core Processor, 16 logical processors, 32 GB; module 1.1.0 at C:\Development\Projects\Touchstone\build-wasm\wasm\touchstone.mjs
+  median of 9 runs after one untimed run; the range in brackets
+  
+  priceAndGreeks(...).delta, 200,000 calls of one point        2252.422 ms  (2145.653 to 2310.386)     11.262 µs each
+  priceAndGreeksAt, one call of 200,000 points                   36.421 ms  (33.952 to 46.002)      0.182 µs each
+  priceAndGreeksAt, 781 calls of 256 points, each a slice        57.144 ms  (53.867 to 61.718)      0.286 µs each
+  
+
+  Ruling 12's budget: 200,000 points in at most 200 ms through the module, in either
+  pattern. One call: 36.4 ms. 781 slices: 57.1 ms. Both inside it.
+
+  One point through priceAndGreeksAt costs 0.18 µs in one call of 200,000 and 0.29 µs in
+  calls of 256; one point through priceAndGreeks, one call a point, costs 11.3 µs.
+
+2. The argument clone (wasm/timing.mjs, section 2)
+--------------------------------------------------
+
+  The four timings the audit took, rerun here. A 200,704-value Float64Array of values
+  100 + (i mod 97); its 256-value subarray at offset 1,024; a Float64Array copy of that
+  subarray; the whole array; the same values as a plain array. structuredClone of each, in
+  loops of 1,000, 100 and 10, the line giving the median loop and the cost of one clone.
+
+  structuredClone, a 256-value subarray of 200,704              731.184 ms  (709.889 to 756.015)    731.184 µs each
+  structuredClone, a 256-value Float64Array of its own            2.587 ms  (1.935 to 4.308)      2.587 µs each
+  structuredClone, the whole 200,704-value Float64Array          73.354 ms  (69.044 to 79.678)    733.539 µs each
+  structuredClone, the same values as a plain array              45.862 ms  (42.238 to 53.252)   4586.170 µs each
+
+  Beside the audit's (Node 22.23.5, a cloud container, one run): 329 µs, 5.5 µs, 369 µs and
+  3.4 ms. The shape is the same here: a subarray costs what its whole buffer costs, and a
+  plain array costs about six times a typed one. errors.post.js therefore copies a partial
+  view into a buffer of its own before the clone (ARCHITECTURE.md §8), and the smoke test
+  holds each 256-value slice to a 2,048-byte buffer at the clone.
+
+3. The brief's two figures, rerun on this machine
+-------------------------------------------------
+
+  The site's TypeScript numerics from touchstone-learn at 8d7293c, read only: `delta` from
+  src/demos/blackScholes.ts, `hedgeSample` from src/demos/experiments/hedging.ts on
+  tsBackend, at N = 256 with samplePaths(256) = 781 paths and page 2.7's experiment's
+  parameters (S0 100, K 100, T 1, r 0.05, implied and realised vol 0.4, drift 0). Bundled
+  with that repository's esbuild into one script outside both repositories; its source is
+  section 5. The same 200,000 (spot, time) pairs for the TypeScript delta and the module's.
+
+  Node v24.13.1; AMD Ryzen 7 3800X 8-Core Processor
+  median of 9 runs after one untimed run
+  TypeScript delta, 200,000 calls                                    31.979 ms  (31.525 to 32.978)      0.160 µs each
+  D5 hedgeSample on the TypeScript numerics, N = 256, 781 paths      40.002 ms  (39.742 to 44.909)
+  module v1.0.0 (1.0.0): priceAndGreeks(...).delta, 200,000 calls   2255.163 ms  (2076.695 to 2482.836)     11.276 µs each
+  module this branch (1.1.0): priceAndGreeks(...).delta, 200,000 calls   2186.759 ms  (2145.696 to 2206.943)     10.934 µs each
+
+  Beside the brief's (Node 22.23.5, vitest, a cloud container, one run): TypeScript delta
+  0.246 µs a call; the module's priceAndGreeks(...).delta 8.43 µs a call; the TypeScript D5
+  sample 48 ms; 200,000 calls through the module 1,685 ms. Here: 0.160 µs, 11.3 µs, 40.0 ms
+  and 2,255 ms (v1.0.0). The finding holds, by more here: one call a point through the module
+  is about seventy times the TypeScript delta (the brief: thirty-four), and 200,000 such calls
+  are about fifty-six times D5's sample on the TypeScript (the brief: thirty-five). One call of
+  200,000 points through priceAndGreeksAt is 36 ms, beside that sample's 40.
+
+4. What the slice copy costs every call
+---------------------------------------
+
+  errors.post.js now looks at each argument before the clone. priceAndGreeks(...).delta,
+  200,000 calls, on v1.0.0's artifact and this branch's, three runs of the script above in
+  two orders:
+
+    first run, v1.0.0 first          v1.0.0 11.18 µs   branch 12.35 µs  (the copy by map)
+    second run, v1.0.0 first         v1.0.0 12.50 µs   branch 12.76 µs  (the copy in place)
+    third run, branch first          v1.0.0 11.02 µs   branch 12.73 µs
+    final run (section 3)            v1.0.0 11.28 µs   branch 10.93 µs
+
+  The first form built a new arguments array on every call; it was replaced by a loop over
+  the arguments in place. After that, the difference between the two artifacts is inside
+  the spread of either from run to run (11.0 to 12.8 µs), so nothing is claimed for it
+  either way.
+
+5. The TypeScript harness (section 3), as run
+---------------------------------------------
+
+    // The brief's two figures, rerun: the site's TypeScript `delta` a call against
+    // the module's `priceAndGreeks(...).delta` a call, and D5's live sample on the
+    // TypeScript numerics against 200,000 calls through the module. Read-only use
+    // of touchstone-learn at 8d7293c; bundled with that repository's esbuild.
+    import { cpus } from 'node:os'
+    import { pathToFileURL } from 'node:url'
+    import { delta as bsDelta } from 'C:/Development/Projects/Touchstone-Learn/src/demos/blackScholes'
+    import { hedgeSample, samplePaths } from 'C:/Development/Projects/Touchstone-Learn/src/demos/experiments/hedging'
+    import { tsBackend } from 'C:/Development/Projects/Touchstone-Learn/src/demos/tsBackend'
+    import experiment from 'C:/Development/Projects/Touchstone/experiments/2_7_delta_hedging.json'
+    
+    const runs = 9
+    const time = (body: () => void) => {
+      body()
+      const taken: number[] = []
+      for (let r = 0; r < runs; r++) {
+        const start = performance.now()
+        body()
+        taken.push(performance.now() - start)
+      }
+      taken.sort((a, b) => a - b)
+      return { median: taken[runs >> 1], least: taken[0], most: taken[runs - 1] }
+    }
+    const report = (label: string, t: { median: number; least: number; most: number }, per?: number) =>
+      console.log(`${label.padEnd(62)} ${t.median.toFixed(3).padStart(10)} ms  (${t.least.toFixed(3)} to ${t.most.toFixed(3)})` +
+        (per === undefined ? '' : `   ${((t.median * 1000) / per).toFixed(3).padStart(8)} µs each`))
+    
+    const p = experiment.params
+    const calls = 200_000
+    const spots = Float64Array.from({ length: calls }, (_, i) => 80 + (i % 401) * 0.1)
+    const times = Float64Array.from({ length: calls }, (_, i) => 1 - (i % 256) / 256)
+    
+    console.log(`Node ${process.version}; ${cpus()[0].model.trim()}`)
+    console.log(`median of ${runs} runs after one untimed run`)
+    let sink = 0
+    report(`TypeScript delta, ${calls.toLocaleString('en')} calls`, time(() => {
+      for (let i = 0; i < calls; i++) {
+        sink += bsDelta({ strike: 100, expiryYears: times[i], type: 'call' }, { spot: spots[i], vol: 0.2, rate: 0.05, dividendYield: 0 })
+      }
+    }), calls)
+    
+    const histograms = { hedged: { lo: -10, hi: 10, bins: 40 }, unhedged: { lo: -20, hi: 40, bins: 60 } }
+    const rebalances = 256
+    const paths = samplePaths(rebalances)
+    const spec = { seed: 1, paths, rebalances, spot: p.S0, strike: p.K, expiryYears: p.T, drift: 0, impliedVol: p.sigma_implied ?? 0.2,
+      realisedVol: p.sigma_implied ?? 0.2, rate: p.r, type: 'call' as const }
+    report(`D5 hedgeSample on the TypeScript numerics, N = ${rebalances}, ${paths} paths`, time(() => {
+      sink += hedgeSample(tsBackend, spec, histograms).mean
+    }))
+    
+    for (const [label, path] of [['v1.0.0', process.argv[2]], ['this branch', process.argv[3]]]) {
+      if (!path) continue
+      const { default: create } = await import(pathToFileURL(path).href)
+      const t = await create()
+      report(`module ${label} (${t.version}): priceAndGreeks(...).delta, ${calls.toLocaleString('en')} calls`, time(() => {
+        for (let i = 0; i < calls; i++) {
+          sink += t.priceAndGreeks({ strike: 100, expiryYears: times[i], type: 'call' }, { spot: spots[i], vol: 0.2, rate: 0.05, dividendYield: 0 }).delta
+        }
+      }), calls)
+    }
+    if (Number.isNaN(sink)) console.log('unreachable')

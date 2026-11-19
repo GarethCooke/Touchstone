@@ -21,6 +21,7 @@
 #include <doctest/doctest.h>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -488,7 +489,8 @@ TEST_SUITE("paths")
         // would make a step's exponent 0 * inf, a NaN, so none is accepted.
         for (const double bad : {inf, -inf, nan}) {
             CAPTURE(bad);
-            std::vector<double> poisoned = eight;
+            std::array<double, 8> poisoned{};
+            std::copy(eight.begin(), eight.end(), poisoned.begin());
             poisoned[5] = bad;
             for (const double vol : {0.0, 0.2}) {
                 CHECK_THROWS_AS(touchstone::gbm_paths(grid, GbmDynamics{100.0, 0.05, vol},
