@@ -351,7 +351,7 @@ records it as that machine's numbers; nothing here claims them.
 | T3a | 2026-11-13 | The path API; the second implied-vol solver; `AmericanVanilla` as a type; `scales.hpp` under `detail/`; the three classes; nine repeated pieces of code removed. |
 | T4 | 2026-11-13 | The WebAssembly artifact and its release workflow; `crank_nicolson_surface`; released as `v0.4.0`. |
 | T5 | 2026-11-14 | This document, the timings in §7, comments that carry reasoning and not history, version 1.0.0; released as `v1.0.0`. Fable tollgate: PASS WITH DEFECTS, all of them wording, closed before the merge. |
-| T6 | in review | What the demos need from the browser build: the payoff at many spots, a sample of paths from the caller's normals, the closed form at many points, and their bindings with `normCdf`, `normPdf` and `impliedVolNewtonBrent`; an array argument costs its own length; version 1.1.0. The signatures were proposed by the session and ruled on by the owner before any was built. |
+| T6 | 2026-11-20 | What the demos need from the browser build: the payoff at many spots, a sample of paths from the caller's normals, the closed form at many points, and their bindings with `normCdf`, `normPdf` and `impliedVolNewtonBrent`; an array argument costs its own length; version 1.1.0; released as `v1.1.0`. The signatures were proposed by the session and ruled on by the owner before any was built. |
 
 Each has an evidence pack under `docs/evidence/<milestone>/`.
 
@@ -457,3 +457,4 @@ Removed at T5:
 | 2026-11-14 | First version, with Touchstone 1.0.0. |
 | 2026-11-14 | §10.1: T5's row completed with its date, its release and its tollgate, once T5 had passed. |
 | 2026-11-19 | Touchstone 1.1.0: §1 to §9 for what it added and the sentences it made untrue; §10.1's T6 row. |
+| 2026-11-20 | §10.1: T6's row completed with its date and its release, once T6 had passed. |

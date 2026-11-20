@@ -54,7 +54,7 @@ root.
 
 | # | Claim | Held by | How |
 | --- | --- | --- | --- |
-| 183 | §10.1's T6 row: in review; the payoff at many spots, a sample from the caller's normals, the closed form at many points, their bindings with `normCdf`, `normPdf` and `impliedVolNewtonBrent`; an array argument costs its own length; 1.1.0; signatures proposed and ruled on before any was built. | `docs/evidence/T6/signatures.md` (the ruling, at its top); `docs/evidence/T6/summary.md`; `CMakeLists.txt` | Source |
+| 183 | §10.1's T6 row: 2026-11-20, released as `v1.1.0`; the payoff at many spots, a sample from the caller's normals, the closed form at many points, their bindings with `normCdf`, `normPdf` and `impliedVolNewtonBrent`; an array argument costs its own length; 1.1.0; signatures proposed and ruled on before any was built. | `docs/evidence/T6/signatures.md` (the ruling, at its top); `docs/evidence/T6/summary.md`; `CMakeLists.txt` | Source |
 | 184 | §11: 2026-11-19, Touchstone 1.1.0. | This branch's history | Source |
 
 ## The independent check
