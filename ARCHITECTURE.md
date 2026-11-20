@@ -134,7 +134,7 @@ names the point.
 Euler–Maruyama over `steps` equal steps from the same generator. It reports the standard
 error beside the price, and a pathwise delta with its own standard error. With antithetics
 the sampling unit is the pair, and the standard error is computed from pair means, so that
-the variance reduction does not also shrink the error bar it is judged by. An Euler path may
+the error bar is the estimator's own and not plain sampling's. An Euler path may
 go negative and is not clipped, because clipping would change the rate the scheme converges
 at.
 
