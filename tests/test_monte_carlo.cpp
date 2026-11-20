@@ -337,9 +337,10 @@ TEST_SUITE("monte-carlo")
         // whole estimate many times from different seeds and its spread should
         // be what the standard error said it would be. This is the test that
         // catches an antithetic standard error computed from paths rather than
-        // from pairs — the failure mode where a variance reduction makes the
-        // answer look better than it is, which no comparison against a closed
-        // form would notice, because the estimate itself stays correct.
+        // from pairs — an error bar that is not the estimator's, too wide for
+        // a vanilla because it leaves out the pair's negative correlation —
+        // which no comparison against a closed form would notice, because the
+        // estimate itself stays correct.
         const EuropeanVanilla option{100.0, 1.0, OptionType::Call};
         const BlackScholesMarket market{100.0, 0.3, 0.04, 0.01};
         const double reference = touchstone::price(option, market);

@@ -58,8 +58,10 @@ struct MonteCarloSettings {
     /// The sampling unit is then the *pair*, not the path, and the standard
     /// error is computed from pair means. Computing it from the paths instead
     /// would ignore the very correlation the technique creates and report an
-    /// error bar that is too small — the failure mode where a variance
-    /// reduction makes the answer look better than it is.
+    /// error bar that is not the estimator's. For a vanilla, whose halves are
+    /// negatively correlated, it would be too wide: plain sampling's bar, with
+    /// the improvement hidden. For a payoff whose halves move together it
+    /// would be too narrow.
     bool antithetic{false};
 };
 
