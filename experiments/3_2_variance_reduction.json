@@ -1,0 +1,371 @@
+{
+  "page": "3.2",
+  "script": "3_2_variance_reduction.py",
+  "params": {
+    "quick": false,
+    "seed": 20261119,
+    "generator": "numpy default_rng (PCG64); not the library's generator",
+    "market": {
+      "S": 100.0,
+      "K": 100.0,
+      "r": 0.05,
+      "sigma": 0.4,
+      "T": 1.0,
+      "q": 0.0,
+      "note": "Part 2's option (page 2.9): a share at 100 paying no dividend, strike 100, one year"
+    },
+    "paths": 32768,
+    "runs": 1600
+  },
+  "environment": {
+    "numpy": "2.5.2"
+  },
+  "results": {
+    "closed_form": {
+      "call": 18.02295145021668,
+      "put": 13.145893900288087,
+      "straddle": 31.168845350504768
+    },
+    "first_run": {
+      "plain": {
+        "mean": 17.860466467630836,
+        "se": 0.17064397180185317,
+        "n": 32768
+      },
+      "control": {
+        "mean": 18.042543661943068,
+        "se": 0.06195415240968089,
+        "n": 32768,
+        "beta": 0.6957011176419189,
+        "correlation": 0.9317654155319934,
+        "control_sample_mean": 99.73828244673606,
+        "control_known_mean": 100.0
+      },
+      "antithetic_call": {
+        "mean": 18.18976091676112,
+        "se_from_pairs": 0.14324657075675576,
+        "pairs": 16384,
+        "se_from_paths_as_if_independent": 0.17497580905995075,
+        "paths": 32768,
+        "correlation_within_a_pair": -0.3298461509941879
+      },
+      "plain_straddle": {
+        "mean": 31.105592938597013,
+        "se": 0.15282416746642954,
+        "n": 32768
+      },
+      "antithetic_straddle": {
+        "mean": 31.388969851825696,
+        "se_from_pairs": 0.19913915937097404,
+        "pairs": 16384,
+        "se_from_paths_as_if_independent": 0.1569995290231688,
+        "paths": 32768,
+        "correlation_within_a_pair": 0.6089020204716804
+      }
+    },
+    "over_runs": {
+      "plain": {
+        "runs": 1600,
+        "mean_of_estimates": 18.027788213216706,
+        "spread_of_estimates": 0.1760228171451962,
+        "mean_reported_se": 0.17286070394246755
+      },
+      "control": {
+        "runs": 1600,
+        "mean_of_estimates": 18.021563195231703,
+        "spread_of_estimates": 0.061610577461198586,
+        "mean_reported_se": 0.062220127376563926
+      },
+      "antithetic_call": {
+        "runs": 1600,
+        "mean_of_estimates": 18.02188871459713,
+        "spread_of_estimates": 0.1448163134727986,
+        "mean_reported_se": 0.14133229988064017
+      },
+      "antithetic_call_from_paths": {
+        "runs": 1600,
+        "mean_of_estimates": 18.02188871459713,
+        "spread_of_estimates": 0.1448163134727986,
+        "mean_reported_se": 0.17287775997140714
+      },
+      "plain_straddle": {
+        "runs": 1600,
+        "mean_of_estimates": 31.170352527669703,
+        "spread_of_estimates": 0.15818156376453282,
+        "mean_reported_se": 0.15501883096191515
+      },
+      "antithetic_straddle": {
+        "runs": 1600,
+        "mean_of_estimates": 31.166391936653397,
+        "spread_of_estimates": 0.20147481951018698,
+        "mean_reported_se": 0.19700773222888018
+      },
+      "antithetic_straddle_from_paths": {
+        "runs": 1600,
+        "mean_of_estimates": 31.166391936653397,
+        "spread_of_estimates": 0.20147481951018698,
+        "mean_reported_se": 0.1550412398700782
+      }
+    },
+    "averages": {
+      "control_correlation": 0.9329632251457849,
+      "control_beta": 0.7008211986840158,
+      "call_pair_correlation": -0.33171852920578515,
+      "straddle_pair_correlation": 0.614772024556498
+    },
+    "quoted_in_checks": {
+      "plain_estimate": 17.860466467630836,
+      "plain_se": 0.17064397180185317,
+      "control_estimate": 18.042543661943068,
+      "control_se": 0.06195415240968089,
+      "control_beta": 0.6957011176419189,
+      "control_sample_mean": 99.73828244673606,
+      "control_adjustment": 0.18207719431223168,
+      "control_if_the_adjustment_were_added": 17.678389273318608,
+      "control_if_beta_were_one": 18.12218402089477,
+      "control_se_ratio": 0.3630608907862286,
+      "control_se_ratio_predicted": 0.36306089078623105,
+      "paths_for_the_plain_estimator_to_match_the_control": 248594.20308454227,
+      "antithetic_call_se_from_pairs": 0.14324657075675576,
+      "antithetic_call_se_from_paths": 0.17497580905995075,
+      "antithetic_call_se_from_pairs_divided_by_root_two": 0.10129062156382058,
+      "antithetic_straddle_se_from_pairs": 0.19913915937097404,
+      "antithetic_straddle_se_from_paths": 0.1569995290231688,
+      "plain_straddle_se": 0.15282416746642954
+    }
+  },
+  "checks": [
+    {
+      "claim": "the closed form is page 2.9's 18.0230",
+      "measured": 18.02295145021668,
+      "expected": 18.023,
+      "tolerance": 5e-05,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 plain: the mean of 1600 estimates is the closed form, within 5 standard errors of that mean",
+      "measured": 18.027788213216706,
+      "expected": 18.02295145021668,
+      "tolerance": 0.021607587992808444,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 plain: the first run is within 5 of its own standard errors of the closed form",
+      "measured": 17.860466467630836,
+      "expected": 18.02295145021668,
+      "tolerance": 0.8532198590092659,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 plain: the spread of the estimates is the standard error the runs report",
+      "measured": 1.0182928400186375,
+      "expected": 1.0,
+      "tolerance": 0.08838834764831843,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 antithetic call: the mean of 1600 estimates is the closed form, within 5 standard errors of that mean",
+      "measured": 18.02188871459713,
+      "expected": 18.02295145021668,
+      "tolerance": 0.01766653748508002,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 antithetic call: the first run is within 5 of its own standard errors of the closed form",
+      "measured": 18.18976091676112,
+      "expected": 18.02295145021668,
+      "tolerance": 0.7162328537837788,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 antithetic call, standard error from the pairs: the spread of the estimates is the standard error the runs report",
+      "measured": 1.0246512198209525,
+      "expected": 1.0,
+      "tolerance": 0.08838834764831843,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 the two halves of a pair are negatively correlated for the call",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 antithetic sampling narrows the call's error bar at the same number of paths, by sqrt(1 + correlation)",
+      "measured": 0.8176080315378049,
+      "expected": 0.8174848443819707,
+      "tolerance": 0.01,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 computed from the paths as if independent, the call's standard error is the plain estimator's: the improvement is hidden",
+      "measured": 1.0000986692090834,
+      "expected": 1.0,
+      "tolerance": 0.01,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 so it is too LARGE: more than the pairs' by a tenth or more",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 and it is not the spread of the estimates: it exceeds the spread by more than the bound",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 antithetic straddle: the mean of 1600 estimates is the closed form, within 5 standard errors of that mean",
+      "measured": 31.166391936653397,
+      "expected": 31.168845350504768,
+      "tolerance": 0.024625966528610023,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 antithetic straddle: the first run is within 5 of its own standard errors of the closed form",
+      "measured": 31.388969851825696,
+      "expected": 31.168845350504768,
+      "tolerance": 0.9956957968548702,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 antithetic straddle, standard error from the pairs: the spread of the estimates is the standard error the runs report",
+      "measured": 1.0226746799771138,
+      "expected": 1.0,
+      "tolerance": 0.08838834764831843,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 the two halves of a pair are positively correlated for the straddle",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 antithetic sampling WIDENS the straddle's error bar at the same number of paths, by sqrt(1 + correlation)",
+      "measured": 1.27086323001159,
+      "expected": 1.2707368038097024,
+      "tolerance": 0.01,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 computed from the paths as if independent, the straddle's standard error is too SMALL: less than the pairs' by a tenth or more",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 and it is not the spread of the estimates: it falls short of the spread by more than the bound",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 control variate: the mean of 1600 estimates is the closed form, within 5 standard errors of that mean",
+      "measured": 18.021563195231703,
+      "expected": 18.02295145021668,
+      "tolerance": 0.007777515922070491,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 control variate: the first run is within 5 of its own standard errors of the closed form",
+      "measured": 18.042543661943068,
+      "expected": 18.02295145021668,
+      "tolerance": 0.3097707620484045,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 control variate: the spread of the estimates is the standard error the runs report",
+      "measured": 0.9902033322484818,
+      "expected": 1.0,
+      "tolerance": 0.08838834764831843,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 the controlled error bar is the plain one times sqrt(1 - rho^2)",
+      "measured": 0.35994373479626907,
+      "expected": 0.3599716940615963,
+      "tolerance": 0.01,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 the control is strongly correlated with the payoff",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 the control's sample mean is within 5 standard errors of S_0, its known mean",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C5 the adjustment is minus beta times the control's miss",
+      "measured": 0.18207719431223168,
+      "expected": 0.18207719431222807,
+      "tolerance": 1e-09,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C5 at this seed the adjustment moves the first run's estimate towards the closed form",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C5 at this seed, added with the wrong sign, it moves the estimate away",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C5 the first run's error bars are in the measured ratio",
+      "measured": 0.3630608907862286,
+      "expected": 0.36306089078623105,
+      "tolerance": 0.01,
+      "mode": "abs",
+      "pass": true
+    }
+  ]
+}
