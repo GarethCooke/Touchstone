@@ -139,7 +139,9 @@ read the six pages and the payoff-diagram builder on the preview and approved th
 says who decided something or when, the experiment scripts included.
 
 ### ☐ L5 — Part 3 and demos D7–D10 on the WASM backend
-**Entry:** L3, T3, T4, T6; Fable drafts for 3.1–3.7.
+**Entry:** L3, T3, T4, T6; Fable drafts for 3.1–3.7, each owed before the batch that converts
+its page. The first batch, the backend, converts no page and starts without them (the owner's
+ruling, 2026-11-20).
 **Deliverables:** `wasmBackend` behind `PricingBackend` (I15), on the `v1.1.0` artifact,
 carrying every demo: D1–D6, D9 and D11 move onto it from the TypeScript numerics; D7 Monte
 Carlo convergence with error bars; D8 PDE grid heatmap, European and American; D9 implied-vol
