@@ -1,0 +1,594 @@
+{
+  "page": "3.3",
+  "script": "3_3_explicit_scheme.py",
+  "params": {
+    "quick": false,
+    "market": {
+      "S": 100.0,
+      "K": 100.0,
+      "r": 0.05,
+      "sigma": 0.4,
+      "T": 1.0,
+      "q": 0.0,
+      "note": "Part 2's option (page 2.9): a share at 100 paying no dividend, strike 100, one year"
+    },
+    "half_width_in_total_vols": 6.0,
+    "stability_grid": 128,
+    "stability_steps": [
+      56,
+      96,
+      104,
+      108,
+      112,
+      113,
+      128,
+      256
+    ],
+    "refinement_grids": [
+      64,
+      128,
+      256,
+      512
+    ],
+    "three_schemes": {
+      "intervals": 128,
+      "steps": 256
+    },
+    "in_place": {
+      "intervals": 128,
+      "steps": [
+        256,
+        1024,
+        4096
+      ]
+    }
+  },
+  "environment": {
+    "numpy": "2.5.2"
+  },
+  "results": {
+    "closed_form": {
+      "call": 18.02295145021668
+    },
+    "stability": {
+      "intervals_asked_for": 128,
+      "dx": 0.03773437500000001,
+      "fewest_stable_steps": 113,
+      "rows": [
+        {
+          "intervals": 129,
+          "steps": 56,
+          "dx": 0.03773437500000001,
+          "mesh_ratio": 2.0065853328458934,
+          "price": -4.201372175318296e+25,
+          "largest_value_on_the_grid": 4.201372175318296e+25,
+          "overflowed_a_double_at_step": null,
+          "error": -4.201372175318296e+25
+        },
+        {
+          "intervals": 129,
+          "steps": 96,
+          "dx": 0.03773437500000001,
+          "mesh_ratio": 1.1705081108267712,
+          "price": -72983566171.38098,
+          "largest_value_on_the_grid": 73060814857.13885,
+          "overflowed_a_double_at_step": null,
+          "error": -72983566189.40393
+        },
+        {
+          "intervals": 129,
+          "steps": 104,
+          "dx": 0.03773437500000001,
+          "mesh_ratio": 1.080469025378558,
+          "price": -219076.61869732162,
+          "largest_value_on_the_grid": 219524.77782641182,
+          "overflowed_a_double_at_step": null,
+          "error": -219094.64164877185
+        },
+        {
+          "intervals": 129,
+          "steps": 108,
+          "dx": 0.03773437500000001,
+          "mesh_ratio": 1.040451654068241,
+          "price": -153.84759880225076,
+          "largest_value_on_the_grid": 1023.8540933052006,
+          "overflowed_a_double_at_step": null,
+          "error": -171.87055025246744
+        },
+        {
+          "intervals": 129,
+          "steps": 112,
+          "dx": 0.03773437500000001,
+          "mesh_ratio": 1.0032926664229467,
+          "price": 17.94822732497832,
+          "largest_value_on_the_grid": 1023.8540933052006,
+          "overflowed_a_double_at_step": null,
+          "error": -0.0747241252383617
+        },
+        {
+          "intervals": 129,
+          "steps": 113,
+          "dx": 0.03773437500000001,
+          "mesh_ratio": 0.9944139702599117,
+          "price": 18.036330820442455,
+          "largest_value_on_the_grid": 1023.8540933052006,
+          "overflowed_a_double_at_step": null,
+          "error": 0.013379370225774068
+        },
+        {
+          "intervals": 129,
+          "steps": 128,
+          "dx": 0.03773437500000001,
+          "mesh_ratio": 0.8778810831200784,
+          "price": 18.02365189025148,
+          "largest_value_on_the_grid": 1023.8540933052006,
+          "overflowed_a_double_at_step": null,
+          "error": 0.0007004400347980777
+        },
+        {
+          "intervals": 129,
+          "steps": 256,
+          "dx": 0.03773437500000001,
+          "mesh_ratio": 0.4389405415600392,
+          "price": 18.015089720835746,
+          "largest_value_on_the_grid": 1023.8540933052006,
+          "overflowed_a_double_at_step": null,
+          "error": -0.007861729380934435
+        }
+      ]
+    },
+    "refinement": [
+      {
+        "intervals": 65,
+        "steps": 58,
+        "dx": 0.07546875000000001,
+        "mesh_ratio": 0.48434818379038813,
+        "price": 17.995096890722404,
+        "largest_value_on_the_grid": 1023.8540933052006,
+        "overflowed_a_double_at_step": null,
+        "error": -0.027854559494276288,
+        "intervals_asked_for": 64,
+        "nodes": 66,
+        "fewest_stable_steps": 29
+      },
+      {
+        "intervals": 129,
+        "steps": 226,
+        "dx": 0.03773437500000001,
+        "mesh_ratio": 0.49720698512995587,
+        "price": 18.0162260355707,
+        "largest_value_on_the_grid": 1023.8540933052006,
+        "overflowed_a_double_at_step": null,
+        "error": -0.006725414645980976,
+        "intervals_asked_for": 128,
+        "nodes": 130,
+        "fewest_stable_steps": 113
+      },
+      {
+        "intervals": 257,
+        "steps": 900,
+        "dx": 0.018867187500000004,
+        "mesh_ratio": 0.49941679395275573,
+        "price": 18.021279888189497,
+        "largest_value_on_the_grid": 1023.8540933052006,
+        "overflowed_a_double_at_step": null,
+        "error": -0.0016715620271838816,
+        "intervals_asked_for": 256,
+        "nodes": 258,
+        "fewest_stable_steps": 450
+      },
+      {
+        "intervals": 513,
+        "steps": 3596,
+        "dx": 0.009433593750000002,
+        "mesh_ratio": 0.4999723187513683,
+        "price": 18.022534173207173,
+        "largest_value_on_the_grid": 1013.3477527242376,
+        "overflowed_a_double_at_step": null,
+        "error": -0.00041727700950744406,
+        "intervals_asked_for": 512,
+        "nodes": 514,
+        "fewest_stable_steps": 1798
+      }
+    ],
+    "three_schemes": {
+      "explicit": {
+        "intervals": 129,
+        "steps": 256,
+        "dx": 0.03773437500000001,
+        "mesh_ratio": 0.4389405415600392,
+        "price": 18.015089720835746,
+        "largest_value_on_the_grid": 1023.8540933052006,
+        "overflowed_a_double_at_step": null,
+        "error": -0.007861729380934435
+      },
+      "implicit": {
+        "intervals": 129,
+        "steps": 256,
+        "dx": 0.03773437500000001,
+        "theta": 1.0,
+        "price": 17.997978801468903,
+        "error": -0.02497264874777727
+      },
+      "crank_nicolson": {
+        "intervals": 129,
+        "steps": 256,
+        "dx": 0.03773437500000001,
+        "theta": 0.5,
+        "price": 18.006539873755493,
+        "error": -0.01641157646118785
+      }
+    },
+    "in_place": [
+      {
+        "right": {
+          "intervals": 129,
+          "steps": 256,
+          "dx": 0.03773437500000001,
+          "mesh_ratio": 0.4389405415600392,
+          "price": 18.015089720835746,
+          "largest_value_on_the_grid": 1023.8540933052006,
+          "overflowed_a_double_at_step": null,
+          "error": -0.007861729380934435
+        },
+        "in_place": {
+          "intervals": 129,
+          "steps": 256,
+          "dx": 0.03773437500000001,
+          "mesh_ratio": 0.4389405415600392,
+          "price": 20.562405508495942,
+          "largest_value_on_the_grid": 1023.8540933052006,
+          "overflowed_a_double_at_step": null,
+          "error": 2.5394540582792615
+        }
+      },
+      {
+        "right": {
+          "intervals": 129,
+          "steps": 1024,
+          "dx": 0.03773437500000001,
+          "mesh_ratio": 0.1097351353900098,
+          "price": 18.008671022242158,
+          "largest_value_on_the_grid": 1023.8540933052006,
+          "overflowed_a_double_at_step": null,
+          "error": -0.01428042797452278
+        },
+        "in_place": {
+          "intervals": 129,
+          "steps": 1024,
+          "dx": 0.03773437500000001,
+          "mesh_ratio": 0.1097351353900098,
+          "price": 18.559633736676542,
+          "largest_value_on_the_grid": 1023.8540933052006,
+          "overflowed_a_double_at_step": null,
+          "error": 0.536682286459861
+        }
+      },
+      {
+        "right": {
+          "intervals": 129,
+          "steps": 4096,
+          "dx": 0.03773437500000001,
+          "mesh_ratio": 0.02743378384750245,
+          "price": 18.00706674126165,
+          "largest_value_on_the_grid": 1023.8540933052006,
+          "overflowed_a_double_at_step": null,
+          "error": -0.015884708955031357
+        },
+        "in_place": {
+          "intervals": 129,
+          "steps": 4096,
+          "dx": 0.03773437500000001,
+          "mesh_ratio": 0.02743378384750245,
+          "price": 18.140385929572506,
+          "largest_value_on_the_grid": 1023.8540933052006,
+          "overflowed_a_double_at_step": null,
+          "error": 0.11743447935582552
+        }
+      }
+    ],
+    "library_grid": {
+      "intervals_asked_for": 1024,
+      "intervals": 1025,
+      "nodes": 1026,
+      "dx": 0.004716796875000001,
+      "spot_node_log_spot": 4.605170185988092,
+      "library_steps": 512,
+      "mesh_ratio_at_the_library_steps": 14.046097329921254,
+      "fewest_stable_steps": 7192,
+      "explicit_at_the_library_steps": {
+        "intervals": 1025,
+        "steps": 512,
+        "dx": 0.004716796875000001,
+        "mesh_ratio": 14.046097329921254,
+        "price": null,
+        "largest_value_on_the_grid": null,
+        "overflowed_a_double_at_step": 215,
+        "error": null
+      },
+      "explicit_at_the_fewest_stable_steps": {
+        "intervals": 1025,
+        "steps": 7192,
+        "dx": 0.004716796875000001,
+        "mesh_ratio": 0.9999446375027367,
+        "price": 18.022736688072246,
+        "largest_value_on_the_grid": 1008.1316329726399,
+        "overflowed_a_double_at_step": null,
+        "error": -0.00021476214443438835
+      }
+    },
+    "quoted_in_checks": {
+      "fewest_stable_steps_on_the_coarse_grid": 113,
+      "fewest_stable_steps_at_half_the_dx": 450,
+      "steps_ratio_when_dx_halves": 3.982300884955752,
+      "twice_the_steps_on_the_coarse_grid": 226,
+      "price_one_step_short_of_the_limit": 17.94822732497832,
+      "half_the_limit_steps": 56,
+      "price_at_half_the_limit": -4.201372175318296e+25,
+      "largest_value_at_half_the_limit": 4.201372175318296e+25,
+      "in_place_steps": 256,
+      "in_place_price": 20.562405508495942,
+      "in_place_error": 2.5394540582792615,
+      "right_price_on_the_same_grid": 18.015089720835746,
+      "right_error_on_the_same_grid": -0.007861729380934435
+    }
+  },
+  "checks": [
+    {
+      "claim": "the closed form is page 2.9's 18.0230",
+      "measured": 18.02295145021668,
+      "expected": 18.023,
+      "tolerance": 5e-05,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 on the 128-interval grid the limit is 113 steps a year",
+      "measured": 113.0,
+      "expected": 113.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 the row one step short of the limit has a mesh ratio above 1, and the row at it below 1",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 at the limit and above it, every price is within 0.02 of the closed form",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 at the limit and above it, nothing on the grid exceeds the value at its top node",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 below the limit the error grows as the steps fall",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 one step short of the limit the price is already further out than any stable row's",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 at half the steps the limit allows, the largest value on the grid is above 1e20",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 and the price there is not within a million of the closed form",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 from 64 to 128 intervals the steps needed quadruple",
+      "measured": 3.896551724137931,
+      "expected": 4.0,
+      "tolerance": 0.03,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C5 and at twice those steps the explicit error falls by four, from 64 to 128 intervals",
+      "measured": 4.141686566630033,
+      "expected": 4.0,
+      "tolerance": 0.05,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C4 from 128 to 256 intervals the steps needed quadruple",
+      "measured": 3.982300884955752,
+      "expected": 4.0,
+      "tolerance": 0.03,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C5 and at twice those steps the explicit error falls by four, from 128 to 256 intervals",
+      "measured": 4.023431100137776,
+      "expected": 4.0,
+      "tolerance": 0.05,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C4 from 256 to 512 intervals the steps needed quadruple",
+      "measured": 3.9955555555555557,
+      "expected": 4.0,
+      "tolerance": 0.03,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C5 and at twice those steps the explicit error falls by four, from 256 to 512 intervals",
+      "measured": 4.005880959406324,
+      "expected": 4.0,
+      "tolerance": 0.05,
+      "mode": "rel",
+      "pass": true
+    },
+    {
+      "claim": "C5 at twice the steps the limit demands, the mesh ratio is one half to within 0.02 on every grid",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C6 on one grid the three schemes are each within 0.03 of the closed form",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C6 and within 0.03 of each other",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 at 256 steps the in-place step does not blow up",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 at 256 steps the in-place price is more than five times as far from the closed form as the right loop's",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 at 1024 steps the in-place step does not blow up",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 at 1024 steps the in-place price is more than five times as far from the closed form as the right loop's",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 at 4096 steps the in-place step does not blow up",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 at 4096 steps the in-place price is more than five times as far from the closed form as the right loop's",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 at the fewest steps tried the in-place price is more than 2 too high",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 the quoted figures are the first pair's",
+      "measured": 20.562405508495942,
+      "expected": 20.562405508495942,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 at 1,024 intervals asked for, the step is the library's 0.004716796875",
+      "measured": 0.004716796875000001,
+      "expected": 0.004716796875,
+      "tolerance": 1e-15,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 and the grid has the library's 1,026 nodes",
+      "measured": 1026.0,
+      "expected": 1026.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 the spot is a node",
+      "measured": 4.605170185988092,
+      "expected": 4.605170185988092,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 on the library's grid the explicit scheme needs 7,192 steps",
+      "measured": 7192.0,
+      "expected": 7192.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 at the library's 512 steps, the mesh ratio is 14 and the values overflow a double before the run ends",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C5 at 7,192 steps the explicit price is within 0.001 of the closed form",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    }
+  ]
+}
