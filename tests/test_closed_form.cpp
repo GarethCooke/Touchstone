@@ -13,6 +13,8 @@
 #include <cstddef>
 #include <iomanip>
 #include <limits>
+#include <map>
+#include <span>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -184,6 +186,104 @@ TEST_SUITE("closed-form")
             } else {
                 CHECK_THROWS_AS(ClosedFormQuote(input.option, quoted), std::invalid_argument);
             }
+        }
+    }
+}
+
+// The closed form at many points: a sweep holds the strike, the direction, the
+// volatility, the rate and the dividend yield fixed and moves the spot and the
+// time to expiry, and every point of it is the one-point evaluation above.
+TEST_SUITE("closed-form")
+{
+    TEST_CASE("a sweep is the closed form at each point, to the bit, over the golden file")
+    {
+        using touchstone::ClosedFormSweep;
+        using touchstone::price_and_greeks_columns;
+
+        // What a sweep through a row would hold fixed.
+        const auto sweep_of = [](const GoldenCase& row) {
+            return ClosedFormSweep{row.option.strike, row.option.type, row.market.vol, row.market.rate,
+                                   row.market.dividend_yield};
+        };
+
+        // Every row of the file, grouped by that.
+        std::map<ClosedFormSweep, std::vector<const GoldenCase*>> sweeps;
+        const auto& file = touchstone::testing::golden_file();
+        for (const auto* block : {&file.cases, &file.edge_cases}) {
+            for (const GoldenCase& row : *block) {
+                sweeps[sweep_of(row)].push_back(&row);
+            }
+        }
+
+        std::size_t points = 0;
+        std::size_t differing = 0;
+        for (const auto& [sweep, rows] : sweeps) {
+            std::vector<double> spots;
+            std::vector<double> times;
+            for (const GoldenCase* row : rows) {
+                spots.push_back(row->market.spot);
+                times.push_back(row->option.expiry_years);
+            }
+            const touchstone::PriceAndGreeksColumns columns =
+                touchstone::price_and_greeks(sweep, spots, times);
+            for (std::size_t i = 0; i < rows.size(); ++i) {
+                const PriceAndGreeks one = touchstone::price_and_greeks(rows[i]->option, rows[i]->market);
+                for (const auto& [column, output] : price_and_greeks_columns) {
+                    REQUIRE((columns.*column).size() == rows.size());
+                    differing += ((columns.*column)[i] == one.*output) ? 0u : 1u;
+                }
+                ++points;
+            }
+        }
+        MESSAGE("the golden file as " << sweeps.size() << " sweeps of " << points
+                                      << " points: " << differing
+                                      << " values not identical to the one-point closed form");
+        CHECK(points == file.cases.size() + file.edge_cases.size());
+        CHECK(differing == 0u);
+    }
+
+    TEST_CASE("a sweep refuses what a point refuses, and says which point")
+    {
+        using touchstone::ClosedFormSweep;
+        using touchstone::OptionType;
+        const ClosedFormSweep sweep{100.0, OptionType::Put, 0.2, 0.05, 0.01};
+        const std::vector<double> spots{90.0, 100.0, -1.0, 110.0};
+        const std::vector<double> times{1.0, 0.5, 0.25, 0.0};
+
+        const auto message_of = [](const auto& call) -> std::string {
+            try {
+                call();
+            } catch (const std::invalid_argument& refused) {
+                return refused.what();
+            }
+            return "";
+        };
+        const std::string refused_spot =
+            message_of([&] { touchstone::require_valid(sweep, spots, times); });
+        CHECK(refused_spot.find("spot") != std::string::npos);
+        CHECK(refused_spot.find("at point 2 ") != std::string::npos);
+        CHECK(message_of([&] { static_cast<void>(touchstone::price_and_greeks(sweep, spots, times)); })
+              == refused_spot);
+
+        const std::vector<double> late{1.0, 0.5, 0.25, -0.1};
+        const std::vector<double> fine{90.0, 100.0, 105.0, 110.0};
+        CHECK(message_of([&] { touchstone::require_valid(sweep, fine, late); }).find("at point 3 ")
+              != std::string::npos);
+        CHECK_THROWS_AS(touchstone::require_valid(ClosedFormSweep{100.0, OptionType::Call, -0.2, 0.0, 0.0},
+                                                  fine, times),
+                        std::invalid_argument);
+
+        // One time to expiry for each spot, and no fewer.
+        CHECK_THROWS_AS(touchstone::require_valid(sweep, fine, std::span<const double>(times).first(3)),
+                        std::invalid_argument);
+        CHECK_THROWS_AS(touchstone::price_and_greeks(sweep, fine, std::span<const double>(times).first(3)),
+                        std::invalid_argument);
+
+        // No points is an empty sweep, not an error.
+        const touchstone::PriceAndGreeksColumns none =
+            touchstone::price_and_greeks(sweep, std::span<const double>{}, std::span<const double>{});
+        for (const auto& [column, output] : touchstone::price_and_greeks_columns) {
+            CHECK((none.*column).empty());
         }
     }
 }

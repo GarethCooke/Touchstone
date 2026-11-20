@@ -1,0 +1,232 @@
+T6 · test evidence
+==================
+
+1. The native suite, before and after, on both compilers
+--------------------------------------------------------
+
+  Before: fbf90f9, main's library, built here before any edit. After: the library and tests
+  at 9e9b196. 2b54642 changes one test's container (build.txt 2(a)), and the paths suite was
+  rerun on it: 10 cases, 15,589 assertions, all passed, as at 9e9b196. The builds are as in
+  build.txt section 2. `touchstone_tests -s` prints every assertion with its values.
+
+                              ctest            doctest, the whole binary with -s
+    g++ 15.2.0, before        18/18 passed     120 cases, 4,140,490 assertions, all passed
+    g++ 15.2.0, after         18/18 passed     126 cases, 4,203,630 assertions, all passed
+    clang++ 22.1.7, before    18/18 passed     120 cases, 4,140,490 assertions, all passed
+    clang++ 22.1.7, after     18/18 passed     126 cases, 4,203,630 assertions, all passed
+
+  The sanitizers (AddressSanitizer and UndefinedBehaviorSanitizer, g++ Debug, sweep scale 16)
+  run in CI only (build.txt section 1): 18/18 before and after, sections 5 and 6.
+
+  The six new test cases:
+    - "the payoff at many spots is the payoff at each, in order" (contract);
+    - "a sweep is the closed form at each point, to the bit, over the golden file" and
+      "a sweep refuses what a point refuses, and says which point" (closed-form);
+    - "a sample from one stream: path 0 is gbm_path's at the seed, path p the p-th run",
+      "both schemes from the same normals" and "a sample with no normals is empty, and a
+      sample that cannot be stepped is refused" (paths).
+  Three existing cases gained assertions:
+    - the path fixture's case now also checks its samples;
+    - "an accepted path never holds a NaN" also steps every extreme as a sample;
+    - N(x) and phi now read their references from golden/normal-known-answers.json.
+
+  What the new and extended cases report (g++, after):
+
+    tests/test_closed_form.cpp:238: MESSAGE: the golden file as 382 sweeps of 7234 points: 0 values not identical to the one-point closed form
+
+    tests/test_closed_form.cpp:241: SUCCESS: CHECK( points == file.cases.size() + file.edge_cases.size() ) is correct!
+      values: CHECK( 7234 == 7234 )
+    tests/test_paths.cpp:164: MESSAGE: paths fixture golden/paths-known-answers.json
+        672 values over 3 Brownian and 10 GBM paths; 636 agree to the bit
+        worst scaled difference 1.700e-16 (tolerance 1.000e-12)
+            at gbm exact seed 42 at step 95
+    tests/test_paths.cpp:189: MESSAGE: paths fixture samples
+        168 values over 4 samples; 168 agree to the bit
+        worst scaled difference 0.000e+00 (tolerance 1.000e-12)
+            at
+
+2. Nothing v1.0.0 exports has changed its numbers
+-------------------------------------------------
+
+  (a) The library's object code. Release (-O3 -DNDEBUG), g++ 15.2.0, the seven library
+      translation units at fbf90f9 and at the branch, SHA-256 (first 16 hex digits):
+
+        black_scholes.cpp.obj  differs    F4DEEC57D4263FF3   gains the sweep
+        bump_greeks.cpp.obj    identical  7546063459FE1207
+        implied_vol.cpp.obj    identical  96D5AE2A808B4A3A
+        monte_carlo.cpp.obj    identical  7420355A633CFA31
+        paths.cpp.obj          differs    091D8260B4C4954A   gains the sample; gbm_path
+                                                             shares its per-path loop
+        pde.cpp.obj            identical  FBC1402697AF9C1E
+        tridiagonal.cpp.obj    identical  178FDE177B732A00
+
+      The five identical hashes are the ones T5 recorded for 74987c7 (T5 tests.txt 2(a)).
+      (b) to (d) hold the two that differ.
+
+  (b) Every assertion's values. The -s output before and after was normalised as T5 did
+      (line numbers removed, pointer addresses masked), then compared as multisets of lines.
+      For each line of the before run, the question is whether it occurs fewer times after.
+      A line-by-line diff does not work here: once assertions are inserted mid-stream, GNU
+      diff's heuristic misaligns the 14 million lines and reports 1.4 million changed lines,
+      all of which are present unchanged on both sides.
+
+      g++: 17 distinct lines occur fewer times after. Every one is in test_normal.cpp or is
+      a count.
+        - 9 lines are the reference checks' expression text. It changed when the references
+          moved to golden/normal-known-answers.json (the review's R4).
+        - 2 lines are doctest's totals (120 cases, 4,140,490 assertions).
+        - "CHECK( 1935 > 0 )" is the saturation count in "an accepted path never holds a
+          NaN". It is now 9,586, because every extreme is also stepped as a sample.
+        - "CHECK( 0.5 == 0.5 )" is N(0). It is now a fixture row with a tolerance of zero,
+          printed "CHECK( 0 <= 0 )".
+        - 4 lines are relative errors of N(x) against its references, and those errors
+          moved: "CHECK( 0 <= 1.11e-15 )" at x = 1 is now "CHECK( 1.32e-16 <= 1.11e-15 )".
+          The references are not the cause: nlohmann/json, strtod and the C++ literal parse
+          all seven to identical doubles, and normal.hpp did not change. The argument is.
+          The old test called norm_cdf(1.0) on a literal, and g++ folds that call at compile
+          time with MPFR, correctly rounded:
+            literal N(1)  0x1.aec4bd120d37dp-1   (the reference exactly)
+            runtime N(1)  0x1.aec4bd120d37ep-1   (MinGW's erfc, one ulp off)
+          Read from the fixture, x is a runtime value. So the test now measures the runtime
+          function, which is what the library's callers and the module get. Each error is
+          still inside its tolerance; the largest is 3.86e-15 against 2.31e-14 at x = -10.
+          Clang does not fold erfc, and on Clang these four lines do not move.
+
+      clang++: the same 13 lines as g++, less the four above, plus 97 lines of binary data
+      that come from the before run's output file. About 80 lines of bytes sit where a
+      test_rng.cpp line should be, near line 7,213,589 of 14.4 million. That file was written
+      while other builds ran. The run itself passed all 120 cases, the after run's file has no
+      such lines, and neither g++ file has any. So for Clang the comparison holds everywhere
+      except that one patch of test_rng.cpp, and the g++ comparison covers that patch.
+
+      Every other line of the before runs (number, expression and message) occurs at least
+      as often after, on both compilers.
+
+  (c) The module. Two checks against v1.0.0's artifact, built here at fbf90f9.
+
+      First, v1.0.0's own wasm/smoke.test.mjs, run against this branch's artifact: 16 of 17
+      pass. The failure is "the library's defaults are the module's": defaults() returns one
+      more key, impliedVolNewtonBrent, which is the change ruling 10 approved. Its five other
+      keys are unchanged.
+
+      Second, a differential. Every v1.0.0 export was called with the same arguments on both
+      artifacts. Results were compared with isDeepStrictEqual, and refusals by class and
+      message. The calls:
+        - every golden row through priceAndGreeks, noArbitrageBounds and impliedVol, with and
+          without the trace;
+        - every 37th row through monteCarlo (two settings), crankNicolson (European and
+          American), crankNicolsonSurface and bumpGreeks (three pricers);
+        - 200 seeds through uniforms, normals, brownianPath and gbmPath (both schemes);
+        - thirteen refusals and wrong shapes.
+
+        DIFFERS defaults []
+        {"priceAndGreeks":7241,"noArbitrageBounds":7234,"impliedVol":14469,"monteCarlo":393,"crankNicolson":393,"crankNicolsonSurface":196,"bumpGreeks":588,"uniforms":201,"normals":201,"brownianPath":200,"gbmPath":401,"defaults":1}
+        calls compared: 31518; differing: 1; defaults(): v1.0.0's 5 keys identical: true; keys added: impliedVolNewtonBrent
+
+        The one differing call is defaults(), for the key above.
+
+  (d) The fixtures. git diff --stat fbf90f9 -- golden experiments docs/rng.md:
+
+         golden/README.md                 |   6 +-
+         golden/generate_paths.py         |  50 +++++++-
+         golden/normal-known-answers.json |  54 ++++++++
+         golden/paths-known-answers.json  | 270 ++++++++++++++++++++++++++++++++++++++-
+         4 files changed, 373 insertions(+), 7 deletions(-)
+
+      bs_vanilla.json, american_vanilla.json, rng-known-answers.json and every experiment are
+      untouched. paths-known-answers.json gains a samples section, and its existing paths are
+      unchanged value for value (build.txt section 4). normal-known-answers.json is new.
+
+3. The smoke test, on the artifact built at the branch
+------------------------------------------------------
+
+  Emscripten 6.0.13, wasm/build.sh; Node v24.13.1:
+
+    # rng: 3 seeds x 10; uniforms exact; worst normal difference 0
+    # golden 'one-day-atm': price 0.4203523730423484 against 0.4203523730423497; worst of seven 6.166047049073064e-14
+    # golden cases: 7200 rows, worst scaled error 2.8411776910306267e-13 (tolerance 1e-10)
+    # golden edge_cases: 34 rows, worst scaled error 1.6188939078176645e-11 (tolerance 1e-8)
+    # paths: 3 Brownian, 10 GBM; worst scaled difference 0
+    # 2.11 trace: 4 iterates, worst difference 7.105427357601002e-15
+    # samples: 4; worst scaled difference 0
+    # priceAndGreeksAt: 382 sweeps of 7234 points, each identical to priceAndGreeks
+    # impliedVolNewtonBrent: 7234 rows solved (0 refused), worst scaled reprice 1.4761793927967528e-12; Newton 6910, Brent 0, exact 324; with one Newton step 982 of 1029 in Brent, worst 1.0738074132752819e-12
+    # survived 5 x 100000 refusals; the named golden row and the RNG fixture unchanged; then a 513 x 1026 surface
+    ✔ the module says which version of the library it is: the project's (1.2862ms)
+    ✔ the RNG fixture: uniforms to the bit, normals to 1e-12 (1.7662ms)
+    ✔ one golden price, and its Greeks, to the file's own tolerance (0.4221ms)
+    ✔ every golden row, to the file's own tolerances (97.8244ms)
+    ✔ the path fixture, Brownian and GBM, to its own tolerance (1.2987ms)
+    ✔ page 2.11's committed trace, iterate by iterate (1.6411ms)
+    ✔ page 2.11's refusals come back with their status and no NaN (0.4226ms)
+    ✔ no-arbitrage bounds are the price at zero volatility and its limit at infinity (0.2838ms)
+    ✔ Monte Carlo: within three standard errors of the closed form, and the same from the same seed (20.015ms)
+    ✔ the grid: European at the closed form, American above it, both at the payoff's floor (12.7369ms)
+    ✔ the grid's surface: every level read, today's the price (1.0267ms)
+    ✔ bump Greeks over each pricer (30.0799ms)
+    ✔ the library's defaults are the module's (0.3163ms)
+    ✔ the payoff at many spots, either direction, below zero included (0.851ms)
+    ✔ N(x) and the density, to the references and tolerances the native suite reads (0.3969ms)
+    ✔ a sample of paths: the fixture's samples, and path 0 is gbmPath's at the seed (1.0284ms)
+    ✔ the closed form at many points is priceAndGreeks at each, over the golden file (100.8386ms)
+    ✔ Newton then Brent: the price round trip over the golden file, and Brent alone (190.9081ms)
+    ✔ a slice of a larger array is handed over as itself, and costs its own length (9.3656ms)
+    ✔ a getter on an array argument still throws before the module is entered (0.8288ms)
+    ✔ an input the library rejects is a RangeError with the library's reason (3.3345ms)
+    ✔ an argument of the wrong shape is a TypeError naming the field (1.505ms)
+    ✔ a thrown getter on an argument reaches the caller as itself (0.1911ms)
+    ✔ the module survives a hundred thousand refusals of each kind, and then still agrees with the fixtures (14827.338ms)
+    ℹ tests 24
+    ℹ suites 0
+    ℹ pass 24
+    ℹ fail 0
+    ℹ cancelled 0
+    ℹ skipped 0
+    ℹ todo 0
+    ℹ duration_ms 15450.633
+
+  Against v1.0.0's smoke run here (fbf90f9, 17 of 17) with durations masked, every line it
+  printed is unchanged except the refusal count ("3 x 100000" is now "5 x 100000") and the
+  totals. The new lines are the seven new tests and their three reports.
+
+4. The review and the claims check
+----------------------------------
+
+  The review for repeated code, its findings and how each was closed are in review.md. The
+  check of every claim row by an agent that did not write them is the last section of
+  claims.md.
+
+5. CI before
+------------
+
+  Run 44566057725 on fbf90f9 (main), ubuntu-24.04: all six jobs green.
+    gcc            g++ 13.3.0; 18/18 ctest entries
+    clang          clang 18.1.3; 18/18
+    asan + ubsan   g++, Debug, sweep scale 16; 18/18
+    golden file    every row re-derived; the generators reproduce both reference files and
+                   the path fixture byte for byte
+    wasm           Emscripten 6.0.13; artifact 173,040 bytes (56,190 gzipped); smoke test on
+                   Node 22
+
+6. CI after
+-----------
+
+  Run 44583469665 on 2b54642, ubuntu-24.04: all six jobs green.
+    gcc            g++ 13.3.0, -Werror; 18/18 (170.60 s of tests)
+    clang          clang 18.1.3, -Werror; 18/18 (103.14 s)
+    asan + ubsan   g++, Debug, sweep scale 16; 18/18 (193.12 s)
+    golden file    every row re-derived; the generators reproduce both reference files and
+                   paths-known-answers.json, samples included, byte for byte
+                   (git diff --exit-code), with Python 3.12 on Ubuntu 24.04
+    wasm           Emscripten 6.0.13; smoke test 24/24 on Node 22; the release's files
+                   assembled and downloaded with their checksums
+
+  The artifact as CI built it, in bytes:
+
+                                   .wasm      .mjs     total gzip -9 total
+      catching on (shipped)         185674     29189    214863         69553
+      catching off                  143402     29792    173194         60536
+
+  The run before it, 44583043230 on 9e9b196, failed in the gcc job on g++ 13's
+  -Wnull-dereference in a new test (build.txt 2(a)). The commits after 2b54642 change only
+  docs/evidence/T6/.

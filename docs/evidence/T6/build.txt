@@ -1,0 +1,122 @@
+T6 · build evidence
+===================
+
+Branch m/T6 from fbf90f9 (main: "ROADMAP and quant-learn-index: T6 before L5; L5's entry;
+3.7's line"). Local builds on one machine; CI (tests.txt section 6) is the authoritative run
+on Linux with both compilers and the sanitizers.
+
+1. The machine and the toolchains
+---------------------------------
+
+  Machine     AMD Ryzen 7 3800X 8-Core Processor, 16 logical processors, 32 GB;
+              Windows 11 Pro 10.0.26300
+  g++         15.2.0 (x86_64-posix-seh-rev0, MinGW-Builds), from PowerShell 7
+  clang++     22.1.7 (LLVM for Windows), --target=x86_64-w64-mingw32 against MinGW's
+              libstdc++ 15.2, linked with -pthread (see 2(b))
+  CMake       3.31.6 (Visual Studio 2022's), Ninja 1.12.1
+  Emscripten  6.0.13 (e13ee988), the version .github/workflows/wasm.yml pins, from
+              https://github.com/emscripten-core/emsdk at tag 6.0.13 (3565996), in
+              C:\local\emsdk, outside the repository. It was already there: T4 installed it
+              (T4's and T5's build.txt name it). This session checked it rather than installing
+              a second copy: the checkout's origin is emscripten-core/emsdk, it is at tag
+              6.0.13 with a clean working tree, and `emsdk list` shows sdk 6.0.13 installed.
+              It was used through `source C:/local/emsdk/emsdk_env.sh` in the session's own
+              shell. No system setting was changed, and `emsdk activate` was not run again.
+  Node        v24.13.1 locally; CI runs the smoke test on Node 22
+  Python      3.12 (Windows) for the edits; Python 3.8.10 on Ubuntu 20.04 under WSL (glibc
+              2.31) to write golden/paths-known-answers.json, see section 4
+
+  g++ fails without a diagnostic when it is run from Git Bash's environment on this machine,
+  as T4 and T5 found, so every native build here was run from PowerShell.
+
+  The sanitizers are CI's alone. MinGW has no AddressSanitizer, and the WSL Ubuntu here has
+  g++ 9 and neither Clang nor CMake. Installing them would have changed the system.
+
+2. The builds
+-------------
+
+  (a) Native with g++, RelWithDebInfo (-O2 -g -DNDEBUG), the project's warnings and -Werror:
+
+        cmake -S . -B <build> -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_COMPILER=g++
+        cmake --build <build> -j 16
+
+      At fbf90f9 (build-t6-base-gcc) and at the branch: 0 warnings, 0 errors.
+      One build error on the way, in CI's g++ 13.3 and not in g++ 15.2:
+      -Wnull-dereference on a copied vector indexed in a new refusal test (test_paths.cpp,
+      the poisoned normals). The test now uses a fixed std::array (2b54642).
+
+  (b) Native with clang++ 22.1.7 under the same flags, -Werror included, plus
+
+        -DCMAKE_CXX_FLAGS="--target=x86_64-w64-mingw32 -Wno-error=c2y-extensions -Wno-error=#warnings"
+        -DCMAKE_EXE_LINKER_FLAGS=-pthread
+
+      Clang for Windows targets MSVC by default. There it fails -Werror on the UCRT's
+      deprecation of getenv, which tests/json_file.cpp calls, so it was pointed at MinGW's
+      libstdc++, the library g++ uses here. Clang 22 also raises two diagnostics in the
+      vendored test headers that CI's Clang 18 does not: doctest's __COUNTER__
+      (-Wc2y-extensions) and nlohmann/json's <ciso646> (-W#warnings). Those two were left
+      as warnings on the command line. Nothing in the repository changed for them.
+      -pthread links winpthread, which libstdc++'s threads need under MinGW.
+
+      At fbf90f9 and at the branch: no diagnostic of any other kind. At the branch the two
+      vendored kinds appear 698 and 18 times; the first rises with the number of test cases.
+
+  (c) Native Release (-O3 -DNDEBUG) with g++, library target only, for the object-code
+      comparison in tests.txt section 2(a).
+
+  (d) WebAssembly, wasm/build.sh, both ways: 0 warnings at fbf90f9 and at the branch.
+
+      At fbf90f9, built here:
+
+        catching on (shipped)         144256     28786    173042         56194
+        catching off                  112401     29389    141790         49754
+
+      At the branch's head:
+
+                                       .wasm      .mjs     total gzip -9 total
+        catching on (shipped)         185674     29191    214865         69556
+        catching off                  143402     29794    173196         60540
+        
+
+        budget                                            500000
+
+      The shipped artifact is 214,865 bytes (69,556 gzipped), 43.0% of the 500,000-byte
+      budget. That is 41,823 bytes more than v1.0.0's local build: the six exports, the
+      library code they reach (the sweep, the sample, Newton-then-Brent, which v1.0.0
+      did not bind), and the version string "1.1.0". Without exception catching it is
+      173,196.
+
+3. Where the edits went
+-----------------------
+
+  Library: include/touchstone/contract.hpp (payoff over spans), paths.hpp (StepGrid,
+  require_valid, gbm_paths twice), black_scholes.hpp (ClosedFormSweep, PriceAndGreeksColumns,
+  price_and_greeks_columns, require_valid, price_and_greeks over a sweep); src/paths.cpp,
+  src/black_scholes.cpp. Still seven translation units and seventeen headers.
+
+  Binding: wasm/binding.cpp (six exports, the array reader, the column writer, a sixth
+  defaults() key), wasm/errors.post.js (ownBuffer), wasm/smoke.test.mjs, wasm/timing.mjs (new).
+
+  Tests: tests/test_contract.cpp, test_paths.cpp, test_closed_form.cpp, test_normal.cpp,
+  greek_fields.hpp, CMakeLists.txt (the normal fixture's path).
+
+  Fixtures: golden/paths-known-answers.json (a samples section), golden/generate_paths.py
+  (gbm_steps, gbm_sample, the samples and their self-check), golden/normal-known-answers.json
+  (new), golden/README.md.
+
+  Documents: ARCHITECTURE.md, README.md, CMakeLists.txt (1.1.0), docs/evidence/T6/.
+
+4. The path fixture, regenerated on Linux
+-----------------------------------------
+
+  generate_paths.py's committed bytes were written on Linux. Python's exp on Windows may
+  differ in the last bit, so the fixture was regenerated under WSL's Ubuntu 20.04, Python
+  3.8.10 and glibc 2.31:
+
+    python3 golden/generate_paths.py --stdout > golden/paths-known-answers.json
+
+  It was not written with `uv run`, because Python 3.8's write_text has no newline argument;
+  --stdout writes the same text. Against fbf90f9, every Brownian and GBM path is unchanged
+  value for value, and the only line removed from the file is `"gbm": 10`, which gains a
+  comma. CI's golden job regenerates the file with Python 3.12 on Ubuntu 24.04 and requires
+  the tree to be clean (tests.txt section 6).

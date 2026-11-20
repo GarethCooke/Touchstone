@@ -11,8 +11,18 @@
 // the library's defaults — so that the site's backend is a thin wrapper around
 // this module rather than a second translation. Beyond that interface: the Monte
 // Carlo, the grid with its whole solution surface, and bump-and-revalue Greeks
-// over any of the three pricers, which the demos that are not yet written will
-// need and which the site cannot add itself.
+// over any of the three pricers; the payoff, N(x) and the normal density; a
+// sample of paths stepped from normals the caller supplies; the closed form at
+// many points in one call; and the Newton-then-Brent implied-volatility solver
+// beside the safeguarded one. The demos need these and the site cannot add them
+// itself.
+//
+// ## Arrays
+//
+// An array argument is a `Float64Array` or a plain array of numbers, copied into
+// the module in one crossing; an array result is a `Float64Array` copy. A loop
+// over many points or many paths is a library function, called once, so that a
+// demo's redraw crosses the boundary a few times rather than once a point.
 //
 // ## Errors
 //
@@ -33,6 +43,7 @@
 #include <touchstone/contract.hpp>
 #include <touchstone/implied_vol.hpp>
 #include <touchstone/monte_carlo.hpp>
+#include <touchstone/normal.hpp>
 #include <touchstone/paths.hpp>
 #include <touchstone/pde.hpp>
 #include <touchstone/rng.hpp>
@@ -40,6 +51,7 @@
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstddef>
@@ -124,10 +136,17 @@ constexpr std::array exercises{
     std::pair{Exercise::American, std::string_view{"american"}},
 };
 
+constexpr std::array implied_vol_methods{
+    std::pair{ImpliedVolMethod::Newton, std::string_view{"newton"}},
+    std::pair{ImpliedVolMethod::Brent, std::string_view{"brent"}},
+    std::pair{ImpliedVolMethod::Exact, std::string_view{"exact"}},
+};
+
 [[nodiscard]] NameTable<OptionType> names_of(OptionType) { return option_types; }
 [[nodiscard]] NameTable<Scheme> names_of(Scheme) { return schemes; }
 [[nodiscard]] NameTable<Exercise> names_of(Exercise) { return exercises; }
 [[nodiscard]] NameTable<Pricer> names_of(Pricer) { return pricers; }
+[[nodiscard]] NameTable<ImpliedVolMethod> names_of(ImpliedVolMethod) { return implied_vol_methods; }
 
 template <class E>
 [[nodiscard]] std::string_view name(E value)
@@ -227,6 +246,47 @@ template <class E>
 
 [[nodiscard]] val to_js(SafeguardedStatus status) { return val(std::string(to_string(status))); }
 
+/// The elements of `value`, which must each be a number, or a `TypeError`
+/// naming the first that is not.
+void require_numbers(const val& value, const std::string& path)
+{
+    const auto length = value["length"].as<std::size_t>();
+    for (std::size_t i = 0; i < length; ++i) {
+        if (value[i].typeOf().as<std::string>() != "number") {
+            throw ArgumentError(path + "[" + std::to_string(i) + "] must be a number");
+        }
+    }
+}
+
+/// An array argument: a `Float64Array`, or an array whose every element is a
+/// number. NaN and the infinities are numbers, and reach the library as they
+/// would at one value: the closed form and the paths refuse them, and the payoff
+/// and the normal functions, which refuse nothing, answer them.
+[[nodiscard]] std::vector<double> read_numbers(const val& value, const std::string& path)
+{
+    if (value.instanceof(val::global("Float64Array"))) {
+        return emscripten::convertJSArrayToNumberVector<double>(value);
+    }
+    if (!val::global("Array").call<bool>("isArray", value)) {
+        throw ArgumentError(path + " must be a Float64Array or an array of numbers");
+    }
+    // The copy turns anything into a number, a string or a hole included, so a
+    // plain array's elements are checked. `Number.isFinite` over the whole
+    // array is one crossing and passes nearly every array a caller sends; one
+    // it fails is checked an element at a time, before the copy, which a BigInt
+    // would make throw. It skips a hole, which the copy reads as NaN, so an
+    // array it passes and whose copy holds a NaN is checked the same way.
+    const bool finite = value.call<bool>("every", val::global("Number")["isFinite"]);
+    if (!finite) {
+        require_numbers(value, path);
+    }
+    std::vector<double> out = emscripten::convertJSArrayToNumberVector<double>(value);
+    if (finite && std::ranges::any_of(out, [](double x) { return std::isnan(x); })) {
+        require_numbers(value, path);
+    }
+    return out;
+}
+
 [[nodiscard]] val float64_array(std::span<const double> values)
 {
     // A copy, not a view: a view into the module's memory is invalidated the
@@ -249,44 +309,61 @@ struct Field {
 template <class S>
 struct Fields;
 
+constexpr Field option_strike{"strike", &EuropeanVanilla::strike};
+constexpr Field option_expiry{"expiryYears", &EuropeanVanilla::expiry_years};
+constexpr Field option_type{"type", &EuropeanVanilla::type};
+
 template <>
 struct Fields<EuropeanVanilla> {
-    static constexpr auto list = std::tuple{
-        Field{"strike", &EuropeanVanilla::strike},
-        Field{"expiryYears", &EuropeanVanilla::expiry_years},
-        Field{"type", &EuropeanVanilla::type},
-    };
+    static constexpr auto list = std::tuple{option_strike, option_expiry, option_type};
 };
+
+/// The fields of an option its payoff reads: the strike and the direction. Not
+/// the expiry, on which the payoff does not depend, so that a caller drawing a
+/// payoff is not made to supply one.
+constexpr auto payoff_fields = std::tuple{option_strike, option_type};
+
+constexpr Field market_spot{"spot", &BlackScholesMarket::spot};
+constexpr Field market_vol{"vol", &BlackScholesMarket::vol};
+constexpr Field market_rate{"rate", &BlackScholesMarket::rate};
+constexpr Field market_dividend_yield{"dividendYield", &BlackScholesMarket::dividend_yield};
 
 template <>
 struct Fields<BlackScholesMarket> {
-    static constexpr auto list = std::tuple{
-        Field{"spot", &BlackScholesMarket::spot},
-        Field{"vol", &BlackScholesMarket::vol},
-        Field{"rate", &BlackScholesMarket::rate},
-        Field{"dividendYield", &BlackScholesMarket::dividend_yield},
-    };
+    static constexpr auto list = std::tuple{market_spot, market_vol, market_rate, market_dividend_yield};
 };
 
+/// The market's fields, less the volatility, under the market's names.
 template <>
 struct Fields<QuotedMarket> {
     static constexpr auto list = std::tuple{
-        Field{"spot", &QuotedMarket::spot},
-        Field{"rate", &QuotedMarket::rate},
-        Field{"dividendYield", &QuotedMarket::dividend_yield},
+        Field{market_spot.name, &QuotedMarket::spot},
+        Field{market_rate.name, &QuotedMarket::rate},
+        Field{market_dividend_yield.name, &QuotedMarket::dividend_yield},
     };
 };
 
+/// The seven outputs' names, in the order `price_and_greeks_columns` pairs each
+/// output with its column, which says which member each name is.
+constexpr std::array greek_names{"price", "delta", "gamma", "vega", "theta", "rho", "dividendRho"};
+static_assert(greek_names.size() == price_and_greeks_columns.size());
+
 template <>
 struct Fields<PriceAndGreeks> {
+    static constexpr auto list = []<std::size_t... I>(std::index_sequence<I...>) {
+        return std::tuple{Field{greek_names[I], price_and_greeks_columns[I].second}...};
+    }(std::make_index_sequence<greek_names.size()>{});
+};
+
+/// What a sweep holds fixed, under the option's and the market's names.
+template <>
+struct Fields<ClosedFormSweep> {
     static constexpr auto list = std::tuple{
-        Field{"price", &PriceAndGreeks::price},
-        Field{"delta", &PriceAndGreeks::delta},
-        Field{"gamma", &PriceAndGreeks::gamma},
-        Field{"vega", &PriceAndGreeks::vega},
-        Field{"theta", &PriceAndGreeks::theta},
-        Field{"rho", &PriceAndGreeks::rho},
-        Field{"dividendRho", &PriceAndGreeks::dividend_rho},
+        Field{option_strike.name, &ClosedFormSweep::strike},
+        Field{option_type.name, &ClosedFormSweep::type},
+        Field{market_vol.name, &ClosedFormSweep::vol},
+        Field{market_rate.name, &ClosedFormSweep::rate},
+        Field{market_dividend_yield.name, &ClosedFormSweep::dividend_yield},
     };
 };
 
@@ -299,11 +376,40 @@ struct Fields<PathGrid> {
 };
 
 template <>
+struct Fields<StepGrid> {
+    static constexpr auto list = std::tuple{
+        Field{"horizon", &StepGrid::horizon},
+        Field{"steps", &StepGrid::steps},
+    };
+};
+
+template <>
 struct Fields<GbmDynamics> {
     static constexpr auto list = std::tuple{
         Field{"spot", &GbmDynamics::spot},
         Field{"drift", &GbmDynamics::drift},
         Field{"vol", &GbmDynamics::vol},
+    };
+};
+
+template <>
+struct Fields<ImpliedVolSettings> {
+    static constexpr auto list = std::tuple{
+        Field{"priceTolerance", &ImpliedVolSettings::price_tolerance},
+        Field{"maxVol", &ImpliedVolSettings::max_vol},
+        Field{"maxIterations", &ImpliedVolSettings::max_iterations},
+    };
+};
+
+template <>
+struct Fields<ImpliedVolResult> {
+    static constexpr auto list = std::tuple{
+        Field{"vol", &ImpliedVolResult::vol},
+        Field{"priceResidual", &ImpliedVolResult::price_residual},
+        Field{"vega", &ImpliedVolResult::vega},
+        Field{"iterations", &ImpliedVolResult::iterations},
+        Field{"method", &ImpliedVolResult::method},
+        Field{"converged", &ImpliedVolResult::converged},
     };
 };
 
@@ -434,9 +540,13 @@ void require_object(const val& object, const std::string& path, Presence presenc
 }
 
 /// `S` read from `object`, starting from `S{}`: the library's defaults, which a
-/// field left out keeps when `presence` allows it.
-template <class S>
-[[nodiscard]] S read(const val& object, const std::string& path, Presence presence)
+/// field left out keeps when `presence` allows it. `fields` is the type's whole
+/// table unless a caller reads only some of it.
+template <class S, class List = decltype(Fields<S>::list)>
+[[nodiscard]] S read(const val& object,
+                     const std::string& path,
+                     Presence presence,
+                     const List& fields = Fields<S>::list)
 {
     require_object(object, path, presence);
     S out{};
@@ -459,7 +569,7 @@ template <class S>
                 }(),
                 ...);
         },
-        Fields<S>::list);
+        fields);
     return out;
 }
 
@@ -473,6 +583,17 @@ template <class S>
     return out;
 }
 
+/// The columns as `priceAndGreeks`'s object, with a `Float64Array` in place of
+/// each number: the same names, against the same pairing.
+[[nodiscard]] val write(const PriceAndGreeksColumns& columns)
+{
+    val out = val::object();
+    for (std::size_t f = 0; f < greek_names.size(); ++f) {
+        out.set(greek_names[f], float64_array(columns.*(price_and_greeks_columns[f].first)));
+    }
+    return out;
+}
+
 // --- Contracts --------------------------------------------------------------
 
 /// An option object: the three fields every vanilla has, and the exercise style
@@ -482,28 +603,40 @@ struct OptionArgument {
     Exercise exercise{Exercise::European};
 };
 
-[[nodiscard]] OptionArgument option_argument(const val& option)
+/// The exercise style `object.exercise` names, European when it names none.
+[[nodiscard]] Exercise exercise_of(const val& object, const std::string& path)
 {
-    OptionArgument out{read<EuropeanVanilla>(option, "option", Presence::Required)};
-    const val exercise = option["exercise"];
+    Exercise out = Exercise::European;
+    const val exercise = object["exercise"];
     if (!is_absent(exercise)) {
-        read_value(exercise, "option.exercise", out.exercise);
+        read_value(exercise, path + ".exercise", out);
     }
     return out;
 }
 
-/// A European vanilla. An option object that says it is American is refused
-/// rather than read as European, for the reason the library refuses one at
-/// compile time: the two are different contracts, and pricing one as the other
-/// gives a number for the wrong thing.
+[[nodiscard]] OptionArgument option_argument(const val& option)
+{
+    return OptionArgument{read<EuropeanVanilla>(option, "option", Presence::Required),
+                          exercise_of(option, "option")};
+}
+
+/// Refuses an object that says it is American rather than reading it as
+/// European, for the reason the library refuses one at compile time: the two
+/// are different contracts, and pricing one as the other gives a number for the
+/// wrong thing.
+void require_european(Exercise exercise, const std::string& path)
+{
+    if (exercise != Exercise::European) {
+        throw ArgumentError("this function prices a European vanilla only; " + path
+                            + ".exercise is 'american', which only the finite-difference grid prices");
+    }
+}
+
+/// A European vanilla.
 [[nodiscard]] EuropeanVanilla european(const val& option)
 {
     const OptionArgument argument = option_argument(option);
-    if (argument.exercise != Exercise::European) {
-        throw ArgumentError(
-            "this function prices a European vanilla only; option.exercise is 'american', "
-            "which only the finite-difference grid prices");
-    }
+    require_european(argument.exercise, "option");
     return argument.fields;
 }
 
@@ -618,13 +751,25 @@ struct PathSpec {
     return guarded([&] { return bounds_of(european(option), quoted_market(market_object)); });
 }
 
+/// What both implied-volatility solvers are asked: a contract, its market less
+/// the volatility, and the price to invert.
+struct ImpliedQuestion {
+    EuropeanVanilla contract;
+    QuotedMarket quoted;
+    double target{};
+};
+
+[[nodiscard]] ImpliedQuestion implied_question(const val& option, const val& market_object, const val& price)
+{
+    ImpliedQuestion out{european(option), quoted_market(market_object), 0.0};
+    read_value(price, "price", out.target);
+    return out;
+}
+
 [[nodiscard]] val implied(const val& option, const val& market_object, const val& price, const val& settings)
 {
     return guarded([&] {
-        const EuropeanVanilla contract = european(option);
-        const QuotedMarket quoted = quoted_market(market_object);
-        double target{};
-        read_value(price, "price", target);
+        const auto [contract, quoted, target] = implied_question(option, market_object, price);
         const auto solve = read<SafeguardedSettings>(settings, "settings", Presence::Optional);
 
         const SafeguardedResult result = implied_vol_safeguarded(contract, quoted, target, solve);
@@ -730,6 +875,80 @@ struct PathSpec {
     });
 }
 
+// --- Beyond the interface: what the demos draw from ----------------------------
+
+/// The payoff at each spot. The option is read for its strike and direction
+/// only, and the library is called with a European vanilla of those and an
+/// expiry of zero: the payoff depends on neither the expiry nor the exercise
+/// style.
+[[nodiscard]] val payoffs(const val& option, const val& spots)
+{
+    return guarded([&] {
+        const auto contract = read<EuropeanVanilla>(option, "option", Presence::Required, payoff_fields);
+        return float64_array(payoff(contract, read_numbers(spots, "spots")));
+    });
+}
+
+/// `N(x)` or the density at `x`. A NaN is a number, and gives a NaN, as the
+/// library's function does.
+template <auto Function>
+[[nodiscard]] val normal(const val& x)
+{
+    return guarded([&] {
+        double value{};
+        read_value(x, "x", value);
+        return val(Function(value));
+    });
+}
+
+/// A sample of paths, path-major, stepped from the normals given: `steps + 1`
+/// values for each run of `steps` of them.
+[[nodiscard]] val gbm_sample(const val& spec, const val& normals)
+{
+    return guarded([&] {
+        require_object(spec, "spec", Presence::Required);
+        // A seed here would be a field nothing reads: the normals are the
+        // sample's randomness, and a caller who set one would expect it to
+        // matter.
+        if (!is_absent(spec["seed"])) {
+            throw ArgumentError(
+                "spec.seed is not read: gbmPaths steps the normals it is given and draws none; "
+                "draw them with normals(seed, paths * steps)");
+        }
+        const auto grid = read<StepGrid>(spec, "spec", Presence::Required);
+        const auto dynamics = read<GbmDynamics>(spec, "spec", Presence::Required);
+        Scheme scheme{};
+        read_value(spec["scheme"], "spec.scheme", scheme);
+        return float64_array(gbm_paths(grid, dynamics, scheme, read_numbers(normals, "normals")));
+    });
+}
+
+/// The closed form at each (spot, time to expiry) pair, as one array per output.
+[[nodiscard]] val closed_form_at(const val& sweep_object, const val& spots, const val& times_to_expiry)
+{
+    return guarded([&] {
+        const auto sweep = read<ClosedFormSweep>(sweep_object, "sweep", Presence::Required);
+        require_european(exercise_of(sweep_object, "sweep"), "sweep");
+        return write(price_and_greeks(sweep, read_numbers(spots, "spots"),
+                                      read_numbers(times_to_expiry, "timesToExpiry")));
+    });
+}
+
+/// The library's default solver: Newton from Manaster and Koehler's point, with
+/// Brent behind it. A price it cannot invert is refused, as `require_valid`
+/// says, rather than answered with a status.
+[[nodiscard]] val implied_newton_brent(const val& option,
+                                       const val& market_object,
+                                       const val& price,
+                                       const val& settings)
+{
+    return guarded([&] {
+        const auto [contract, quoted, target] = implied_question(option, market_object, price);
+        return write(implied_vol(contract, quoted, target,
+                                 read<ImpliedVolSettings>(settings, "settings", Presence::Optional)));
+    });
+}
+
 /// The library's default settings for every entry point that takes them, so
 /// that a caller can show them without writing them down a second time.
 [[nodiscard]] val defaults()
@@ -737,6 +956,7 @@ struct PathSpec {
     return guarded([] {
         val out = val::object();
         out.set("impliedVol", write(SafeguardedSettings{}));
+        out.set("impliedVolNewtonBrent", write(ImpliedVolSettings{}));
         out.set("monteCarlo", write(MonteCarloSettings{}));
         out.set("crankNicolson", write(PdeSettings{}));
         out.set("surfaceSampling", write(SurfaceSampling{}));
@@ -804,6 +1024,13 @@ EMSCRIPTEN_BINDINGS(touchstone)
     bind<&grid, 2>("crankNicolson");
     bind<&surface, 2>("crankNicolsonSurface");
     bind<&bumped, 2>("bumpGreeks");
+
+    bind<&payoffs>("payoff");
+    bind<&normal<&norm_cdf>>("normCdf");
+    bind<&normal<&norm_pdf>>("normPdf");
+    bind<&gbm_sample>("gbmPaths");
+    bind<&closed_form_at>("priceAndGreeksAt");
+    bind<&implied_newton_brent, 3>("impliedVolNewtonBrent");
 
     bind<&defaults>("defaults");
 }

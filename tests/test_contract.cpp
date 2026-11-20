@@ -19,7 +19,10 @@
 #include <doctest/doctest.h>
 
 #include <concepts>
+#include <cstddef>
+#include <span>
 #include <type_traits>
+#include <vector>
 
 namespace {
 
@@ -166,5 +169,29 @@ TEST_SUITE("contract")
             CHECK(touchstone::payoff(touchstone::with_exercise<Exercise::American>(call), spot)
                   == touchstone::payoff(call, spot));
         }
+    }
+
+    TEST_CASE("the payoff at many spots is the payoff at each, in order")
+    {
+        // A curve for a chart and one payoff per path of a sample are both this
+        // function, and it is the one definition above read once a spot.
+        constexpr EuropeanVanilla call{100.0, 1.0, OptionType::Call};
+        constexpr AmericanVanilla put{100.0, 1.0, OptionType::Put};
+        const std::vector<double> spots{-5.0, 0.0, 50.0, 99.999, 100.0, 100.001, 120.0, 250.0};
+
+        const std::vector<double> calls = touchstone::payoff(call, spots);
+        const std::vector<double> puts = touchstone::payoff(put, spots);
+        REQUIRE(calls.size() == spots.size());
+        REQUIRE(puts.size() == spots.size());
+        for (std::size_t i = 0; i < spots.size(); ++i) {
+            CAPTURE(spots[i]);
+            CHECK(calls[i] == touchstone::payoff(call, spots[i]));
+            CHECK(puts[i] == touchstone::payoff(put, spots[i]));
+        }
+        CHECK(calls == std::vector<double>{0.0, 0.0, 0.0, 0.0, 0.0, 100.001 - 100.0, 20.0, 150.0});
+        CHECK(puts[0] == 105.0);
+
+        // No spots, no payoffs: an empty curve is not an error.
+        CHECK(touchstone::payoff(call, std::span<const double>{}).empty());
     }
 }

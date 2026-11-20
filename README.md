@@ -1,6 +1,6 @@
 # Touchstone
 
-A C++20 pricing and risk library for European vanilla options. Version 1.0.0: complete for
+A C++20 pricing and risk library for European vanilla options. Version 1.1.0: complete for
 its v1 scope, and built for the browser as a WebAssembly module.
 
 It prices European calls and puts on one underlying, with a constant rate and volatility and
@@ -23,8 +23,9 @@ bumped ones.
 
 Around them: implied volatility by two solvers (Newton with a Brent fallback, and the
 step-recording Newton with a bisection guard that the tutorial teaches); Greeks by bumping
-any pricer; and sample paths of Brownian motion and geometric Brownian motion, drawn from the
-same seeded stream the tutorial's demos use.
+any pricer; sample paths of Brownian motion and geometric Brownian motion, drawn from the
+same seeded stream the tutorial's demos use, one path from a seed or a whole sample from the
+stream's normals; and the closed form at many points in one call.
 
 Touchstone is one half of a pair. The other half is
 [touchstone.garethcooke.com](https://touchstone.garethcooke.com), a tutorial for developers who work
@@ -36,7 +37,8 @@ nonlinear payoffs need stochastic calculus.
 **[`ARCHITECTURE.md`](ARCHITECTURE.md)** describes how the library is built, what it holds
 itself to, what it does not claim, one machine's timings of its five entry points, and its
 history. Every claim in it is numbered against the test or file that holds it in
-[`docs/evidence/T5/claims.md`](docs/evidence/T5/claims.md).
+[`docs/evidence/T5/claims.md`](docs/evidence/T5/claims.md), and those 1.1.0 added or changed
+in [`docs/evidence/T6/claims.md`](docs/evidence/T6/claims.md).
 
 ## Governance
 
@@ -46,7 +48,7 @@ This repository is governed by documents, not convention. Read them before chang
 |---|---|
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | How the library is built, what it claims and what it does not, and its history. |
 | [`CONSTITUTION.md`](CONSTITUTION.md) | Normative. Truth, publication, architecture invariants (I1–I22); session and tollgate protocol; the amendment log. |
-| [`ROADMAP.md`](ROADMAP.md) | Milestones T0–T5 for this repository, each with entry, deliverables, exit criteria and tollgate. |
+| [`ROADMAP.md`](ROADMAP.md) | Milestones T0–T6 for this repository, each with entry, deliverables, exit criteria and tollgate. |
 | [`docs/tech-decisions-v1.md`](docs/tech-decisions-v1.md) | Why each technology was chosen, and what was rejected. |
 | [`docs/quant-learn-index-v1.md`](docs/quant-learn-index-v1.md) | The tutorial curriculum this library serves. |
 | [`docs/evidence/`](docs/evidence/) | One pack per completed milestone: what was done, why, and the proof. |
@@ -74,6 +76,7 @@ Milestones are ticked in `ROADMAP.md` when their tollgate passes.
 | T3a — settle the library before it is bound | passed — [evidence](docs/evidence/T3a/) |
 | T4 — WASM artifact | passed — [evidence](docs/evidence/T4/) |
 | T5 — architecture write-up, `v1.0.0` | passed — [evidence](docs/evidence/T5/) |
+| T6 — what the demos need from the browser build, `v1.1.0` | in review — [evidence](docs/evidence/T6/) |
 
 ## Layout
 
@@ -136,16 +139,26 @@ JavaScript. The artifact is `touchstone.mjs`, an ES module whose default export
 `createTouchstone()` resolves to the module, and `touchstone.wasm` beside it. Each version
 tag's GitHub release carries both.
 
+The module exports the tutorial's `PricingBackend` — `uniforms`, `normals`, `brownianPath`,
+`gbmPath`, `priceAndGreeks`, `noArbitrageBounds` and `impliedVol`, the safeguarded solver —
+and beyond it `monteCarlo`, `crankNicolson`, `crankNicolsonSurface`, `bumpGreeks`, `payoff`
+(at many spots), `normCdf`, `normPdf`, `gbmPaths` (a sample stepped from the normals it is
+given), `priceAndGreeksAt` (the closed form at many points), `impliedVolNewtonBrent` (Newton,
+then Brent), `defaults()` and `version`. An array argument is a `Float64Array` or a plain
+array of numbers, and costs its own length even when it is a slice of a larger array.
+
 ```bash
 source <emsdk>/emsdk_env.sh            # Emscripten 6.0.13, the version CI builds with
 wasm/build.sh                          # build-wasm/: with and without exception catching, sizes
 node --test wasm/smoke.test.mjs        # load it in Node and hold it to the fixtures
+node wasm/timing.mjs                   # the closed form through the module, one machine's numbers
 ```
 
-The smoke test reproduces the RNG fixture, the golden file, the path fixture and page 2.11's
-solver trace through the module, checks the Monte Carlo, the grid and bump Greeks against
-the closed form, and makes three hundred thousand refused calls before checking the fixtures
-again.
+The smoke test reproduces the RNG fixture, the golden file, the path fixture with its
+samples and page 2.11's solver trace through the module, checks the Monte Carlo, the grid and
+bump Greeks against the closed form, holds the closed form at many points to the closed form
+at each and the second solver to the golden file's price round trip, and makes five hundred
+thousand refused calls before checking the fixtures again.
 
 ## The Python side
 

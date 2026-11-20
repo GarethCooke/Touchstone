@@ -15,6 +15,9 @@
 
 #pragma once
 
+#include <span>
+#include <vector>
+
 namespace touchstone {
 
 enum class OptionType {
@@ -85,6 +88,20 @@ template <Exercise E>
 {
     const double intrinsic = option_sign(option.type) * (spot - option.strike);
     return intrinsic > 0.0 ? intrinsic : 0.0;
+}
+
+/// `payoff(option, s)` at each spot, in order: a payoff curve, or one payoff per
+/// path of a sample. Refuses nothing, because the payoff at one spot refuses
+/// nothing.
+template <Exercise E>
+[[nodiscard]] std::vector<double> payoff(const Vanilla<E>& option, std::span<const double> spots)
+{
+    std::vector<double> out;
+    out.reserve(spots.size());
+    for (const double spot : spots) {
+        out.push_back(payoff(option, spot));
+    }
+    return out;
 }
 
 }  // namespace touchstone

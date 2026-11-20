@@ -1,8 +1,9 @@
 # Touchstone — Architecture
 
-**Status:** describes Touchstone 1.0.0, and is written as the source the portfolio's
+**Status:** describes Touchstone 1.1.0, and is written as the source the portfolio's
 architecture page will be rendered from. Every claim below is listed, numbered, against the
-test or file that holds it, in [`docs/evidence/T5/claims.md`](docs/evidence/T5/claims.md).
+test or file that holds it, in [`docs/evidence/T5/claims.md`](docs/evidence/T5/claims.md), and
+those 1.1.0 added or changed in [`docs/evidence/T6/claims.md`](docs/evidence/T6/claims.md).
 The rules the programme runs by are in [`CONSTITUTION.md`](CONSTITUTION.md); this file
 describes the library those rules produced.
 
@@ -19,10 +20,11 @@ functions, the Monte Carlo and the grid share the payoff, and the Monte Carlo ta
 discount factor and discounted strike from the closed form's volatility-free half. The
 finite-difference grid also prices the American contract. Around the three sit implied
 volatility by two solvers, Greeks by bumping any pricer, and sample paths of Brownian and
-geometric Brownian motion drawn from a frozen random-number generator.
+geometric Brownian motion drawn from a frozen random-number generator: one path from a seed,
+or a whole sample stepped from the normals a caller supplies.
 
 It is one half of a pair. The other half is touchstone.garethcooke.com, a tutorial whose demos
-are to run on this library compiled to WebAssembly. At 1.0.0 they run on a TypeScript
+are to run on this library compiled to WebAssembly. At 1.1.0 they run on a TypeScript
 backend; moving them onto the WebAssembly build is the tutorial's milestone L5, not yet run.
 
 **What is claimed.** That the closed form agrees with QuantLib's reference values on every
@@ -51,6 +53,7 @@ QuantLib is the oracle and never a dependency: Touchstone does not link it.
                     the library: C++20,              ▲
                     standard library only            │  golden/rng-known-answers.json
                           │                          │  golden/paths-known-answers.json
+                          │                          │  golden/normal-known-answers.json
                           │                          │  experiments/2_11_where_it_breaks.json
                           ▼
                     wasm/binding.cpp ──► touchstone.mjs + touchstone.wasm
@@ -71,9 +74,9 @@ never run by them.
 | `include/touchstone/` | The public headers: the whole API. `detail/` beneath it is internal. |
 | `src/` | The implementation: closed form, Monte Carlo, paths, grid, implied vol, bump Greeks, tridiagonal solvers. |
 | `tests/` | doctest suites, one ctest entry per suite and one that runs them all. |
-| `wasm/` | The embind binding, its error shim, its build script and its Node smoke test. |
+| `wasm/` | The embind binding, its error shim, its build script, its Node smoke test and its timing script. |
 | `bench/` | The timing harness behind §7. |
-| `golden/` | QuantLib-generated reference values, their generators and independent verifiers, and the two known-answer fixtures. |
+| `golden/` | QuantLib-generated reference values, their generators and independent verifiers, and three known-answer fixtures: the generator's, the paths' and the normal distribution's. |
 | `experiments/` | numpy scripts behind the tutorial's Part 2 pages, each with its committed JSON result. |
 | `third_party/` | doctest and nlohmann/json, single headers, linked by the test executable only. |
 | `docs/` | The curriculum, the technology decisions, the RNG specification, rulings, and one evidence pack per milestone. |
@@ -88,17 +91,20 @@ inheritance and no virtual function anywhere in the library.
 | Entry point | Header | Contract | Defaults |
 | --- | --- | --- | --- |
 | `price_and_greeks`, and `price`, `delta`, `gamma`, `vega`, `theta`, `rho`, `dividend_rho` | `black_scholes.hpp` | European | — |
+| `price_and_greeks` over a `ClosedFormSweep`: many (spot, time to expiry) points | `black_scholes.hpp` | European | — |
 | `monte_carlo` | `monte_carlo.hpp` | European | seed 1; 32,768 paths; exact terminal sampling; no antithetics |
 | `crank_nicolson`, `crank_nicolson_surface` | `pde.hpp` | European or American | 1,024 space intervals; 512 time steps; half-width 6 σ√T; 2 Rannacher steps; cell-averaged payoff; every level kept |
 | `implied_vol` (Newton, then Brent) | `implied_vol.hpp` | European | price tolerance 1e-14 of the price scale; volatility up to 10; 64 Newton steps |
 | `implied_vol_safeguarded` (Newton with a bisection guard) | `implied_vol.hpp` | European | start 0.2; bracket [1e-6, 5]; price tolerance 1e-12; bracket width 1e-14; 100 iterations |
 | `bump_greeks` | `bump_greeks.hpp` | European | over the closed form, or any `VanillaPricer`; relative spot bumps 1e-6 (delta) and 3e-5 (gamma); 1e-6 in vol, rate and yield; 1e-5 years in expiry |
 | `brownian_path`, `gbm_path` | `paths.hpp` | — | seed 1; horizon 1 |
+| `gbm_paths`: a sample, from the caller's normals | `paths.hpp` | — | horizon 1; one step a path |
 
 **The contract's exercise style is its type.** `EuropeanVanilla` and `AmericanVanilla` are
 both `Vanilla<E>`, so their fields are written once. The grid accepts either; every other
 pricing entry point accepts the European one only, and refuses the American one at compile
-time. `payoff`, which both exercise styles share, accepts either. `with_exercise` converts
+time. `payoff`, which both exercise styles share, accepts either, at one spot or at each of
+many. `with_exercise` converts
 one contract to the other, and nothing converts implicitly.
 
 **The market is a type of its own,** `BlackScholesMarket`, and `QuotedMarket` is the same
@@ -118,7 +124,11 @@ rho per 1.00 of rate. Scaling for display is the caller's.
 `x = −10` the subtraction `1 − N(10)` returns zero where the true value is 7.6e-24. A
 `ClosedForm` validates once, computes once, and serves all seven outputs; its
 `ClosedFormQuote` is the half that does not depend on the volatility, and both implied-vol
-solvers build it once per solve.
+solvers build it once per solve. `price_and_greeks` over a `ClosedFormSweep` holds the strike,
+the direction, the volatility, the rate and the dividend yield fixed and evaluates a
+`ClosedForm` at each (spot, time to expiry) pair, returning one array per output. Every point
+is validated before any is computed; a point it refuses refuses the call, and the message
+names the point.
 
 **The Monte Carlo** draws one normal per path and samples the terminal law exactly, or steps
 Euler–Maruyama over `steps` equal steps from the same generator. It reports the standard
@@ -161,8 +171,14 @@ Greeks, and asserts that each is most accurate at the size `BumpSizes` defaults 
 MurmurHash3 finaliser, with 53-bit uniforms and normals by Wichura's AS241 inverse, frozen by
 [`docs/rng.md`](docs/rng.md). `brownian_path` and `gbm_path` write a whole path into a span
 the caller owns, one normal per step, and both GBM schemes are driven by the same normals, so
-two paths from one seed differ by discretisation and nothing else. The Monte Carlo draws from
-the same generator through the same step.
+two paths from one seed differ by discretisation and nothing else. `gbm_paths` steps a whole
+sample from normals the caller supplies: path `p` from the `p`-th run of `steps` of them,
+through the same per-path loop as `gbm_path`, so that path 0 of a sample drawn as
+`steps × paths` normals from one seed is `gbm_path`'s path at that seed, bit for bit. Both
+schemes can be stepped from one array of normals, and normals recorded elsewhere can be
+stepped too. A normal that is not finite is refused, because at a volatility of zero an
+infinite one would make a step's exponent `0 × ∞`. The Monte Carlo draws from the same
+generator through the same step.
 
 **One association per product.** The products the domain checks guard — `σ√T`, `½σ²T`,
 `(r − q)T`, the discount factors and the rest — are each written once, in
@@ -173,9 +189,15 @@ from the one the formulas use (§10.2 has the input that showed it).
 **The WebAssembly binding** is translation and nothing else: plain JavaScript objects in, the
 library's value types across, plain objects and `Float64Array`s back, under the names and
 shapes of the tutorial's `PricingBackend` interface, with `monteCarlo`, `crankNicolson`,
-`crankNicolsonSurface` and `bumpGreeks` beyond it, and `defaults()` exporting the library's
-default settings for every bound entry point that takes settings. The artifact is one ES
-module and one `.wasm`, built by Emscripten 6.0.13 with C++ exception catching on.
+`crankNicolsonSurface` and `bumpGreeks` beyond it; `payoff` at many spots, `normCdf` and
+`normPdf`; `gbmPaths`, a sample stepped from the normals it is given; `priceAndGreeksAt`, the
+closed form at many points in one call; and `impliedVolNewtonBrent`, the library's
+`implied_vol`, beside `impliedVol`, the safeguarded solver. `defaults()` exports the library's
+default settings for every bound entry point that takes settings. An array argument is a
+`Float64Array` or a plain array of numbers, and a loop over points or paths is a library
+function called once, so that a demo's redraw crosses the boundary a few times rather than
+once a point. The artifact is one ES module and one `.wasm`, built by Emscripten 6.0.13 with
+C++ exception catching on.
 
 ## 6. Invariants (the library's own rules)
 
@@ -223,7 +245,7 @@ module and one `.wasm`, built by Emscripten 6.0.13 with C++ exception catching o
    argument of the wrong shape, `Error` otherwise.
    *Why:* an exception unwinding WebAssembly frames leaves the module's stack pointer behind;
    T4 measured a module killed by it at call 2,074.
-   *Held by:* `wasm/smoke.test.mjs`, which makes 300,000 refused calls — 100,000 of them a
+   *Held by:* `wasm/smoke.test.mjs`, which makes 500,000 refused calls — 100,000 of them a
    throwing getter, refused before the module is entered — and then reproduces the RNG
    fixture and one golden row exactly as before.
 
@@ -250,7 +272,7 @@ at least 20 ms. The table gives each of three processes' median round, lowest to
 
 These are one machine's numbers on one date, with one compiler at one setting of its flags.
 They say nothing about another machine, compiler or flag, about the WebAssembly build, which
-was not timed, or about inputs other than the one above. Nothing was tuned for this
+this section does not time (§9), or about inputs other than the one above. Nothing was tuned for this
 measurement: the library timed is main's, object file for object file, and there is no fast
 path. The raw output, the
 machine and the method are in `docs/evidence/T5/timing.txt`.
@@ -283,7 +305,10 @@ machine and the method are in `docs/evidence/T5/timing.txt`.
   steps, and timed one alternative that returned the same bits, which was no faster.
 - **Errors are returned across the WebAssembly boundary and thrown in JavaScript** (§6, 7),
   and arguments are structured-cloned before the module is entered, so that a getter that
-  throws does so before any WebAssembly frame exists.
+  throws does so before any WebAssembly frame exists. A typed array that is a view into part
+  of a larger buffer is first copied into a buffer of its own, because the clone copies a
+  view's whole buffer, and a slice should cost its own length: one path's spots handed over
+  as a `subarray` of a whole sample.
 - **An American option reaches the binding as an `exercise: 'american'` field,** which the
   grid's entry points and `bumpGreeks` over the grid accept, and every other entry point
   refuses with a `TypeError`.
@@ -309,8 +334,9 @@ market data. American exercise is priced by the grid alone, with no closed form 
 early-exercise boundary reported.
 
 Not claimed, because not done here: an MSVC build; a browser loading the artifact in this
-repository's CI, which runs it in Node; a timing of the WebAssembly build; any timing beyond
-§7.
+repository's CI, which runs it in Node; any timing beyond §7. The closed form was timed
+through the WebAssembly module in Node on one machine, and `docs/evidence/T6/timing.txt`
+records it as that machine's numbers; nothing here claims them.
 
 ## 10. History
 
@@ -325,6 +351,7 @@ repository's CI, which runs it in Node; a timing of the WebAssembly build; any t
 | T3a | 2026-11-13 | The path API; the second implied-vol solver; `AmericanVanilla` as a type; `scales.hpp` under `detail/`; the three classes; nine repeated pieces of code removed. |
 | T4 | 2026-11-13 | The WebAssembly artifact and its release workflow; `crank_nicolson_surface`; released as `v0.4.0`. |
 | T5 | 2026-11-14 | This document, the timings in §7, comments that carry reasoning and not history, version 1.0.0; released as `v1.0.0`. Fable tollgate: PASS WITH DEFECTS, all of them wording, closed before the merge. |
+| T6 | in review | What the demos need from the browser build: the payoff at many spots, a sample of paths from the caller's normals, the closed form at many points, and their bindings with `normCdf`, `normPdf` and `impliedVolNewtonBrent`; an array argument costs its own length; version 1.1.0. The signatures were proposed by the session and ruled on by the owner before any was built. |
 
 Each has an evidence pack under `docs/evidence/<milestone>/`.
 
@@ -429,3 +456,4 @@ Removed at T5:
 | --- | --- |
 | 2026-11-14 | First version, with Touchstone 1.0.0. |
 | 2026-11-14 | §10.1: T5's row completed with its date, its release and its tollgate, once T5 had passed. |
+| 2026-11-19 | Touchstone 1.1.0: §1 to §9 for what it added and the sentences it made untrue; §10.1's T6 row. |

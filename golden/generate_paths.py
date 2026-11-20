@@ -17,6 +17,11 @@ expression, including its association of the exact step's exponent,
 agree to rounding, not to the bit, and the fixture's tolerance says by how much they may
 differ.
 
+The samples -- many paths from one stream, path ``p`` stepped from the ``p``-th run of
+``steps`` normals -- follow the site's ``sampleNormals`` (``touchstone-learn``
+``src/demos/experiments/euler.ts``) the same way, and each sample's path 0 must be the single
+path at its seed or nothing is written.
+
 **Checked before it is trusted.** Before writing anything, the generator reproduces
 ``golden/rng-known-answers.json``, the fixture the TypeScript implementation generated: every uniform
 exactly, every normal to the 1e-12 absolute tolerance ``docs/rng.md`` section 6 sets. A
@@ -172,7 +177,13 @@ def brownian_path(seed: int, steps: int, horizon: float) -> list[float]:
 
 def gbm_path(seed: int, steps: int, horizon: float, spot: float, drift: float, vol: float,
              scheme: str) -> list[float]:
-    z = normals(seed, steps)
+    return gbm_steps(normals(seed, steps), horizon, spot, drift, vol, scheme)
+
+
+def gbm_steps(z: list[float], horizon: float, spot: float, drift: float, vol: float,
+              scheme: str) -> list[float]:
+    """One path stepped from the normals it is given, one per step."""
+    steps = len(z)
     dt = horizon / steps
     sqrt_dt = math.sqrt(dt)
     path = [0.0] * (steps + 1)
@@ -185,6 +196,14 @@ def gbm_path(seed: int, steps: int, horizon: float, spot: float, drift: float, v
     for i in range(steps):
         path[i + 1] = path[i] * (1 + drift * dt + vol * sqrt_dt * z[i])
     return path
+
+
+def gbm_sample(seed: int, path_count: int, steps: int, horizon: float, spot: float,
+               drift: float, vol: float, scheme: str) -> list[list[float]]:
+    """A sample from one stream: path p is stepped from the p-th run of `steps` normals."""
+    z = normals(seed, path_count * steps)
+    return [gbm_steps(z[p * steps:(p + 1) * steps], horizon, spot, drift, vol, scheme)
+            for p in range(path_count)]
 
 
 # --- the self-check ------------------------------------------------------------------------
@@ -233,6 +252,12 @@ GBM = [
 NEGATIVE_EULER = {"steps": 4, "horizon": 1.0, "spot": 100.0, "drift": 0.05, "vol": 1.5}
 
 
+# Samples: many paths from one stream, as a demo draws them. Each uses a process from the
+# cases above at the same seed, so its path 0 is that case's path, and the generator
+# refuses to write a fixture in which it is not.
+SAMPLE_PATHS = {"gbm_first": 4, "negative_euler": 8}
+
+
 def first_negative_euler_seed() -> int:
     c = NEGATIVE_EULER
     for seed in range(1, 10_000):
@@ -249,14 +274,27 @@ def build() -> dict:
     for case in BROWNIAN:
         brownian.append({**case, "path": brownian_path(case["seed"], case["steps"], case["horizon"])})
 
-    gbm_cases = list(GBM)
-    gbm_cases.append({"seed": first_negative_euler_seed(), **NEGATIVE_EULER})
+    negative_euler = {"seed": first_negative_euler_seed(), **NEGATIVE_EULER}
+    gbm_cases = [*GBM, negative_euler]
     gbm = []
     for case in gbm_cases:
         for scheme in ("exact", "euler"):
             path = gbm_path(case["seed"], case["steps"], case["horizon"], case["spot"],
                             case["drift"], case["vol"], scheme)
             gbm.append({**case, "scheme": scheme, "path": path})
+
+    samples = []
+    for case, path_count in ((GBM[0], SAMPLE_PATHS["gbm_first"]),
+                             (negative_euler, SAMPLE_PATHS["negative_euler"])):
+        for scheme in ("exact", "euler"):
+            paths = gbm_sample(case["seed"], path_count, case["steps"], case["horizon"],
+                               case["spot"], case["drift"], case["vol"], scheme)
+            single = next(row["path"] for row in gbm if row["scheme"] == scheme
+                          and all(row[key] == case[key] for key in case))
+            if paths[0] != single:
+                raise SystemExit(f"generate_paths: the {scheme} sample at seed {case['seed']} does "
+                                 "not start with that seed's single path; refusing to write a fixture")
+            samples.append({**case, "path_count": path_count, "scheme": scheme, "paths": paths})
 
     return {
         "schema": "touchstone/golden/paths@1",
@@ -277,9 +315,13 @@ def build() -> dict:
                     "room for the C++ associating the exact step's exponent differently",
         },
         "self_check": self_check,
-        "counts": {"brownian": len(brownian), "gbm": len(gbm)},
+        "sample_rule": "path p of a sample is stepped, by the GBM rules, from the p-th run of "
+                       "steps normals of one stream: normals [p*steps, (p+1)*steps) of the "
+                       "generator seeded with seed; path 0 is therefore the gbm entry at that seed",
+        "counts": {"brownian": len(brownian), "gbm": len(gbm), "samples": len(samples)},
         "brownian": brownian,
         "gbm": gbm,
+        "samples": samples,
     }
 
 

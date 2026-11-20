@@ -1,6 +1,6 @@
-// The seven outputs of `PriceAndGreeks`, by name and by member, in the order
-// the struct declares them — and the worst error per field over a sweep that
-// compares all seven at once.
+// The seven outputs of `PriceAndGreeks`, by the golden file's name and by
+// member, in the order the library pairs them with its columns — and the worst
+// error per field over a sweep that compares all seven at once.
 
 #pragma once
 
@@ -23,15 +23,20 @@ struct GreekField {
     double PriceAndGreeks::* value;
 };
 
-inline constexpr std::array<GreekField, 7> greek_fields{{
-    {"price", &PriceAndGreeks::price},
-    {"delta", &PriceAndGreeks::delta},
-    {"gamma", &PriceAndGreeks::gamma},
-    {"vega", &PriceAndGreeks::vega},
-    {"theta", &PriceAndGreeks::theta},
-    {"rho", &PriceAndGreeks::rho},
-    {"dividend_rho", &PriceAndGreeks::dividend_rho},
-}};
+/// The golden file's name for each output, in the order of
+/// `price_and_greeks_columns`, which says which member each one is.
+inline constexpr std::array<const char*, 7> greek_names{
+    "price", "delta", "gamma", "vega", "theta", "rho", "dividend_rho",
+};
+static_assert(greek_names.size() == price_and_greeks_columns.size());
+
+inline constexpr std::array<GreekField, greek_names.size()> greek_fields = [] {
+    std::array<GreekField, greek_names.size()> out{};
+    for (std::size_t f = 0; f < out.size(); ++f) {
+        out[f] = GreekField{greek_names[f], price_and_greeks_columns[f].second};
+    }
+    return out;
+}();
 
 using GreekTolerances = std::array<double, greek_fields.size()>;
 

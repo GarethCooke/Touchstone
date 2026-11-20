@@ -1,7 +1,7 @@
 # `golden/` — committed known answers
 
 Everything the C++ tests compare against that was produced somewhere other than this
-library. Four files, four different origins, and the difference matters when one of them
+library. Five files, five different origins, and the difference matters when one of them
 disagrees with the code.
 
 | File | Origin | Read by | Documented in |
@@ -10,6 +10,7 @@ disagrees with the code.
 | `american_vanilla.json` | Generated here by `generate_american_vanilla.py` from QuantLib-Python: three lattices, and what they disagreed by | `tests/test_american.cpp` | [`AMERICAN-SCHEMA.md`](AMERICAN-SCHEMA.md) |
 | `rng-known-answers.json` | Copied from `touchstone-learn`, where the TypeScript implementation generated it at L0 | `tests/test_rng.cpp` | [`../docs/rng.md`](../docs/rng.md) §5 |
 | `paths-known-answers.json` | Generated here by `generate_paths.py`: `docs/rng.md` and the site's `paths.ts`, transcribed into plain Python independently of the C++, checked against `rng-known-answers.json` before it writes | `tests/test_paths.cpp`; the site takes it at L5 | the generator's docstring, and the file's own `tolerance` and rule fields |
+| `normal-known-answers.json` | Computed at 60 decimal digits with mpmath and rounded once; written here from the references `tests/test_normal.cpp` held in its source, so that the smoke test reads the same numbers | `tests/test_normal.cpp`; `wasm/smoke.test.mjs` | the file's own `references` and `tolerance_rule` fields |
 
 A failure against the first means this library disagrees with QuantLib. A failure against the
 second means it disagrees with three lattices by more than they disagree with each other —
@@ -19,7 +20,8 @@ where it can be checked against fifteen digits after all. A failure against the 
 the C++ and the browser would draw different numbers from the same seed, which is the one
 thing the shared generator exists to prevent. A failure against the fourth means a path drawn
 here and a path drawn by a demo have parted company, which is the same failure one step
-further along.
+further along. A failure against the fifth means `N(x)` or the density has lost accuracy,
+in the module or out of it.
 
 ## Provenance of the RNG copy
 

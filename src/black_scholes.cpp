@@ -5,8 +5,10 @@
 #include <touchstone/normal.hpp>
 
 #include <cmath>
+#include <cstddef>
 #include <limits>
 #include <stdexcept>
+#include <string>
 
 namespace touchstone {
 
@@ -316,6 +318,66 @@ double rho(const EuropeanVanilla& option, const BlackScholesMarket& market)
 double dividend_rho(const EuropeanVanilla& option, const BlackScholesMarket& market)
 {
     return ClosedForm(option, market).dividend_rho();
+}
+
+namespace {
+
+/// `visit(option, market)` at each point of the sweep, in order. A point the
+/// visit refuses is refused with its index added to the message, so that the
+/// caller can find it among the others.
+template <class Visit>
+void at_each_point(const ClosedFormSweep& sweep,
+                   std::span<const double> spots,
+                   std::span<const double> times_to_expiry,
+                   Visit visit)
+{
+    if (spots.size() != times_to_expiry.size()) {
+        throw std::invalid_argument(
+            "touchstone: a sweep needs one time to expiry for each spot; got "
+            + std::to_string(spots.size()) + " spots and " + std::to_string(times_to_expiry.size())
+            + " times to expiry");
+    }
+    for (std::size_t i = 0; i < spots.size(); ++i) {
+        const EuropeanVanilla option{sweep.strike, times_to_expiry[i], sweep.type};
+        const BlackScholesMarket market{spots[i], sweep.vol, sweep.rate, sweep.dividend_yield};
+        try {
+            visit(option, market);
+        } catch (const std::invalid_argument& refused) {
+            throw std::invalid_argument(std::string(refused.what()) + " (at point "
+                                        + std::to_string(i) + " of the sweep)");
+        }
+    }
+}
+
+}  // namespace
+
+void require_valid(const ClosedFormSweep& sweep,
+                   std::span<const double> spots,
+                   std::span<const double> times_to_expiry)
+{
+    at_each_point(sweep, spots, times_to_expiry,
+                  [](const EuropeanVanilla& option, const BlackScholesMarket& market) {
+                      require_valid(option, market);
+                  });
+}
+
+PriceAndGreeksColumns price_and_greeks(const ClosedFormSweep& sweep,
+                                       std::span<const double> spots,
+                                       std::span<const double> times_to_expiry)
+{
+    require_valid(sweep, spots, times_to_expiry);
+    PriceAndGreeksColumns out;
+    for (const auto& [column, output] : price_and_greeks_columns) {
+        (out.*column).reserve(spots.size());
+    }
+    at_each_point(sweep, spots, times_to_expiry,
+                  [&out](const EuropeanVanilla& option, const BlackScholesMarket& market) {
+                      const PriceAndGreeks point = price_and_greeks(option, market);
+                      for (const auto& [column, output] : price_and_greeks_columns) {
+                          (out.*column).push_back(point.*output);
+                      }
+                  });
+    return out;
 }
 
 }  // namespace touchstone
