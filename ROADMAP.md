@@ -268,7 +268,19 @@ decisions stand: the three exercise-style pairs in `pde.hpp` stay as overloads, 
 template would let an untyped `{}` settle silently on the bump sizes; no `.clang-format`; a
 comment that cites the roadmap or the constitution as its authority counts as history.
 
-### ☐ T6 — What the demos need from the browser build
+### ☑ T6 — What the demos need from the browser build
+**Passed** 2026-11-20 — evidence: `docs/evidence/T6/`. Released as `v1.1.0`. The owner ruled on
+twelve signature questions before anything was built (`signatures.md`). In CI at the tag the
+artifact is 214,863 bytes with exception catching and 173,194 without, against 500,000. Through
+the module in Node, 200,000 closed-form points take 36 ms in one call and 57 ms as 781 calls of
+256-point slices, against 2,255 ms one point a call. An audit outside the session built the
+head with CI's compilers and under the sanitizers, ran the release's files in Node and in
+headless Chromium, and held them to `v1.0.0`'s answers and to the site's TypeScript numerics.
+The session's decisions stand: `gbm_paths` also returns its sample in a vector;
+`price_and_greeks_columns` is the one pairing of the sweep's columns with a point's outputs;
+`ClosedFormSweep` has an ordering; N(x)'s references are a fixture,
+`golden/normal-known-answers.json`; the binding's `plus_one` and its `normals` loop, which
+predate T6, are unchanged.
 **Entry:** T5; the owner's ruling of 2026-11-19 in `docs/briefs/T6-browser-build-needs.md`, from
 which the session derives its work order.
 **Deliverables:** the binding exports the payoff, N(x) and the normal density; the library

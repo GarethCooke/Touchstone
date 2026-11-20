@@ -76,7 +76,7 @@ Milestones are ticked in `ROADMAP.md` when their tollgate passes.
 | T3a — settle the library before it is bound | passed — [evidence](docs/evidence/T3a/) |
 | T4 — WASM artifact | passed — [evidence](docs/evidence/T4/) |
 | T5 — architecture write-up, `v1.0.0` | passed — [evidence](docs/evidence/T5/) |
-| T6 — what the demos need from the browser build, `v1.1.0` | in review — [evidence](docs/evidence/T6/) |
+| T6 — what the demos need from the browser build, `v1.1.0` | passed — [evidence](docs/evidence/T6/) |
 
 ## Layout
 
