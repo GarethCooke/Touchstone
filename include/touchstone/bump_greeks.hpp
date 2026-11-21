@@ -52,8 +52,11 @@
 // term is large, and there the wider bump loses more than it gains. The same
 // test measures the worst gamma error over the whole grid at 1e-5, at the
 // default and at 1e-4, and asserts that each neighbour's is more than three
-// times the default's (it measures five times and ten). A caller who knows the
-// option can do better than the default; the default cannot know the option.
+// times the default's. The wide side is truncation, and measures ten times
+// wherever it has been built. The narrow side is rounding and moves with the
+// compiler and its maths library: five times on one build, seven on another. A
+// caller who knows the option can do better than the default; the default
+// cannot know the option.
 //
 // **These sizes are for a pricer accurate to machine precision.** A pricer whose
 // own error is `d` — a finite-difference grid, a Monte Carlo — has that in place
