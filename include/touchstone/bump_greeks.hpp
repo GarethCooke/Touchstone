@@ -29,8 +29,8 @@
 // `h ~ eps^(1/4)`, about 1.2e-4, and the best accuracy only `eps^(1/2)`, about
 // 1.5e-8 relative. **Gamma therefore wants a bump much larger than delta's**,
 // and using one bump for both costs an order of magnitude in one of them. Hence
-// two spot bumps below, and hence `BumpSizes` at all: these numbers are a
-// property of the arithmetic, not of the option, and they should be visible
+// two spot bumps below, and hence `BumpSizes` at all: the scale of these numbers
+// is a property of the arithmetic, not of the option, and they should be visible
 // rather than buried.
 //
 // The defaults are not the theory's numbers but measured ones: each is the size
@@ -44,6 +44,16 @@
 // (rounding floors, which move a little between compilers), each within an
 // order of magnitude of the `eps^(2/3)` (a first difference) or `eps^(1/2)`
 // (the second) the analysis predicts.
+//
+// For gamma the default is chosen for the worst option, and that is not the
+// typical one. A bump of 1e-4, close to the analysis's 1.2e-4, is the more
+// accurate on most of the golden grid. But a short option at a low volatility
+// has a gamma that is a narrow spike, the fourth derivative in its truncation
+// term is large, and there the wider bump loses more than it gains. The same
+// test measures the worst gamma error over the whole grid at 1e-5, at the
+// default and at 1e-4, and asserts that each neighbour's is more than three
+// times the default's (it measures five times and ten). A caller who knows the
+// option can do better than the default; the default cannot know the option.
 //
 // **These sizes are for a pricer accurate to machine precision.** A pricer whose
 // own error is `d` — a finite-difference grid, a Monte Carlo — has that in place
@@ -86,8 +96,9 @@ struct BumpSizes {
     /// `dS = spot_relative * S`, for delta. Measured optimum; `eps^(1/3)` is 6e-6.
     double spot_relative{1e-6};
 
-    /// `dS = spot_relative_for_gamma * S`, for gamma. Measured optimum;
-    /// `eps^(1/4)` is 1.2e-4.
+    /// `dS = spot_relative_for_gamma * S`, for gamma. Measured optimum for the
+    /// worst option of the golden grid; `eps^(1/4)` is 1.2e-4, and most options
+    /// do better near it.
     double spot_relative_for_gamma{3e-5};
 
     double vol_absolute{1e-6};             ///< For vega.

@@ -28,6 +28,7 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <initializer_list>
 #include <iomanip>
 #include <sstream>
 #include <stdexcept>
@@ -180,6 +181,62 @@ TEST_SUITE("bump-greeks")
             CHECK(measured.front() > measured[best] * 10.0);
         }
         MESSAGE(table.str());
+    }
+
+    TEST_CASE("gamma's default bump is the best for the worst option, not for the typical one")
+    {
+        // The sweep above tries nothing between 3e-5 and 1e-3. A bump of 1e-4,
+        // near the analysis's `eps^(1/4)`, is closer than the default on most of
+        // the main grid, and the default is the right one all the same. This is
+        // the measurement that says so: the *worst* error over the grid is
+        // smallest at the default, because a short option at a low volatility has
+        // a gamma that is a narrow spike, and the fourth derivative in its
+        // truncation term makes a wide bump expensive. A default has to serve
+        // that option too.
+        const auto& file = touchstone::testing::golden_file();
+
+        struct Candidate {
+            double size;
+            Worst worst{};
+        };
+        Candidate narrower{1e-5};
+        Candidate at_default{BumpSizes{}.spot_relative_for_gamma};
+        Candidate wider{1e-4};
+        std::size_t rows = 0;
+        std::size_t wider_is_closer = 0;
+
+        for (std::size_t i = 0; i < file.cases.size(); i += sweep_scale) {
+            const GoldenCase& row = file.cases[i];
+            const double analytic = touchstone::price_and_greeks(row.option, row.market).gamma;
+            const auto error_at = [&](Candidate& candidate) {
+                BumpSizes bumps{};
+                bumps.spot_relative_for_gamma = candidate.size;
+                const double bumped = touchstone::bump_greeks(row.option, row.market, bumps).gamma;
+                candidate.worst.observe(bumped, analytic, row);
+                return touchstone::testing::scaled_error(bumped, analytic);
+            };
+            error_at(narrower);
+            const double own = error_at(at_default);
+            if (error_at(wider) < own) {
+                ++wider_is_closer;
+            }
+            ++rows;
+        }
+
+        std::ostringstream report;
+        report << "gamma's bump over " << rows << " rows of the main grid; the wider is closer on "
+               << wider_is_closer;
+        for (const Candidate* candidate : {&narrower, &at_default, &wider}) {
+            report << "\n    at " << candidate->size << ": " << candidate->worst.describe("gamma");
+        }
+        MESSAGE(report.str());
+
+        // The worst row is one row, and a scaled-down sweep may not hold it.
+        if (touchstone::testing::full_sweep) {
+            CHECK(narrower.worst.error() > at_default.worst.error() * 3.0);
+            CHECK(wider.worst.error() > at_default.worst.error() * 3.0);
+            CHECK(wider_is_closer * 2 > rows);
+        }
     }
 
     TEST_CASE("bumping a grid gets the grid's Greeks, at the grid's bump size")

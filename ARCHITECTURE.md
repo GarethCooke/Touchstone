@@ -165,7 +165,10 @@ wider one for gamma, because a second difference balances truncation against
 cancellation at a larger bump than a first difference does. `tests/test_bump_greeks.cpp`
 sweeps the bumps for delta, gamma, vega and rho from 1e-9 to 1e-2 against the analytic
 Greeks, and asserts that each is most accurate at the size `BumpSizes` defaults to (1e-6;
-3e-5 for gamma) and more than ten times less accurate at both ends of the sweep.
+3e-5 for gamma) and more than ten times less accurate at both ends of the sweep. Gamma's
+default is the worst case's optimum and not the typical option's: over the main golden grid
+a bump of 1e-4 is the more accurate on most rows, and the worst gamma error at 1e-5 and at
+1e-4 is each more than three times the default's, which the same file asserts.
 
 **The generator and the paths.** The generator is xoshiro128\*\* seeded through the
 MurmurHash3 finaliser, with 53-bit uniforms and normals by Wichura's AS241 inverse, frozen by
