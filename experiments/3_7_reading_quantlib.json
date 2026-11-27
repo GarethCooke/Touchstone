@@ -1,0 +1,645 @@
+{
+  "page": "3.7",
+  "script": "3_7_reading_quantlib.py",
+  "params": {
+    "quick": false,
+    "market": {
+      "S": 100.0,
+      "K": 100.0,
+      "r": 0.05,
+      "sigma": 0.4,
+      "T": 1.0,
+      "q": 0.0,
+      "note": "Part 2's option (page 2.9): a share at 100 paying no dividend, strike 100, one year"
+    },
+    "expiry_days": 365
+  },
+  "environment": {
+    "quantlib": "1.43"
+  },
+  "results": {
+    "by_hand": {
+      "engine_inputs": {
+        "forward": 105.1271096376024,
+        "std_dev": 0.4,
+        "discount": 0.951229424500714,
+        "variance": 0.16000000000000003
+      },
+      "black_calculator": {
+        "d1": 0.3250000000000002,
+        "d2": -0.07499999999999984,
+        "value": 18.022951450216684,
+        "delta": 0.6274094641532841,
+        "gamma": 0.009460495798345486,
+        "theta": -9.804296386931982
+      },
+      "closed_form": {
+        "call": 18.02295145021668,
+        "put": 13.145893900288087,
+        "call_delta": 0.627409464153284
+      },
+      "theta_by_two_prices": -9.80429639714231,
+      "expiry_step_for_theta": 0.0001,
+      "rate_and_yield_exchanged": {
+        "engine_inputs": {
+          "forward": 95.1229424500714,
+          "std_dev": 0.4,
+          "discount": 1.0,
+          "variance": 0.16000000000000003
+        },
+        "call": 13.145893900288087,
+        "call_delta": 0.5040494748495968
+      }
+    },
+    "oracle": {
+      "call": {
+        "price": 18.02295145021668,
+        "delta": 0.6274094641532842,
+        "gamma": 0.009460495798345486,
+        "vega": 37.84198319338194,
+        "theta": -9.80429638693198,
+        "rho": 44.71799496511176,
+        "dividend_rho": -62.74094641532844
+      },
+      "put": {
+        "price": 13.145893900288078,
+        "delta": -0.3725905358467157,
+        "gamma": 0.009460495798345486,
+        "vega": 37.84198319338194,
+        "theta": -5.048149264428405,
+        "rho": -50.40494748495965,
+        "dividend_rho": 37.25905358467157
+      },
+      "closed_form": {
+        "call": {
+          "price": 18.02295145021668,
+          "delta": 0.627409464153284,
+          "gamma": 0.009460495798345488,
+          "vega": 37.84198319338195,
+          "theta": -9.804296386931977,
+          "rho": 44.71799496511172,
+          "dividend_rho": -62.7409464153284
+        },
+        "put": {
+          "price": 13.145893900288087,
+          "delta": -0.372590535846716,
+          "gamma": 0.009460495798345488,
+          "vega": 37.84198319338195,
+          "theta": -5.048149264428405,
+          "rho": -50.404947484959685,
+          "dividend_rho": 37.2590535846716
+        }
+      },
+      "deviation_in_natural_scale": {
+        "call": {
+          "price": 0.0,
+          "delta": 2.220446049250313e-16,
+          "gamma": 1.734723475976807e-16,
+          "vega": 7.105427357601002e-17,
+          "theta": 3.552713678800501e-17,
+          "rho": 3.552713678800501e-16,
+          "dividend_rho": 3.552713678800501e-16
+        },
+        "put": {
+          "price": 8.881784197001253e-17,
+          "delta": 2.7755575615628914e-16,
+          "gamma": 1.734723475976807e-16,
+          "vega": 7.105427357601002e-17,
+          "theta": 0.0,
+          "rho": 3.552713678800501e-16,
+          "dividend_rho": 2.842170943040401e-16
+        }
+      }
+    },
+    "quantlib_black_calculator": {
+      "value": 18.022951450216684,
+      "delta": 0.6274094641532841,
+      "gamma": 0.009460495798345488,
+      "theta": -9.804296386931984
+    },
+    "evaluation_date": {
+      "generator_date": "2026-01-01",
+      "expiry_date": "2027-01-01",
+      "call": {
+        "the_day_before_expiry": {
+          "evaluation_date": "2026-12-31",
+          "price": 18.02295145021668,
+          "delta": 0.6274094641532842,
+          "gamma": 0.009460495798345486,
+          "vega": 37.84198319338194,
+          "theta": -9.80429638693198,
+          "rho": 44.71799496511176,
+          "dividend_rho": -62.74094641532844,
+          "same_bits_as_on_the_generator_date": true,
+          "every_number_zero": false
+        },
+        "the_expiry_date": {
+          "evaluation_date": "2027-01-01",
+          "price": 0.0,
+          "delta": 0.0,
+          "gamma": 0.0,
+          "vega": 0.0,
+          "theta": 0.0,
+          "rho": 0.0,
+          "dividend_rho": 0.0,
+          "same_bits_as_on_the_generator_date": false,
+          "every_number_zero": true
+        }
+      },
+      "grid": {
+        "evaluation_date": "2026-07-01",
+        "rows": 7200,
+        "rows_zero_in_every_column": 1800,
+        "rows_identical_to_the_generator_date": 5400,
+        "rows_neither": 0,
+        "expiry_days_of_the_zero_rows": [
+          91
+        ],
+        "expiry_days_of_the_identical_rows": [
+          365,
+          730,
+          1826
+        ],
+        "rows_on_the_generator_date_identical_to_the_committed_file": 7200,
+        "largest_difference_from_the_committed_file": 0.0
+      }
+    },
+    "handles_exchanged": {
+      "spot_the_bug_returns": 13.145893900288087,
+      "generator_with_rate_and_yield_exchanged": {
+        "price": 13.145893900288087,
+        "delta": 0.5040494748495966,
+        "gamma": 0.009460495798345485,
+        "vega": 37.84198319338194,
+        "theta": -5.048149264428401,
+        "rho": 37.25905358467158,
+        "dividend_rho": -50.40494748495966
+      },
+      "same_bits": true
+    },
+    "volatility_as_a_percentage": {
+      "price": 99.99999999999999,
+      "delta": 0.9999999999999998,
+      "gamma": 1.3461578636664985e-91,
+      "vega": 5.384631454665992e-86,
+      "theta": 3.552713678800501e-15,
+      "rho": 0.0,
+      "dividend_rho": -99.99999999999999
+    },
+    "american": {
+      "put": {
+        "price": 13.667608161215927,
+        "delta": -0.39444377571286643,
+        "gamma": 0.010426788178041796,
+        "spread": 0.0018553121680273676,
+        "delta_spread": 8.128451969641182e-05,
+        "gamma_spread": 4.7487189854603096e-06
+      },
+      "call": {
+        "price": 18.02295126294155,
+        "delta": 0.6273976455776763,
+        "gamma": 0.009462792083883887,
+        "spread": 0.0018058529156412817,
+        "delta_spread": 6.635086990325334e-05,
+        "gamma_spread": 3.6245710867931213e-06
+      },
+      "call_less_the_closed_form": -1.8727513051430833e-07,
+      "premium_of_the_put": 0.5217142609278493
+    },
+    "golden_files": {
+      "bs_vanilla": {
+        "quantlib_version": "1.43",
+        "engine": "AnalyticEuropeanEngine on BlackScholesMertonProcess",
+        "evaluation_date": "2026-01-01",
+        "rows": 7200,
+        "edge_rows": 34,
+        "all_rows": 7234,
+        "matched_pairs": 3617,
+        "tolerance": 1e-10,
+        "edge_tolerance": 1e-08,
+        "rows_with_rate_equal_to_yield": 800,
+        "rows_expiring_in_91_days": 1800,
+        "verifier_threshold": 1e-13
+      },
+      "american_vanilla": {
+        "quantlib_version": "1.43",
+        "engine": "BinomialVanillaEngine, LeisenReimer at 2001 steps, on BlackScholesMertonProcess",
+        "rows": 864,
+        "steps": 2001,
+        "lattices": [
+          "leisen_reimer",
+          "cox_ross_rubinstein",
+          "tian"
+        ],
+        "worst_spread": 0.02014520690401156,
+        "rows_with_no_spread": 72
+      }
+    },
+    "quoted_in_checks": {
+      "call": 18.02295145021668,
+      "put": 13.145893900288078,
+      "spot_the_bug_returns": 13.145893900288087,
+      "call_at_a_volatility_of_40": 99.99999999999999,
+      "rows_that_go_to_zero": 1800,
+      "rows_that_do_not_change": 5400,
+      "american_put": 13.667608161215927,
+      "american_put_spread": 0.0018553121680273676,
+      "worst_spread_in_the_file": 0.02014520690401156,
+      "golden_tolerance": 1e-10
+    }
+  },
+  "checks": [
+    {
+      "claim": "the closed form is page 2.9's 18.0230",
+      "measured": 18.02295145021668,
+      "expected": 18.023,
+      "tolerance": 5e-05,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 the forward is 105.13",
+      "measured": 105.1271096376024,
+      "expected": 105.13,
+      "tolerance": 0.005,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 the standard deviation is 0.4",
+      "measured": 0.4,
+      "expected": 0.4,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 the discount factor is 0.9512",
+      "measured": 0.951229424500714,
+      "expected": 0.9512,
+      "tolerance": 5e-05,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 from those three numbers the calculator's route gives the closed form's price",
+      "measured": 18.022951450216684,
+      "expected": 18.02295145021668,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 and its delta",
+      "measured": 0.6274094641532841,
+      "expected": 0.627409464153284,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 theta by the equation is the theta two prices a little apart in expiry give",
+      "measured": -9.804296386931982,
+      "expected": -9.80429639714231,
+      "tolerance": 1e-06,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 and it is -9.80 a year",
+      "measured": -9.804296386931982,
+      "expected": -9.8,
+      "tolerance": 0.005,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C5 with the rate and the yield exchanged the call is worth what the put is",
+      "measured": 13.145893900288087,
+      "expected": 13.145893900288087,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C5 which is 13.15",
+      "measured": 13.145893900288087,
+      "expected": 13.15,
+      "tolerance": 0.005,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 QuantLib's call is the closed form's 18.0230",
+      "measured": 18.02295145021668,
+      "expected": 18.02295145021668,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 and its put is the closed form's",
+      "measured": 13.145893900288078,
+      "expected": 13.145893900288087,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C1 all fourteen numbers are within 1e-12 of the verifier's closed form, in each quantity's scale",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 QuantLib's own BlackCalculator on the three numbers gives the engine's price",
+      "measured": 18.022951450216684,
+      "expected": 18.02295145021668,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 this file's restatement of it gives the same price",
+      "measured": 18.022951450216684,
+      "expected": 18.022951450216684,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C2 and the same gamma",
+      "measured": 0.009460495798345486,
+      "expected": 0.009460495798345488,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 QuantLib's calculator's theta is the engine's",
+      "measured": -9.804296386931984,
+      "expected": -9.80429638693198,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 and this file's theta by the equation is the engine's",
+      "measured": -9.804296386931982,
+      "expected": -9.80429638693198,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C3 the engine's theta is the verifier's, which uses the textbook formula",
+      "measured": -9.80429638693198,
+      "expected": -9.804296386931977,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 the day before expiry the page's call is priced as on the generator's date, to the last bit",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 on the expiry date all seven numbers are zero",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 with the global date at 1 July 2026, 1,800 rows of the grid are zero in every column",
+      "measured": 1800.0,
+      "expected": 1800.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 the other 5,400 are what the generator's own date gives, to the last bit",
+      "measured": 5400.0,
+      "expected": 5400.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 and on its own date the generator's grid is the committed file's, within the file's tolerance",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 no row is anything else, the zero rows are the 91-day ones and no 91-day row survives",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C4 and 1,800 is the number of 91-day rows in the committed file",
+      "measured": 1800.0,
+      "expected": 1800.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C5 the check's statements return what the generator returns with the rate and the yield exchanged, to the last bit",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C5 which is the put's price",
+      "measured": 13.145893900288087,
+      "expected": 13.145893900288078,
+      "tolerance": 1e-12,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C5 800 rows of the grid have a rate equal to their yield",
+      "measured": 800.0,
+      "expected": 800.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "a volatility written as 40 prices the call at the share price, 100.00",
+      "measured": 99.99999999999999,
+      "expected": 100.0,
+      "tolerance": 0.005,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C6 Leisen-Reimer prices the page's put at 13.6676",
+      "measured": 13.667608161215927,
+      "expected": 13.6676,
+      "tolerance": 5e-05,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C6 and the other two lattices are within 0.0019 of it",
+      "measured": 0.0018553121680273676,
+      "expected": 0.0019,
+      "tolerance": 5e-05,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C6 early exercise is worth 0.52 on the put",
+      "measured": 0.5217142609278493,
+      "expected": 0.52,
+      "tolerance": 0.005,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C6 the call, never exercised early, is within 2e-7 of the closed form on Leisen-Reimer",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C6 while the other two lattices are 0.0018 from Leisen-Reimer",
+      "measured": 0.0018058529156412817,
+      "expected": 0.0018,
+      "tolerance": 5e-05,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C6 so the spread is more than a thousand times the primary lattice's own error there",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 both files were written by QuantLib 1.43, which is the QuantLib running now",
+      "measured": 1.0,
+      "expected": 1.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 the European file has 7,200 rows",
+      "measured": 7200.0,
+      "expected": 7200.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 and 34 edge rows",
+      "measured": 34.0,
+      "expected": 34.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 which is 3,617 pairs of a call and a put",
+      "measured": 3617.0,
+      "expected": 3617.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 held to 1e-10",
+      "measured": 1e-10,
+      "expected": 1e-10,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 and 1e-8",
+      "measured": 1e-08,
+      "expected": 1e-08,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 the verifier's threshold is 1e-13",
+      "measured": 1e-13,
+      "expected": 1e-13,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 the American file has 864 rows",
+      "measured": 864.0,
+      "expected": 864.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 three lattices",
+      "measured": 3.0,
+      "expected": 3.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 at 2,001 steps",
+      "measured": 2001.0,
+      "expected": 2001.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 the worst spread is 0.020",
+      "measured": 0.02014520690401156,
+      "expected": 0.02,
+      "tolerance": 0.0005,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "C7 on 72 rows the three lattices agree exactly",
+      "measured": 72.0,
+      "expected": 72.0,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    },
+    {
+      "claim": "the figures the checks quote are the results above",
+      "measured": 13.145893900288087,
+      "expected": 13.145893900288087,
+      "tolerance": 0.0,
+      "mode": "abs",
+      "pass": true
+    }
+  ]
+}
