@@ -138,7 +138,7 @@ read the six pages and the payoff-diagram builder on the preview and approved th
 2026-11-17, 1.5 says its swap must be cleared and is margined, and nothing a reader can see
 says who decided something or when, the experiment scripts included.
 
-### ☐ L5 — Part 3 and demos D7–D10 on the WASM backend
+### ☑ L5 — Part 3 and demos D7–D10 on the WASM backend
 **Entry:** L3, T3, T4, T6; Fable drafts for 3.1–3.7, each owed before the batch that converts
 its page. The first batch, the backend, converts no page and starts without them (the owner's
 ruling, 2026-11-20).
@@ -157,6 +157,10 @@ by a site test that runs the browser build, with an experiment script only for a
 library cannot produce; 3.3 covers early exercise on the grid (A12); D9 keeps its generated
 smiles and takes no Deribit snapshot, because Deribit's terms do not allow its market data to
 be published without written approval; numpy is pinned in the site's build.
+**Passed** 2026-11-28 — evidence: `touchstone-learn/docs/evidence/L5/`, with the verdict in
+`verdict.md`. PASS WITH DEFECTS: nine, one medium and eight low, none blocking the merge. The
+owner read the seven pages on the preview and approved them, merged `m/L5` (pull request #11),
+and production shows Parts 0 to 3 end to end, with every demo on the `v1.1.0` build.
 
 ### ☐ L6 — Launch v1
 **Entry:** L4, L5, P1, P2.
