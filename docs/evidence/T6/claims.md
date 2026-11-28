@@ -14,7 +14,7 @@ root.
 | --- | --- | --- | --- |
 | 161 | The document describes Touchstone 1.1.0. Its claims are mapped in T5's claims file and, for those 1.1.0 added or changed, in this one. | `CMakeLists.txt` (`VERSION 1.1.0`); `wasm/smoke.test.mjs` ("the module says which version of the library it is"); this file | Source; asserted for the module. Replaces 1, 130 |
 | 162 | Sample paths of Brownian and geometric Brownian motion from a frozen generator: one path from a seed, or a whole sample stepped from the normals a caller supplies. | `include/touchstone/paths.hpp` (`gbm_path`, `gbm_paths`); `tests/test_paths.cpp` | Source; asserted in 170–173. Extends 5 |
-| 163 | At 1.1.0 the tutorial's demos run on a TypeScript backend; moving them is L5, not yet run. | `ROADMAP.md` (L5 unticked); `CONSTITUTION.md` I15 | Source. Replaces 6 |
+| 163 | The tutorial's demos run on this library compiled to WebAssembly. | `ROADMAP.md` (L5 ticked, its evidence in `touchstone-learn/docs/evidence/L5/`); `CONSTITUTION.md` I15 | Source. Replaces 6 |
 | 164 | An input the path functions accept never produces a NaN, `gbm_paths` among them. | `tests/test_paths.cpp` ("an accepted path never holds a NaN, however extreme", which steps each extreme as one path and as a sample; "a sample with no normals is empty, and a sample that cannot be stepped is refused", the non-finite normals) | Asserted. Extends 11, 85 |
 
 ## §2 System overview, §3 Repo layout, §4 The public surface

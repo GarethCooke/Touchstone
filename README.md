@@ -29,10 +29,9 @@ stream's normals; and the closed form at many points in one call.
 
 Touchstone is one half of a pair. The other half is
 [touchstone.garethcooke.com](https://touchstone.garethcooke.com), a tutorial for developers who work
-alongside quants, whose checks are this library's tests and whose demos are to run on it
-(they run on a TypeScript backend until the tutorial's milestone L5 moves them). The
-organising thesis of both: linear products are priced by discounting and no-arbitrage; only
-nonlinear payoffs need stochastic calculus.
+alongside quants, whose checks are this library's tests and whose demos run on it, compiled
+to WebAssembly. The organising thesis of both: linear products are priced by discounting and
+no-arbitrage; only nonlinear payoffs need stochastic calculus.
 
 **[`ARCHITECTURE.md`](ARCHITECTURE.md)** describes how the library is built, what it holds
 itself to, what it does not claim, one machine's timings of its five entry points, and its

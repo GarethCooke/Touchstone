@@ -24,8 +24,7 @@ geometric Brownian motion drawn from a frozen random-number generator: one path 
 or a whole sample stepped from the normals a caller supplies.
 
 It is one half of a pair. The other half is touchstone.garethcooke.com, a tutorial whose demos
-are to run on this library compiled to WebAssembly. At 1.1.0 they run on a TypeScript
-backend; moving them onto the WebAssembly build is the tutorial's milestone L5, not yet run.
+run on this library compiled to WebAssembly.
 
 **What is claimed.** That the closed form agrees with QuantLib's reference values on every
 row of the committed reference file, and the grid on every row of its 7,200-row main block
@@ -461,3 +460,4 @@ Removed at T5:
 | 2026-11-14 | §10.1: T5's row completed with its date, its release and its tollgate, once T5 had passed. |
 | 2026-11-19 | Touchstone 1.1.0: §1 to §9 for what it added and the sentences it made untrue; §10.1's T6 row. |
 | 2026-11-20 | §10.1: T6's row completed with its date and its release, once T6 had passed. |
+| 2026-11-28 | §1: the tutorial's demos run on the WebAssembly build, once the tutorial's milestone L5 had passed. |
